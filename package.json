@@ -1,10 +1,10 @@
 {
-	"name": "react-hello-webapp",
+	"name": "charity-directory",
 	"engines": {
 		"node": ">=20.0.0"
 	},
 	"version": "1.0.1",
-	"description": "",
+	"description": "A comprehensive charity directory platform for discovering and managing non-profit organizations",
 	"main": "index.js",
 	"scripts": {
 		"dev": "vite",
@@ -13,18 +13,27 @@
         "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
         "preview": "vite preview"
 	},
-	"author": {
-		"name": "Alejandro Sanchez",
-		"url": "http://alesanchezr.com/"
-	},
+	"author": "Charity Directory Team",
 	"contributors": [
 		{
-			"name": "Alejandro Sanchez",
-			"url": "http://alesanchezr.com/"
+			"name": "Salem Mohd",
+			"email": "salim.farouq@gmail.com",
+			"url": "http://github.com/salemmohdmohd"
 		},
 		{
-			"name": "Ignacio Cordoba",
-			"url": "http://github.com/nachovz"
+			"name": "Elysa Reynolds",
+			"email": "reynolds.d.elizabeth@gmail.com",
+			"url": "http://github.com/Miryre"
+		},
+		{
+			"name": "Gelilla Tafa",
+			"email": "gelillatafa@gmail.com",
+			"url": "http://github.com/Gelillatafa"
+		},
+		{
+			"name": "Brittany Perry",
+			"email": "BDperry90@gmail.com",
+			"url": "http://github.com/MsPerry1"
 		}
 	],
 	"license": "ISC",
