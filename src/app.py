@@ -36,11 +36,10 @@ jwt = JWTManager(app)
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")
-if db_url is not None:
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace(
-        "postgres://", "postgresql://")
+if db_url and db_url.startswith("sqlite"):
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///local.db'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 MIGRATE = Migrate(app, db, compare_type=True)
