@@ -39,7 +39,7 @@ Thumbs.db
 # ignore log files and databases
 *.log
 *.sql
-*.sqlite
+!charity_directory.db
 
 # ignore compiled files
 *.com

@@ -40,7 +40,12 @@ if db_url is not None:
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url.replace(
         "postgres://", "postgresql://")
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:////tmp/test.db"
+    # Use SQLite for development - stored in project root for sharing
+    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///" + os.path.join(
+        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        "charity_directory.db"
+    )
+#todo but in phase 5: swithc back to posstgres when deploying and remove sqlite db file.
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 MIGRATE = Migrate(app, db, compare_type=True)
