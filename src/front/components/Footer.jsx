@@ -8,7 +8,8 @@ export const Footer = () => (
 		</p>
 		<p>
 			Made with <i className="fa fa-heart" style={{ color: '#28a745' }} /> by{" "}
-			<span style={{ color: '#28a745', fontWeight: '600' }}>Unseen Team</span>
+			<span style={{ color: '#28a745', fontWeight: '600' }}>The Unseen Team</span>
 		</p>
 	</footer>
 );
+dd
