@@ -4,27 +4,34 @@ import { Link } from "react-router-dom";
 export const Navbar = () => {
 
 	return (
-		<nav className="navbar navbar-light bg-light">
+		<nav className="navbar navbar-expand-md navbar-light bg-light">
 			<div className="container">
-				<Link to="/">
-					<span className="navbar-brand mb-0 h1">Unseen</span>
+				<Link to="/" className="navbar-brand">
+					Unseen
 				</Link>
-				<div className="ml-auto">
-					<Link to="/categories">
-						Categories
-					</Link>
-					<br/>
-					<Link to="/login/signup">
-						Login/Signup
-					</Link>
-					<br/>
-					<Link to="/about us">
-						About Us
-					</Link>
-					<br/>
-					<Link to="/list your charity">
-						List Your Charity +
-					</Link>
+				<button 
+					className="navbar-toggler" 
+					type="button" 
+					data-bs-toggle="collapse" 
+					data-bs-target="#navbarNav"
+				>
+					<span className="navbar-toggler-icon"></span>
+				</button>
+				<div className="collapse navbar-collapse" id="navbarNav">
+					<div className="navbar-nav ms-auto">
+						<Link to="/categories" className="nav-link">
+							Categories
+						</Link>
+						<Link to="/login-signup" className="nav-link">
+							Login/Signup
+						</Link>
+						<Link to="/about-us" className="nav-link">
+							About Us
+						</Link>
+						<Link to="/list-your-charity" className="nav-link">
+							List Your Charity +
+						</Link>
+					</div>
 				</div>
 			</div>
 		</nav>
