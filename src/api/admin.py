@@ -1,9 +1,7 @@
 
 import os
 from flask_admin import Admin
-from .models import (db, User, Organization, Category, Location, UserBookmark, SearchHistory,
-                    OrganizationPhoto, OrganizationSocialLink, ContactMessage,
-                    Notification, AuditLog, Advertisement)
+from .models import (db, User, Organization, Category, Location, UserBookmark, SearchHistory, OrganizationPhoto, OrganizationSocialLink, ContactMessage, Notification, AuditLog, Advertisement)
 from flask_admin.contrib.sqla import ModelView
 
 def setup_admin(app):
