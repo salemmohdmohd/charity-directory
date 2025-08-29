@@ -1,19 +1,234 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import String, Boolean
+from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column
+from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
 class User(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
+    __tablename__ = 'users'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=True)  # Temporarily nullable for migration
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=True)  # Nullable for OAuth users
+    role = db.Column(db.String(20), default='visitor')  # visitor / org_admin / platform_admin
+    is_verified = db.Column(db.Boolean, default=False)
+    google_id = db.Column(db.String(50), nullable=True)
+    profile_picture = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    last_login = db.Column(db.DateTime, nullable=True)
+
+    # Relationships
+    bookmarks = db.relationship('UserBookmark', back_populates='user', cascade='all, delete-orphan')
+    search_history = db.relationship('SearchHistory', back_populates='user', cascade='all, delete-orphan')
+    notifications = db.relationship('Notification', back_populates='user', cascade='all, delete-orphan')
+    audit_logs = db.relationship('AuditLog', back_populates='user', cascade='all, delete-orphan')
+    administered_orgs = db.relationship('Organization', foreign_keys='Organization.admin_user_id', back_populates='admin_user')
+    approved_orgs = db.relationship('Organization', foreign_keys='Organization.approved_by', back_populates='approver')
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
-    def serialize(self):
-        return {
-            "id": self.id,
-            "email": self.email,
-            # do not serialize the password, its a security breach
-        }
+class Organization(db.Model):
+    __tablename__ = 'organizations'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    mission = db.Column(db.Text, nullable=True)
+    description = db.Column(db.Text, nullable=True)
+    address = db.Column(db.Text, nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    email = db.Column(db.String(150), nullable=True)
+    website = db.Column(db.String(255), nullable=True)
+    donation_link = db.Column(db.String(255), nullable=True)
+    logo_url = db.Column(db.String(255), nullable=True)
+    operating_hours = db.Column(db.Text, nullable=True)
+    established_year = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20), default='pending')  # pending / approved / rejected / flagged
+    verification_level = db.Column(db.String(20), default='basic')  # basic / verified / premium
+    view_count = db.Column(db.Integer, default=0)
+    bookmark_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Foreign Keys
+    category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=True)
+    location_id = db.Column(db.Integer, db.ForeignKey('locations.id'), nullable=True)
+    admin_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    approval_date = db.Column(db.DateTime, nullable=True)
+    rejection_reason = db.Column(db.Text, nullable=True)
+
+    # Relationships
+    bookmarks = db.relationship('UserBookmark', back_populates='organization', cascade='all, delete-orphan')
+    photos = db.relationship('OrganizationPhoto', back_populates='organization', cascade='all, delete-orphan')
+    social_links = db.relationship('OrganizationSocialLink', back_populates='organization', cascade='all, delete-orphan')
+    contact_messages = db.relationship('ContactMessage', back_populates='organization', cascade='all, delete-orphan')
+    admin_user = db.relationship('User', foreign_keys=[admin_user_id], back_populates='administered_orgs')
+    approver = db.relationship('User', foreign_keys=[approved_by], back_populates='approved_orgs')
+
+
+
+class Category(db.Model):
+    __tablename__ = 'categories'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    icon_url = db.Column(db.String(255), nullable=True)
+    color_code = db.Column(db.String(7), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    sort_order = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    organizations = db.relationship('Organization', backref='category', lazy=True)
+
+class Location(db.Model):
+    __tablename__ = 'locations'
+    id = db.Column(db.Integer, primary_key=True)
+    country = db.Column(db.String(100), nullable=False)
+    state_province = db.Column(db.String(100), nullable=True)
+    city = db.Column(db.String(100), nullable=False)
+    postal_code = db.Column(db.String(20), nullable=True)
+    latitude = db.Column(db.Numeric(10, 8), nullable=True)
+    longitude = db.Column(db.Numeric(11, 8), nullable=True)
+    timezone = db.Column(db.String(50), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    organizations = db.relationship('Organization', backref='location', lazy=True)
+
+
+
+class UserBookmark(db.Model):
+    __tablename__ = 'user_bookmarks'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', back_populates='bookmarks')
+    organization = db.relationship('Organization', back_populates='bookmarks')
+
+    # Unique constraint to prevent duplicate bookmarks
+    __table_args__ = (db.UniqueConstraint('user_id', 'organization_id', name='unique_user_organization_bookmark'),)
+
+
+class SearchHistory(db.Model):
+    __tablename__ = 'search_history'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    search_query = db.Column(db.String(255), nullable=False)
+    filters_applied = db.Column(db.JSON, nullable=True)
+    results_count = db.Column(db.Integer, nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    searched_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', back_populates='search_history')
+
+
+# New models from UML that were missing
+class OrganizationPhoto(db.Model):
+    __tablename__ = 'organization_photos'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
+    file_name = db.Column(db.String(255), nullable=False)
+    file_path = db.Column(db.String(500), nullable=False)
+    alt_text = db.Column(db.String(255), nullable=True)
+    is_primary = db.Column(db.Boolean, default=False)
+    sort_order = db.Column(db.Integer, default=0)
+    file_size = db.Column(db.Integer, nullable=True)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    organization = db.relationship('Organization', back_populates='photos')
+
+
+class OrganizationSocialLink(db.Model):
+    __tablename__ = 'organization_social_links'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
+    platform = db.Column(db.String(50), nullable=False)  # facebook / instagram / twitter / linkedin / youtube
+    url = db.Column(db.String(500), nullable=False)
+    is_verified = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    organization = db.relationship('Organization', back_populates='social_links')
+
+
+class ContactMessage(db.Model):
+    __tablename__ = 'contact_messages'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
+    sender_email = db.Column(db.String(150), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    organization = db.relationship('Organization', back_populates='contact_messages')
+
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', back_populates='notifications')
+
+
+class AuditLog(db.Model):
+    __tablename__ = 'audit_log'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    action_type = db.Column(db.String(50), nullable=False)  # create / update / delete / approve / reject
+    target_type = db.Column(db.String(50), nullable=False)  # organization / user / category
+    target_id = db.Column(db.Integer, nullable=False)
+    old_values = db.Column(db.JSON, nullable=True)
+    new_values = db.Column(db.JSON, nullable=True)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.String(500), nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', back_populates='audit_logs')
+
+
+class Advertisement(db.Model):
+    __tablename__ = 'advertisements'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    image_url = db.Column(db.String(500), nullable=True)
+    target_url = db.Column(db.String(500), nullable=False)
+    ad_type = db.Column(db.String(50), nullable=False)  # sponsored / banner / featured
+    placement = db.Column(db.String(50), nullable=False)  # home / search / profile
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
+    budget = db.Column(db.Numeric(10, 2), nullable=True)
+    clicks_count = db.Column(db.Integer, default=0)
+    impressions_count = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    organization = db.relationship('Organization', backref='advertisements')
