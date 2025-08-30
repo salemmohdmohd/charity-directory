@@ -76,7 +76,7 @@ dist/*
 
 # backend stuff
 .venv
-database.database
-database.db
+# database.database
+# database.db
 diagram.png
 __pycache__/
