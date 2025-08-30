@@ -1,6 +1,7 @@
 import React from 'react'
 
-const HeroSection = () => {
+
+export const HeroSection = () => {
   return (
     <header className='bg-primary text-white text-center py-5'>
         <div className='container'>
