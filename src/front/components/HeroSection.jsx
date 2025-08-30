@@ -10,14 +10,14 @@ export const HeroSection = () => {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        minHeight: '500px',
+        minHeight: '800px',
         display: 'flex',
         alignItems: 'center',
         }}
         >
         <div className='container'>
-            <h1 className='display-4 mb-3'>Without You There Is No Us</h1>
-            <p className='lead mb-4'>
+            <h1 className='display-4 fw-bold mb-3'>Without You There Is No Us</h1>
+            <p className='lead fw-bold mb-4'>
                 Support For Your Causes
             </p>
             <button className='btn btn-light btn-lg'>Learn More</button>
