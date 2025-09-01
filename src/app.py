@@ -14,6 +14,8 @@ from api.models import db
 from api.routes import api
 from api.admin import setup_admin
 from api.commands import setup_commands
+from dotenv import load_dotenv
+
 
 # from models import Person
 
@@ -48,12 +50,13 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
 app.config['FRONTEND_URL'] = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 mail = Mail(app)
 
+load_dotenv()
+
 # database condiguration
 db_url = os.getenv("DATABASE_URL")
-if db_url and db_url.startswith("sqlite"):
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///local.db'
+if not db_url:
+    raise ValueError("DATABASE_URL environment variable is required")
+app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 MIGRATE = Migrate(app, db, compare_type=True)

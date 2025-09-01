@@ -621,91 +621,59 @@ Monetization Tables:
 ```
 API Routes (Consolidated in src/api/routes.py):
 
-Authentication:
+Authentication ( Implemented):
 ├── POST /api/auth/register
 ├── POST /api/auth/login
-├── POST /api/auth/google-login
 ├── POST /api/auth/logout
-├── POST /api/auth/refresh-token
 ├── POST /api/auth/forgot-password
 ├── POST /api/auth/reset-password
-└── GET /api/auth/verify-email/:token
+├── POST /api/auth/verify-email
+├── GET /api/auth/me
+└── POST /api/auth/change-password
 
-Organizations:
-├── GET /api/organizations (with filters)
-├── GET /api/organizations/:id
-├── POST /api/organizations (create)
-├── PUT /api/organizations/:id (update)
-├── DELETE /api/organizations/:id
-├── POST /api/organizations/:id/photos
-├── DELETE /api/organizations/:id/photos/:photoId
-├── POST /api/organizations/:id/social-links
-└── GET /api/organizations/:id/analytics
+Admin Management ( Handled by Flask-Admin):
+├── Flask-Admin Interface: /admin/
+│   ├── Dashboard with real-time analytics
+│   ├── User Management (/admin/users/)
+│   ├── Organization Management (/admin/organizations/)
+│   │   ├── Approve/Reject functionality
+│   │   ├── Status tracking
+│   │   └── Bulk operations
+│   ├── Category Management (/admin/categories/)
+│   ├── Advertisement Management (/admin/advertisements/)
+│   ├── Notification Management (/admin/notifications/)
+│   └── Audit Log Viewing (/admin/audit-logs/)
 
-Categories:
-├── GET /api/categories
-├── POST /api/categories (admin only)
-├── PUT /api/categories/:id (admin only)
-└── DELETE /api/categories/:id (admin only)
+Public API ( To Be Implemented):
+├── Organizations:
+│   ├── GET /api/organizations (with filters)
+│   ├── GET /api/organizations/:id
+│   ├── POST /api/organizations (create/submit for approval)
+│   └── GET /api/organizations/:id/contact
+├── Categories:
+│   ├── GET /api/categories
+│   └── GET /api/categories/:id/organizations
+├── Locations:
+│   ├── GET /api/locations
+│   └── GET /api/locations/search
+├── Search:
+│   ├── GET /api/search/organizations
+│   ├── GET /api/search/suggestions
+│   └── GET /api/search/popular
+├── Users (Authenticated):
+│   ├── GET /api/users/profile
+│   ├── PUT /api/users/profile
+│   ├── GET /api/users/bookmarks
+│   ├── POST /api/users/bookmarks
+│   └── DELETE /api/users/bookmarks/:id
+└── Notifications:
+    ├── GET /api/notifications
+    ├── PUT /api/notifications/:id/read
+    └── GET /api/notifications/unread-count
 
-Locations:
-├── GET /api/locations
-├── GET /api/locations/search
-└── POST /api/locations (admin only)
-
-Users:
-├── GET /api/users/profile
-├── PUT /api/users/profile
-├── GET /api/users/bookmarks
-├── POST /api/users/bookmarks
-├── DELETE /api/users/bookmarks/:id
-└── GET /api/users/search-history
-
-Admin:
-├── GET /api/admin/organizations/pending
-├── POST /api/admin/organizations/:id/approve
-├── POST /api/admin/organizations/:id/reject
-├── GET /api/admin/users
-├── PUT /api/admin/users/:id/role
-├── GET /api/admin/analytics
-├── GET /api/admin/audit-logs
-├── POST /api/admin/notifications/broadcast
-└── Flask-Admin Interface: 🚀
-    ├── /admin/ (Dashboard with real-time analytics)
-    ├── /admin/user/ (User management)
-    ├── /admin/organization/ (Organization management)
-    ├── /admin/category/ (Category management)
-    ├── /admin/auditlog/ (Audit logs)
-    └── /admin/advertisement/ (Advertisement management)
-
-Search:
-├── GET /api/search/organizations
-├── GET /api/search/suggestions
-└── GET /api/search/popular
-
-Notifications:
-├── GET /api/notifications
-├── PUT /api/notifications/:id/read
-├── POST /api/notifications/mark-all-read
-└── GET /api/notifications/unread-count
-
-File Upload:
-├── POST /api/upload/image
-└── DELETE /api/upload/:filename
-
-Contact:
-├── POST /api/contact/organization/:id
-└── GET /api/contact/messages (org admin only)
-
-Monetization:
-├── GET /api/advertisements
-├── POST /api/advertisements (admin only)
-├── PUT /api/advertisements/:id (admin only)
-└── POST /api/advertisements/:id/click
-
-Development & Deployment:
+Development & Health:
 ├── GET /health (health check)
-├── GET / (API sitemap)
+├── GET /api/hello (test endpoint - can be removed)
 └── Admin Interface at /admin (Flask-Admin)
 ```
 
