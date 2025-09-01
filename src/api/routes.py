@@ -4,7 +4,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from api.models import db, User, PasswordReset, EmailVerification, AuditLog, Organization, UserBookmark, SearchHistory, Advertisement, Category, Notification, Location, ContactMessage, OrganizationPhoto, OrganizationSocialLink
 from api.auth_utils import AuthService, validate_password, validate_email_format
 from datetime import datetime, timedelta
-from sqlalchemy import func, desc, text, or_
+from sqlalchemy import func, desc, text, or_, and_
 from functools import wraps
 import json
 
@@ -57,6 +57,91 @@ organization_model = api.model('Organization', {
 pagination_model = api.model('Pagination', {
     'page': fields.Integer, 'pages': fields.Integer, 'per_page': fields.Integer,
     'total': fields.Integer, 'has_next': fields.Boolean, 'has_prev': fields.Boolean
+})
+
+# Response Models
+auth_response_model = api.model('AuthResponse', {
+    'message': fields.String(description='Response message'),
+    'access_token': fields.String(description='JWT access token'),
+    'user': fields.Nested(user_model, description='User information')
+})
+
+message_response_model = api.model('MessageResponse', {
+    'message': fields.String(description='Response message')
+})
+
+org_list_response_model = api.model('OrganizationListResponse', {
+    'organizations': fields.List(fields.Nested(organization_model), description='List of organizations'),
+    'pagination': fields.Nested(pagination_model, description='Pagination information')
+})
+
+category_model = api.model('Category', {
+    'id': fields.Integer,
+    'name': fields.String,
+    'description': fields.String,
+    'icon_url': fields.String,
+    'color_code': fields.String,
+    'organization_count': fields.Integer
+})
+
+location_model = api.model('Location', {
+    'id': fields.Integer,
+    'country': fields.String,
+    'state_province': fields.String,
+    'city': fields.String,
+    'postal_code': fields.String,
+    'organization_count': fields.Integer
+})
+
+bookmark_model = api.model('Bookmark', {
+    'id': fields.Integer,
+    'organization_id': fields.Integer,
+    'notes': fields.String,
+    'created_at': fields.String,
+    'organization': fields.Nested(organization_model)
+})
+
+notification_model = api.model('Notification', {
+    'id': fields.Integer,
+    'message': fields.String,
+    'is_read': fields.Boolean,
+    'created_at': fields.String
+})
+
+advertisement_model = api.model('Advertisement', {
+    'id': fields.Integer(description='Advertisement ID'),
+    'title': fields.String(description='Advertisement title'),
+    'description': fields.String(description='Advertisement description'),
+    'image_url': fields.String(description='Advertisement image URL'),
+    'link_url': fields.String(description='Advertisement link URL'),
+    'placement': fields.String(description='Advertisement placement'),
+    'ad_type': fields.String(description='Advertisement type'),
+    'priority': fields.Integer(description='Advertisement priority'),
+    'is_active': fields.Boolean(description='Advertisement active status'),
+    'start_date': fields.String(description='Advertisement start date'),
+    'end_date': fields.String(description='Advertisement end date'),
+    'created_at': fields.String(description='Creation timestamp'),
+    'updated_at': fields.String(description='Last update timestamp')
+})
+
+contact_message_model = api.model('ContactMessage', {
+    'id': fields.Integer(description='Message ID'),
+    'sender_name': fields.String(description='Sender name'),
+    'sender_email': fields.String(description='Sender email'),
+    'subject': fields.String(description='Message subject'),
+    'message': fields.String(description='Message content'),
+    'is_read': fields.Boolean(description='Read status'),
+    'created_at': fields.String(description='Creation timestamp'),
+    'read_at': fields.String(description='Read timestamp')
+})
+
+photo_model = api.model('OrganizationPhoto', {
+    'id': fields.Integer(description='Photo ID'),
+    'file_name': fields.String(description='File name'),
+    'file_path': fields.String(description='File path'),
+    'alt_text': fields.String(description='Alternative text'),
+    'is_primary': fields.Boolean(description='Primary photo status'),
+    'created_at': fields.String(description='Creation timestamp')
 })
 
 # REQUEST PARSERS - Replace manual request.json parsing
@@ -178,6 +263,13 @@ def check_org_admin(org_id, user_id):
 @auth_ns.route('/register')
 class Register(Resource):
     @auth_ns.expect(register_parser)
+    @auth_ns.marshal_with(user_model, code=201)
+    @auth_ns.doc(responses={
+        201: 'Registration successful',
+        400: 'Validation error',
+        409: 'Email already registered',
+        500: 'Registration failed'
+    })
     def post(self):
         try:
             args = register_parser.parse_args()
@@ -208,6 +300,11 @@ class Register(Resource):
 @auth_ns.route('/login')
 class Login(Resource):
     @auth_ns.expect(login_parser)
+    @auth_ns.doc(responses={
+        200: 'Login successful',
+        401: 'Invalid credentials',
+        500: 'Login failed'
+    })
     def post(self):
         try:
             args = login_parser.parse_args()
@@ -226,6 +323,10 @@ class Login(Resource):
 @auth_ns.route('/forgot-password')
 class ForgotPassword(Resource):
     @auth_ns.expect(email_parser)
+    @auth_ns.doc(responses={
+        200: 'Reset link sent if account exists',
+        500: 'Password reset failed'
+    })
     def post(self):
         try:
             args = email_parser.parse_args()
@@ -247,6 +348,11 @@ class ForgotPassword(Resource):
 @auth_ns.route('/reset-password')
 class ResetPassword(Resource):
     @auth_ns.expect(reset_password_parser)
+    @auth_ns.doc(responses={
+        200: 'Password reset successful',
+        400: 'Invalid token or password',
+        500: 'Password reset failed'
+    })
     def post(self):
         try:
             args = reset_password_parser.parse_args()
@@ -266,6 +372,11 @@ class ResetPassword(Resource):
 @auth_ns.route('/verify-email')
 class VerifyEmail(Resource):
     @auth_ns.expect(token_parser)
+    @auth_ns.doc(responses={
+        200: 'Email verified successfully',
+        400: 'Invalid or expired token',
+        500: 'Verification failed'
+    })
     def post(self):
         try:
             args = token_parser.parse_args()
@@ -284,6 +395,11 @@ class VerifyEmail(Resource):
 @auth_ns.route('/me')
 class CurrentUser(Resource):
     @jwt_required()
+    @auth_ns.marshal_with(user_model)
+    @auth_ns.doc(responses={
+        200: 'Current user information',
+        404: 'User not found'
+    })
     def get(self):
         user = User.query.get(get_jwt_identity()) or api.abort(404, 'User not found')
         return {'user': marshal(user, user_model)}
@@ -292,6 +408,11 @@ class CurrentUser(Resource):
 class ChangePassword(Resource):
     @jwt_required()
     @auth_ns.expect(change_password_parser)
+    @auth_ns.doc(responses={
+        200: 'Password changed successfully',
+        400: 'Current password incorrect or invalid new password',
+        500: 'Password change failed'
+    })
     def post(self):
         try:
             args = change_password_parser.parse_args()
@@ -311,6 +432,10 @@ class ChangePassword(Resource):
 @org_ns.route('')
 class OrganizationList(Resource):
     @org_ns.expect(org_parser)
+    @org_ns.doc(responses={
+        200: 'List of organizations retrieved successfully',
+        500: 'Failed to fetch organizations'
+    })
     def get(self):
         try:
             args = org_parser.parse_args()
@@ -329,6 +454,13 @@ class OrganizationList(Resource):
 
     @jwt_required()
     @org_ns.expect(org_create_parser)
+    @org_ns.marshal_with(organization_model, code=201)
+    @org_ns.doc(responses={
+        201: 'Organization created successfully',
+        400: 'Invalid category or validation error',
+        409: 'You already have an organization',
+        500: 'Failed to create organization'
+    })
     def post(self):
         try:
             uid = get_jwt_identity()
@@ -352,6 +484,12 @@ class OrganizationList(Resource):
 
 @org_ns.route('/<int:org_id>')
 class OrganizationDetail(Resource):
+    @org_ns.marshal_with(organization_model)
+    @org_ns.doc(responses={
+        200: 'Organization details retrieved successfully',
+        404: 'Organization not found',
+        500: 'Failed to fetch organization'
+    })
     def get(self, org_id):
         try:
             org = Organization.query.get(org_id) or api.abort(404, 'Organization not found')
@@ -387,6 +525,7 @@ class OrganizationContact(Resource):
 # CATEGORY ENDPOINTS
 @category_ns.route('')
 class CategoryList(Resource):
+    @category_ns.doc(responses={200: 'List of categories retrieved successfully'})
     def get(self):
         cats = Category.query.filter_by(is_active=True).order_by(Category.sort_order, Category.name).all()
         return {'categories': [{'id': c.id, 'name': c.name, 'description': c.description, 'icon_url': c.icon_url, 'color_code': c.color_code, 'organization_count': len([o for o in c.organizations if o.status == 'approved'])} for c in cats]}
@@ -394,6 +533,10 @@ class CategoryList(Resource):
 @category_ns.route('/<int:category_id>/organizations')
 class CategoryOrganizations(Resource):
     @category_ns.expect(pagination_parser)
+    @category_ns.doc(responses={
+        200: 'Organizations in category retrieved successfully',
+        404: 'Category not found'
+    })
     def get(self, category_id):
         cat = Category.query.get(category_id) or api.abort(404, 'Category not found')
         args = pagination_parser.parse_args()
@@ -403,13 +546,39 @@ class CategoryOrganizations(Resource):
 # LOCATION ENDPOINTS
 @location_ns.route('')
 class LocationList(Resource):
+    @location_ns.doc(responses={200: 'List of locations retrieved successfully'})
     def get(self):
-        locs = db.session.query(Location, func.count(Organization.id).label('org_count')).outerjoin(Organization).filter(Location.is_active == True, or_(Organization.status == 'approved', Organization.id == None)).group_by(Location.id).order_by(Location.country, Location.state_province, Location.city).all()
-        return {'locations': [{'id': l.Location.id, 'country': l.Location.country, 'state_province': l.Location.state_province, 'city': l.Location.city, 'postal_code': l.Location.postal_code, 'organization_count': l.org_count} for l in locs]}
+        """Get all unique locations with organization counts"""
+        # Get all unique locations
+        locations = Location.query.filter_by(is_active=True).all()
+        result = []
+
+        for loc in locations:
+            # Count organizations in this location
+            org_count = Organization.query.filter_by(
+                location_id=loc.id,
+                status='approved'
+            ).count()
+
+            result.append({
+                'id': loc.id,
+                'country': loc.country,
+                'state_province': loc.state_province,
+                'city': loc.city,
+                'postal_code': loc.postal_code,
+                'organization_count': org_count
+            })
+
+        return {'locations': result}
 
 @location_ns.route('/search')
 class LocationSearch(Resource):
     @location_ns.expect(location_search_parser)
+    @location_ns.marshal_list_with(location_model)
+    @location_ns.doc(responses={
+        200: 'Location search results',
+        400: 'Query too short'
+    })
     def get(self):
         args = location_search_parser.parse_args()
         q = args.q.strip()
@@ -477,6 +646,11 @@ class PopularSearches(Resource):
 @user_ns.route('/profile')
 class UserProfile(Resource):
     @jwt_required()
+    @user_ns.marshal_with(user_model)
+    @user_ns.doc(responses={
+        200: 'User profile retrieved successfully',
+        404: 'User not found'
+    })
     def get(self):
         user = User.query.get(get_jwt_identity()) or api.abort(404, 'User not found')
         org = Organization.query.filter_by(admin_user_id=user.id).first()
@@ -486,6 +660,12 @@ class UserProfile(Resource):
 
     @jwt_required()
     @user_ns.expect(profile_update_parser)
+    @user_ns.marshal_with(user_model)
+    @user_ns.doc(responses={
+        200: 'Profile updated successfully',
+        404: 'User not found',
+        500: 'Failed to update profile'
+    })
     def put(self):
         try:
             user = User.query.get(get_jwt_identity()) or api.abort(404, 'User not found')
@@ -506,6 +686,8 @@ class UserProfile(Resource):
 class UserBookmarks(Resource):
     @jwt_required()
     @user_ns.expect(pagination_parser)
+    @user_ns.marshal_list_with(bookmark_model)
+    @user_ns.doc(responses={200: 'User bookmarks retrieved successfully'})
     def get(self):
         args = pagination_parser.parse_args()
         items, pag = paginate(db.session.query(UserBookmark).join(Organization).filter(UserBookmark.user_id == get_jwt_identity(), Organization.status == 'approved').order_by(desc(UserBookmark.created_at)), args.page, args.per_page)
@@ -513,6 +695,13 @@ class UserBookmarks(Resource):
 
     @jwt_required()
     @user_ns.expect(bookmark_create_parser)
+    @user_ns.marshal_with(bookmark_model, code=201)
+    @user_ns.doc(responses={
+        201: 'Bookmark created successfully',
+        404: 'Organization not found',
+        409: 'Already bookmarked',
+        500: 'Failed to add bookmark'
+    })
     def post(self):
         try:
             uid = get_jwt_identity()
@@ -534,6 +723,12 @@ class UserBookmarks(Resource):
 @user_ns.route('/bookmarks/<int:bookmark_id>')
 class UserBookmarkDetail(Resource):
     @jwt_required()
+    @user_ns.marshal_with(message_response_model)
+    @user_ns.doc(responses={
+        200: 'Bookmark removed successfully',
+        404: 'Bookmark not found',
+        500: 'Failed to remove bookmark'
+    })
     def delete(self, bookmark_id):
         try:
             bookmark = UserBookmark.query.filter_by(id=bookmark_id, user_id=get_jwt_identity()).first() or api.abort(404, 'Bookmark not found')
@@ -553,6 +748,8 @@ class UserBookmarkDetail(Resource):
 class NotificationList(Resource):
     @jwt_required()
     @notification_ns.expect(pagination_parser)
+    @notification_ns.marshal_list_with(notification_model)
+    @notification_ns.doc(responses={200: 'Notifications retrieved successfully'})
     def get(self):
         args = pagination_parser.parse_args()
         items, pag = paginate(Notification.query.filter_by(user_id=get_jwt_identity()).order_by(desc(Notification.created_at)), args.page, args.per_page)
@@ -561,6 +758,12 @@ class NotificationList(Resource):
 @notification_ns.route('/<int:notification_id>/read')
 class NotificationRead(Resource):
     @jwt_required()
+    @notification_ns.marshal_with(message_response_model)
+    @notification_ns.doc(responses={
+        200: 'Notification marked as read',
+        404: 'Notification not found',
+        500: 'Failed to mark notification as read'
+    })
     def put(self, notification_id):
         try:
             notif = Notification.query.filter_by(id=notification_id, user_id=get_jwt_identity()).first() or api.abort(404, 'Notification not found')
@@ -574,6 +777,10 @@ class NotificationRead(Resource):
 @notification_ns.route('/unread-count')
 class UnreadCount(Resource):
     @jwt_required()
+    @notification_ns.marshal_with(api.model('UnreadCountResponse', {
+        'unread_count': fields.Integer(description='Number of unread notifications')
+    }))
+    @notification_ns.doc(responses={200: 'Unread notification count retrieved successfully'})
     def get(self):
         return {'unread_count': Notification.query.filter_by(user_id=get_jwt_identity(), is_read=False).count()}
 
@@ -581,6 +788,10 @@ class UnreadCount(Resource):
 @ad_ns.route('')
 class AdvertisementList(Resource):
     @ad_ns.expect(ad_parser)
+    @ad_ns.doc(responses={
+        200: 'Active advertisements retrieved successfully',
+        500: 'Failed to retrieve advertisements'
+    })
     def get(self):
         try:
             args = ad_parser.parse_args()
@@ -618,6 +829,17 @@ class AdvertisementList(Resource):
 
 @ad_ns.route('/<int:ad_id>/click')
 class AdvertisementClick(Resource):
+    @ad_ns.marshal_with(api.model('ClickResponse', {
+        'message': fields.String(description='Success message'),
+        'target_url': fields.String(description='Advertisement target URL'),
+        'clicks_count': fields.Integer(description='Total click count')
+    }))
+    @ad_ns.doc(responses={
+        200: 'Click tracked successfully',
+        400: 'Advertisement not currently active',
+        404: 'Advertisement not found or inactive',
+        500: 'Failed to track click'
+    })
     def post(self, ad_id):
         try:
             ad = Advertisement.query.get(ad_id)
@@ -649,6 +871,8 @@ class AdvertisementImpression(Resource):
 class OrganizationContactMessages(Resource):
     @jwt_required()
     @org_ns.expect(contact_messages_parser)
+    @org_ns.marshal_list_with(contact_message_model)
+    @org_ns.doc(responses={200: 'Contact messages retrieved successfully'})
     def get(self, org_id):
         org = check_org_admin(org_id, get_jwt_identity())
         args = contact_messages_parser.parse_args()
@@ -658,6 +882,13 @@ class OrganizationContactMessages(Resource):
         return {'messages': [{'id': m.id, 'sender_name': m.sender_name, 'sender_email': m.sender_email, 'subject': m.subject, 'message': m.message, 'is_read': m.is_read, 'created_at': m.created_at.isoformat() if m.created_at else None, 'read_at': m.read_at.isoformat() if m.read_at else None} for m in items], 'pagination': pag, 'organization': {'id': org.id, 'name': org.name}}
 
     @org_ns.expect(contact_message_parser)
+    @org_ns.marshal_with(contact_message_model, code=201)
+    @org_ns.doc(responses={
+        201: 'Message sent successfully',
+        400: 'Invalid email format',
+        404: 'Organization not found',
+        500: 'Failed to send message'
+    })
     def post(self, org_id):
         try:
             org = Organization.query.filter_by(id=org_id, status='approved').first() or api.abort(404, 'Organization not found')
@@ -681,6 +912,12 @@ class OrganizationContactMessages(Resource):
 @org_ns.route('/<int:org_id>/contact-messages/<int:message_id>')
 class OrganizationContactMessageDetail(Resource):
     @jwt_required()
+    @org_ns.marshal_with(message_response_model)
+    @org_ns.doc(responses={
+        200: 'Message marked as read',
+        404: 'Message not found',
+        500: 'Failed to mark as read'
+    })
     def put(self, org_id, message_id):
         try:
             check_org_admin(org_id, get_jwt_identity())
@@ -695,6 +932,12 @@ class OrganizationContactMessageDetail(Resource):
             api.abort(500, 'Failed to mark as read')
 
     @jwt_required()
+    @org_ns.marshal_with(message_response_model)
+    @org_ns.doc(responses={
+        200: 'Message deleted successfully',
+        404: 'Message not found',
+        500: 'Failed to delete message'
+    })
     def delete(self, org_id, message_id):
         try:
             check_org_admin(org_id, get_jwt_identity())
@@ -711,6 +954,11 @@ class OrganizationContactMessageDetail(Resource):
 
 @org_ns.route('/<int:org_id>/photos')
 class OrganizationPhotos(Resource):
+    @org_ns.marshal_list_with(photo_model)
+    @org_ns.doc(responses={
+        200: 'Organization photos retrieved successfully',
+        404: 'Organization not found'
+    })
     def get(self, org_id):
         org = Organization.query.get(org_id) or api.abort(404, 'Organization not found')
         is_admin = False
@@ -724,6 +972,12 @@ class OrganizationPhotos(Resource):
 
     @jwt_required()
     @org_ns.expect(photo_create_parser)
+    @org_ns.marshal_with(photo_model, code=201)
+    @org_ns.doc(responses={
+        201: 'Photo added successfully',
+        404: 'Organization not found',
+        500: 'Failed to add photo'
+    })
     def post(self, org_id):
         try:
             check_org_admin(org_id, get_jwt_identity())
@@ -775,6 +1029,16 @@ class OrganizationSocialLinks(Resource):
 # HEALTH CHECK
 @api.route('/health')
 class HealthCheck(Resource):
+    @api.marshal_with(api.model('HealthResponse', {
+        'status': fields.String(description='Health status'),
+        'timestamp': fields.String(description='Response timestamp'),
+        'database': fields.String(description='Database connection status'),
+        'error': fields.String(description='Error message if unhealthy')
+    }))
+    @api.doc(responses={
+        200: 'Service is healthy',
+        503: 'Service is unhealthy'
+    })
     def get(self):
         try:
             db.session.execute(text('SELECT 1'))
