@@ -1,9 +1,10 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 
 export const HeroSection = () => {
   return (
-    <header 
+    <header
     className='bg-primary text-white text-center py-5'
     style={{
         backgroundImage: 'url(https://fastly.picsum.photos/id/43/1280/831.jpg?hmac=glK-rQ0ppFClW-lvjk9FqEWKog07XkOxJf6Xg_cU9LI)',
@@ -20,7 +21,7 @@ export const HeroSection = () => {
             <p className='lead fw-bold mb-4'>
                 Support For Your Causes
             </p>
-            <button className='btn btn-light btn-lg'>Learn More</button>
+            <Link to="/about-us" className='btn btn-light btn-lg'>Learn More</Link>
         </div>
     </header>
   );

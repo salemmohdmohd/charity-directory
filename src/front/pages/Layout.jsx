@@ -1,17 +1,20 @@
-import { Outlet } from "react-router-dom/dist"
-import ScrollToTop from "../components/ScrollToTop"
-import { Navbar } from "../components/Navbar"
-import { HeroSection } from "../components/HeroSection"
-import { Footer } from "../components/Footer"
+import React from "react";
+import { Outlet } from "react-router-dom";
+import { Navbar } from "../components/Navbar";
+import { Footer } from "../components/Footer";
+import { ErrorAlert, NotificationAlert } from "../components/ErrorHandling";
 
-// Base component that maintains the navbar and footer throughout the page and the scroll to top functionality.
+// Base component that maintains the navbar and footer throughout the page.
 export const Layout = () => {
     return (
-        <ScrollToTop>
+        <>
             <Navbar />
-                <HeroSection />
-                <Outlet />
+            <div className="container-fluid">
+                <ErrorAlert />
+                <NotificationAlert />
+            </div>
+            <Outlet />
             <Footer />
-        </ScrollToTop>
+        </>
     )
 }

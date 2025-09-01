@@ -6,10 +6,13 @@ import {
 } from "react-router-dom";
 import { Layout } from "./pages/Layout";
 import { Home } from "./pages/Home";
-import { Single } from "./pages/Single";
-import { Demo } from "./pages/Demo";
-import {Login} from "./pages/Login";
-import {Signup} from "./pages/Signup";
+import { Login } from "./pages/Login";
+import { Signup } from "./pages/Signup";
+import { OrganizationLogin } from "./pages/OrganizationLogin";
+import { OrganizationSignup } from "./pages/OrganizationSignup";
+import Categories from "./pages/Categories";
+import AboutUs from "./pages/AboutUs";
+import ListYourCharity from "./pages/ListYourCharity";
 
 export const router = createBrowserRouter(
     createRoutesFromElements(
@@ -24,10 +27,17 @@ export const router = createBrowserRouter(
 
         {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
         <Route path= "/" element={<Home />} />
-        <Route path="/single/:theId" element={ <Single />} />  {/* Dynamic route for single items */}
-        <Route path="/demo" element={<Demo/>} />
+        <Route path="/categories" element={<Categories />} />
+        <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/list-your-charity" element={<ListYourCharity />} />
+
+        {/* Authentication Routes */}
         <Route path="/login" element={<Login/>}/>
         <Route path="/signup" element={<Signup/>}/>
+
+        {/* Organization Routes */}
+        <Route path="/organization-login" element={<OrganizationLogin/>}/>
+        <Route path="/organization-signup" element={<OrganizationSignup/>}/>
       </Route>
     )
 );

@@ -4,7 +4,7 @@ import useGlobalReducer from '../hooks/useGlobalReducer';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
 
-export const Login = () => {
+export const OrganizationLogin = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const { dispatch } = useGlobalReducer();
@@ -24,36 +24,36 @@ export const Login = () => {
     const newErrors = {};
 
     if (!formData.email) {
-      newErrors.email = 'Email is required';
+      newErrors.email = 'Organization email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+      newErrors.email = 'Please enter a valid organization email';
     }
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters for organizations';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
     try {
-      // Simulate API call for visitor login
+      // Simulate API call for organization login
       setTimeout(() => {
         dispatch({ type: 'SET_USER', payload: {
           ...formData,
-          role: 'visitor',
-          name: 'User'
+          role: 'organization',
+          name: 'Admin'
         }});
-        dispatch({ type: 'SET_NOTIFICATION', payload: 'Welcome! You can now browse and bookmark charities.' });
-        navigate('/');
+        dispatch({ type: 'SET_NOTIFICATION', payload: 'Welcome to your organization dashboard!' });
+        navigate('/organization-dashboard');
       }, 1500);
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Login failed. Please try again.' });
@@ -61,29 +61,32 @@ export const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    dispatch({ type: 'SET_NOTIFICATION', payload: 'Google OAuth integration coming soon!' });
+    dispatch({ type: 'SET_NOTIFICATION', payload: 'Google OAuth for organizations coming soon!' });
   };
 
   return (
     <div className="container mt-5">
       <div className="row justify-content-center">
         <div className="col-md-6 col-lg-5">
-          <div className="card shadow">
+          <div className="card shadow border-primary">
             <div className="card-body p-5">
               <div className="text-center mb-4">
-                <h2 className="h3 mb-3">Welcome Back</h2>
-                <p className="text-muted">Login to discover and support charities</p>
+                <div className="mb-3">
+                  <i className="fas fa-building fa-3x text-primary"></i>
+                </div>
+                <h2 className="h3 mb-3">Organization Portal</h2>
+                <p className="text-muted">Login to manage your charity organization</p>
               </div>
 
               <form onSubmit={handleSubmit}>
                 <Input
                   name="email"
                   type="email"
-                  label="Email Address"
+                  label="Organization Email"
                   value={formData.email}
                   onChange={handleChange}
                   error={errors.email}
-                  placeholder="your@email.com"
+                  placeholder="admin@yourcharity.org"
                   required
                 />
 
@@ -94,13 +97,13 @@ export const Login = () => {
                   value={formData.password}
                   onChange={handleChange}
                   error={errors.password}
-                  placeholder="Enter your password"
+                  placeholder="Enter your secure password"
                   required
                 />
 
                 <div className="d-grid gap-2 mb-3">
                   <Button type="submit" variant="primary" size="lg">
-                    Login
+                    Access Organization Dashboard
                   </Button>
                 </div>
 
@@ -121,9 +124,11 @@ export const Login = () => {
 
                 <div className="text-center">
                   <small className="text-muted">
-                    Don't have an account? <Link to="/signup" className="text-decoration-none">Sign up here</Link>
+                    Need to register your organization? <Link to="/organization-signup" className="text-decoration-none">Register here</Link>
                   </small>
                 </div>
+
+
 
                 <div className="text-center mt-3">
                   <Link to="/forgot-password" className="text-decoration-none small">
@@ -134,19 +139,16 @@ export const Login = () => {
             </div>
           </div>
 
-          {/* Organization Portal Link */}
-          <div className="card mt-4 bg-primary text-white">
-            <div className="card-body text-center p-4">
-              <h6 className="card-title mb-2">
-                <i className="fas fa-building me-2"></i>
-                Are you a charity organization?
-              </h6>
-              <p className="card-text small mb-3">
-                List your organization to connect with supporters
-              </p>
-              <Link to="/organization-login" className="btn btn-light btn-sm">
-                Organization Portal
-              </Link>
+          {/* Organization Benefits */}
+          <div className="card mt-4 bg-light">
+            <div className="card-body">
+              <h6 className="card-title">Organization Portal Features:</h6>
+              <ul className="list-unstyled mb-0 small">
+                <li><i className="fas fa-check text-success me-2"></i>Manage organization profile</li>
+                <li><i className="fas fa-check text-success me-2"></i>Track submission status</li>
+                <li><i className="fas fa-check text-success me-2"></i>Upload photos and documents</li>
+                <li><i className="fas fa-check text-success me-2"></i>View profile analytics</li>
+              </ul>
             </div>
           </div>
         </div>
