@@ -11,7 +11,7 @@ from flask_mail import Mail
 from datetime import timedelta
 from api.utils import APIException, generate_sitemap
 from api.models import db
-from api.routes import api
+from api.routes import api_bp
 from api.admin import setup_admin
 from api.commands import setup_commands
 from dotenv import load_dotenv
@@ -69,7 +69,7 @@ setup_admin(app)
 setup_commands(app)
 
 # Add all endpoints form the API with a "api" prefix
-app.register_blueprint(api, url_prefix='/api')
+app.register_blueprint(api_bp, url_prefix='/api')
 
 # Health check endpoint
 @app.route('/health')
