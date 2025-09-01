@@ -1,11 +1,13 @@
 export const Footer = () => (
-	<footer className="footer mt-auto py-3 text-center">
+	<footer 
+		className="footer mt-auto py-3 text-center"
+		style={{ backgroundColor: '#343a40', color: '#fff' }}
+	>
 		<p>
-			Check the <a target="_blank" href="https://4geeks.com/docs/start/react-flask-template">these are the feet</a> <i className="fa-solid fa-file"></i> for help.
+			Connecting communities with charities that make a difference.
 		</p>
 		<p>
-			Made by Team Unseen Brittney, Elizabeth, Gelilla, & Salem
-			
+			<span style={{ color: '#28a745', fontWeight: '600' }}>The Unseen Team</span>
 		</p>
 	</footer>
 );

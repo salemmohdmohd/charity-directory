@@ -6,7 +6,7 @@ export const Navbar = () => {
 	return (
 		<nav 
 			className="navbar navbar-expand-md navbar-light" 
-			style={{ backgroundColor: '#28a745', borderBottom: '2px solid #218838' }}
+			style={{ backgroundColor: '#005555', borderBottom: '2px solid #218838' }}
 		>
 			<div className="container">
 				<Link 
@@ -43,7 +43,7 @@ export const Navbar = () => {
 							Categories
 						</Link>
 						<Link 
-							to="/login-signup" 
+							to="/login" 
 							className="nav-link"
 							style={{ color: '#fff', transition: 'all 0.3s ease' }}
 							onMouseEnter={(e) => {
