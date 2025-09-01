@@ -49,4 +49,15 @@ def generate_sitemap(app):
                 </a>
             </div>
         </div>
+
+
+
+        <details style="margin-top: 30px;">
+            <summary style="cursor: pointer; font-weight: bold;">📋 All Available Endpoints</summary>
+            <ul style="text-align: left; margin: 20px 0;">{links_html}</ul>
+        </details>
+
+        <p style="margin-top: 30px; color: #666; font-size: 12px;">
+            API HOST: <script>document.write('<input style="padding: 5px; width: 300px; text-align: center;" type="text" value="'+window.location.href+'" readonly />');</script>
+        </p>
         </div>"""
