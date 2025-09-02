@@ -43,21 +43,28 @@ export const Login = () => {
     e.preventDefault();
 
     if (!validateForm()) return;
+try{
 
-    try {
-      // Simulate API call for visitor login
-      setTimeout(() => {
-        dispatch({ type: 'SET_USER', payload: {
-          ...formData,
-          role: 'visitor',
-          name: 'User'
-        }});
-        dispatch({ type: 'SET_NOTIFICATION', payload: 'Welcome! You can now browse and bookmark charities.' });
-        navigate('/');
-      }, 1500);
+       const response = await fetch("/login",{
+        method: "POST",
+        headers:{
+          "Content-Type": "application/json"
+        },
+        body:JSON.stringify(formData)
+      });
+      const data = await response.json();
+      console.log(data,'data from login')
+      if(response.ok){
+        dispatch({type:"SET_USER", payload: data.user});
+        dispatch({type:"SET_NOTIFICATION", payload:"Welcome!"});
+        navigate("/");
+      }else{
+        setErrors({type: data.message || "Invalid email or password"})
+      }
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Login failed. Please try again.' });
     }
+    
   };
 
   const handleGoogleLogin = () => {
