@@ -4,7 +4,7 @@ import useGlobalReducer from '../hooks/useGlobalReducer';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
 import Checkbox from '../components/forms/Checkbox';
-
+import {signup} from '../data/userAuth'
 export const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -71,22 +71,12 @@ export const Signup = () => {
     if (!validateForm()) return;
 
     try {
-       const response = await fetch("/register",{
-        method: "POST",
-        headers:{
-          "Content-Type": "application/json"
-        },
-        body:JSON.stringify(formData)
-      });
-      const data = await response.json();
-      console.log(data,'data from register')
-      if(response.ok){
-        dispatch({type:"SET_USER", payload: data.user});
-        dispatch({type:"SET_NOTIFICATION", payload:"Welcome!"});
-        navigate("/");
-      }else{
-        setErrors({type: data.message || "Invalid email or password"})
-      }
+     const data = await signup(formData);
+
+ 
+    dispatch({ type: "SET_USER", payload: data.user });
+    dispatch({ type: "SET_NOTIFICATION", payload: "Welcome!" });
+    navigate("/")
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Signup failed. Please try again.' });
     }

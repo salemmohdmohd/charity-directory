@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
+import {login} from '../data/userAuth'
 
 export const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -44,23 +45,12 @@ export const Login = () => {
 
     if (!validateForm()) return;
 try{
+    const data = await login(formData.email, formData.password);
+    dispatch({ type: "SET_USER", payload: data.user });
+    dispatch({ type: "SET_NOTIFICATION", payload: "Welcome back!" });
 
-       const response = await fetch("/login",{
-        method: "POST",
-        headers:{
-          "Content-Type": "application/json"
-        },
-        body:JSON.stringify(formData)
-      });
-      const data = await response.json();
-      console.log(data,'data from login')
-      if(response.ok){
-        dispatch({type:"SET_USER", payload: data.user});
-        dispatch({type:"SET_NOTIFICATION", payload:"Welcome!"});
-        navigate("/");
-      }else{
-        setErrors({type: data.message || "Invalid email or password"})
-      }
+    navigate("/")
+
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Login failed. Please try again.' });
     }
