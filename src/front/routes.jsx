@@ -14,6 +14,7 @@ import Categories from "./pages/Categories";
 import AboutUs from "./pages/AboutUs";
 import ListYourCharity from "./pages/ListYourCharity";
 import UserDashboard from "./pages/UserDashboard";
+import UserProfile from "./pages/UserProfile";
 
 export const router = createBrowserRouter(
     createRoutesFromElements(

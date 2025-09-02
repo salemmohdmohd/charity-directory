@@ -54,6 +54,12 @@ export default function storeReducer(store, action = {}) {
         notification: action.payload
       };
 
+    case 'CLEAR_NOTIFICATION':
+      return {
+        ...store,
+        notification: null
+      };
+
     // Modal Actions
     case 'TOGGLE_MODAL':
       return {
@@ -66,6 +72,13 @@ export default function storeReducer(store, action = {}) {
 
     // User Actions
     case 'SET_USER':
+      return {
+        ...store,
+        user: action.payload,
+        isAuthenticated: !!action.payload
+      };
+
+    case 'UPDATE_USER':
       return {
         ...store,
         user: action.payload,
