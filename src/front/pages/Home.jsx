@@ -1,49 +1,4 @@
-// import React, { useEffect } from "react"
-// import rigoImageUrl from "../assets/img/rigo-baby.jpg";
-// import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
-
-// export const Home = () => {
-
-// 	const { store, dispatch } = useGlobalReducer()
-
-// 	const loadMessage = async () => {
-// 		try {
-// 			const backendUrl = import.meta.env.VITE_BACKEND_URL
-
-// 			if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env file")
-
-// 			const response = await fetch(backendUrl + "/api/hello")
-// 			const data = await response.json()
-
-// 			if (response.ok) dispatch({ type: "set_hello", payload: data.message })
-
-// 			return data
-
-// 		} catch (error) {
-// 			if (error.message) throw new Error(
-// 				`Could not fetch the message from the backend.
-// 				Please check if the backend is running and the backend port is public.`
-// 			);
-// 		}
-
-// 	}
-
-// 	useEffect(() => {
-// 		loadMessage()
-// 	}, [])
-
-// 	return (
-// 		<div className="text-center mt-5">
-// 			<h1 className="display-4">Featured Charities</h1>
-			
-			
-			
-// 		</div>
-// 	);
-// }; 
-
 import React, { useEffect } from "react"
-import rigoImageUrl from "../assets/img/rigo-baby.jpg";
 import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
 
 export const Home = () => {
@@ -121,18 +76,18 @@ export const Home = () => {
 			<h1 className="display-4 mb-5">Featured Charities</h1>
 			
 			{/* Cards Container */}
-			<div className="container">
+			<div className="container-fluid px-4">
 				<div className="row g-4">
 					{charities.map((charity) => (
-						<div key={charity.id} className="col-md-6 col-lg-3">
-							<div className="card h-100 shadow-sm">
+						<div key={charity.id} className="col-sm-6 col-lg-3">
+							<div className="card h-100 shadow-sm" style={{ minHeight: "500px" }}>
 								<img 
 									src={charity.image} 
 									className="card-img-top" 
 									alt={charity.name}
-									style={{ height: "200px", objectFit: "cover" }}
+									style={{ height: "250px", objectFit: "cover" }}
 								/>
-								<div className="card-body d-flex flex-column">
+								<div className="card-body d-flex flex-column p-4">
 									<h5 className="card-title">{charity.name}</h5>
 									<p className="card-text flex-grow-1">{charity.description}</p>
 									
