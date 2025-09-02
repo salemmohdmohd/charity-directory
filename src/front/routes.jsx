@@ -33,6 +33,7 @@ export const router = createBrowserRouter(
         <Route path="/list-your-charity" element={<ListYourCharity />} />
 
         <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/profile" element={<UserProfile />} />
 
         {/* Authentication Routes */}
         <Route path="/login" element={<Login/>}/>
