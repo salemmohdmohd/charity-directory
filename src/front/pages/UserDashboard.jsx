@@ -1,31 +1,55 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
 
 const UserDashboard = () => {
 	const { store, dispatch } = useGlobalReducer();
-	const [user, setUser] = useState(null);
+	const navigate = useNavigate();
+	const [dashboardData, setDashboardData] = useState({
+		totalDonated: "$0.00",
+		donationCount: 0,
+		favoriteCharities: 0,
+		memberSince: "Recently"
+	});
 
-	// Mock user data - replace with actual API call
+	// Check if user is logged in, redirect if not
 	useEffect(() => {
-		// Simulate loading user data
-		const loadUserData = async () => {
-			// This would typically come from your backend or global store
-			const userData = {
-				id: 1,
-				name: "John Doe",
-				email: "john.doe@example.com",
-				memberSince: "January 2024",
-				totalDonated: "$1,250.00",
-				donationCount: 8,
-				favoriteCharities: 3
-			};
-			setUser(userData);
+		if (!store.user) {
+			navigate('/login');
+			return;
+		}
+
+		// Load user's dashboard data
+		const loadDashboardData = async () => {
+			try {
+				// This would be an API call to get user's donation history, favorites, etc.
+				// For now, we'll use some sample data based on user type
+				if (store.user.role === 'visitor') {
+					setDashboardData({
+						totalDonated: "$0.00",
+						donationCount: 0,
+						favoriteCharities: 0,
+						memberSince: "New Member"
+					});
+				} else {
+					// For returning users, you'd fetch actual data from your backend
+					setDashboardData({
+						totalDonated: "$1,250.00",
+						donationCount: 8,
+						favoriteCharities: 3,
+						memberSince: "January 2024"
+					});
+				}
+			} catch (error) {
+				dispatch({ type: 'SET_ERROR', payload: 'Failed to load dashboard data' });
+			}
 		};
 
-		loadUserData();
-	}, []);
+		loadDashboardData();
+	}, [store.user, navigate, dispatch]);
 
-	if (!user) {
+	// Show loading if no user data
+	if (!store.user) {
 		return (
 			<div className="d-flex justify-content-center align-items-center" style={{ minHeight: "400px" }}>
 				<div className="spinner-border text-primary" role="status">
@@ -42,7 +66,7 @@ const UserDashboard = () => {
 				<div className="col-12">
 					<div className="d-flex justify-content-between align-items-center">
 						<div>
-							<h1 className="h2 mb-1">Welcome back, {user.name}</h1>
+							<h1 className="h2 mb-1">Welcome back, {store.user?.name}</h1>
 							<p className="text-muted mb-0">Here's what's happening with your charitable giving</p>
 						</div>
 						<div>
@@ -61,7 +85,7 @@ const UserDashboard = () => {
 							<div className="d-flex justify-content-between align-items-center">
 								<div>
 									<h6 className="card-title mb-1">Total Donated</h6>
-									<h3 className="mb-0">{user.totalDonated}</h3>
+									<h3 className="mb-0">{dashboardData.totalDonated}</h3>
 								</div>
 								<div className="fs-1 opacity-50">
 									<i className="bi bi-heart-fill"></i>
@@ -76,7 +100,7 @@ const UserDashboard = () => {
 							<div className="d-flex justify-content-between align-items-center">
 								<div>
 									<h6 className="card-title mb-1">Donations Made</h6>
-									<h3 className="mb-0">{user.donationCount}</h3>
+									<h3 className="mb-0">{dashboardData.donationCount}</h3>
 								</div>
 								<div className="fs-1 opacity-50">
 									<i className="bi bi-gift-fill"></i>
@@ -91,7 +115,7 @@ const UserDashboard = () => {
 							<div className="d-flex justify-content-between align-items-center">
 								<div>
 									<h6 className="card-title mb-1">Favorite Charities</h6>
-									<h3 className="mb-0">{user.favoriteCharities}</h3>
+									<h3 className="mb-0">{dashboardData.favoriteCharities}</h3>
 								</div>
 								<div className="fs-1 opacity-50">
 									<i className="bi bi-star-fill"></i>
@@ -106,7 +130,7 @@ const UserDashboard = () => {
 							<div className="d-flex justify-content-between align-items-center">
 								<div>
 									<h6 className="card-title mb-1">Member Since</h6>
-									<h5 className="mb-0">{user.memberSince}</h5>
+									<h5 className="mb-0">{dashboardData.memberSince}</h5>
 								</div>
 								<div className="fs-1 opacity-50">
 									<i className="bi bi-calendar-check-fill"></i>
@@ -127,12 +151,22 @@ const UserDashboard = () => {
 							<button className="btn btn-sm btn-outline-primary">View All</button>
 						</div>
 						<div className="card-body">
-							{/* Placeholder for recent activity component */}
-							<div className="text-center py-5 text-muted">
-								<i className="bi bi-clock-history fs-1 mb-3 d-block"></i>
-								<p className="mb-0">Recent donation activity will appear here</p>
-								<small>This section will show your recent donations and updates</small>
-							</div>
+							{/* Show different content based on user role */}
+							{store.user.role === 'visitor' ? (
+								<div className="text-center py-5">
+									<i className="bi bi-heart fs-1 text-primary mb-3 d-block"></i>
+									<h5 className="mb-2">Welcome to your dashboard!</h5>
+									<p className="text-muted mb-3">Start by making your first donation or browsing charities</p>
+									<button className="btn btn-primary me-2">Browse Charities</button>
+									<button className="btn btn-outline-primary">Make a Donation</button>
+								</div>
+							) : (
+								<div className="text-center py-5 text-muted">
+									<i className="bi bi-clock-history fs-1 mb-3 d-block"></i>
+									<p className="mb-0">Recent donation activity will appear here</p>
+									<small>This section will show your recent donations and updates</small>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

@@ -13,6 +13,7 @@ import { OrganizationSignup } from "./pages/OrganizationSignup";
 import Categories from "./pages/Categories";
 import AboutUs from "./pages/AboutUs";
 import ListYourCharity from "./pages/ListYourCharity";
+import UserDashboard from "./pages/UserDashboard";
 
 export const router = createBrowserRouter(
     createRoutesFromElements(
@@ -30,6 +31,8 @@ export const router = createBrowserRouter(
         <Route path="/categories" element={<Categories />} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/list-your-charity" element={<ListYourCharity />} />
+
+        <Route path="/dashboard" element={<UserDashboard />} />
 
         {/* Authentication Routes */}
         <Route path="/login" element={<Login/>}/>
