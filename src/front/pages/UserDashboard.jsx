@@ -71,6 +71,13 @@ const UserDashboard = () => {
 						</div>
 						<div>
 							<button className="btn btn-primary me-2">Make a Donation</button>
+							<button 
+								className="btn btn-outline-secondary me-2"
+								onClick={() => navigate('/profile')}
+							>
+								
+								Profile
+							</button>
 							<button className="btn btn-outline-secondary">Settings</button>
 						</div>
 					</div>
