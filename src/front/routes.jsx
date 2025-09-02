@@ -14,6 +14,7 @@ import Categories from "./pages/Categories";
 import AboutUs from "./pages/AboutUs";
 import ListYourCharity from "./pages/ListYourCharity";
 import UserDashboard from "./pages/UserDashboard";
+import UserProfile from "./pages/UserProfile";
 
 export const router = createBrowserRouter(
     createRoutesFromElements(
@@ -33,6 +34,7 @@ export const router = createBrowserRouter(
         <Route path="/list-your-charity" element={<ListYourCharity />} />
 
         <Route path="/dashboard" element={<UserDashboard />} />
+        <Route path="/profile" element={<UserProfile />} />
 
         {/* Authentication Routes */}
         <Route path="/login" element={<Login/>}/>
