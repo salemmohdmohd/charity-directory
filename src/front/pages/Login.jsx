@@ -53,7 +53,7 @@ export const Login = () => {
           name: 'User'
         }});
         dispatch({ type: 'SET_NOTIFICATION', payload: 'Welcome! You can now browse and bookmark charities.' });
-        navigate('/');
+        navigate('/dashboard');
       }, 1500);
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Login failed. Please try again.' });
