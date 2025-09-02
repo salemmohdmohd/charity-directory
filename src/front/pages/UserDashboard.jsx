@@ -48,6 +48,12 @@ const UserDashboard = () => {
 		loadDashboardData();
 	}, [store.user, navigate, dispatch]);
 
+	// Handle logout
+	const handleLogout = () => {
+		dispatch({ type: 'LOGOUT' });
+		navigate('/login');
+	};
+
 	// Show loading if no user data
 	if (!store.user) {
 		return (
@@ -66,19 +72,24 @@ const UserDashboard = () => {
 				<div className="col-12">
 					<div className="d-flex justify-content-between align-items-center">
 						<div>
-							<h1 className="h2 mb-1">Welcome back, {store.user?.name}</h1>
+							<h1 className="h2 mb-1">Welcome back, {store.user?.name || store.user?.email}</h1>
 							<p className="text-muted mb-0">Here's what's happening with your charitable giving</p>
 						</div>
 						<div>
 							<button className="btn btn-primary me-2">Make a Donation</button>
 							<button 
-								className="btn btn-outline-secondary me-2"
+								className="btn btn-outline-primary me-2"
 								onClick={() => navigate('/profile')}
 							>
-								
-								Profile
+								<i className="bi bi-person me-2"></i>Profile
 							</button>
-							<button className="btn btn-outline-secondary">Settings</button>
+							<button className="btn btn-outline-secondary me-2">Settings</button>
+							<button 
+								className="btn btn-outline-danger"
+								onClick={handleLogout}
+							>
+								<i className="bi bi-box-arrow-right me-2"></i>Logout
+							</button>
 						</div>
 					</div>
 				</div>
@@ -197,6 +208,13 @@ const UserDashboard = () => {
 								<button className="btn btn-outline-secondary">
 									<i className="bi bi-heart me-2"></i>
 									My Favorites
+								</button>
+								<button 
+									className="btn btn-outline-info"
+									onClick={() => navigate('/search-history')}
+								>
+									<i className="bi bi-clock-history me-2"></i>
+									Search History
 								</button>
 								<button className="btn btn-outline-info">
 									<i className="bi bi-file-earmark-text me-2"></i>

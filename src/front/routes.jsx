@@ -15,6 +15,7 @@ import AboutUs from "./pages/AboutUs";
 import ListYourCharity from "./pages/ListYourCharity";
 import UserDashboard from "./pages/UserDashboard";
 import UserProfile from "./pages/UserProfile";
+import SearchHistory from "./pages/SearchHistory";
 
 export const router = createBrowserRouter(
     createRoutesFromElements(
@@ -35,6 +36,7 @@ export const router = createBrowserRouter(
 
         <Route path="/dashboard" element={<UserDashboard />} />
         <Route path="/profile" element={<UserProfile />} />
+        <Route path="/search-history" element={<SearchHistory />} />
 
         {/* Authentication Routes */}
         <Route path="/login" element={<Login/>}/>
