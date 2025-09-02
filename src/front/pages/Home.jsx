@@ -15,7 +15,7 @@ export const Home = () => {
 			const response = await fetch(backendUrl + "/api/hello")
 			const data = await response.json()
 
-			if (response.ok) dispatch({ type: "SET_NOTIFICATION", payload: data.message })
+			if (response.ok) dispatch({ type: "set_hello", payload: data.message })
 
 			return data
 
@@ -78,14 +78,14 @@ export const Home = () => {
 
 			{/* Featured Charities Section */}
 			<section className="py-5 bg-light">
-				<div className="container">
+				<div className="container-fluid px-4">
 					<div className="text-center mb-5">
 						<h2 className="display-5 fw-bold mb-3">Featured Charities</h2>
 						<p className="lead text-muted">Discover and support verified charitable organizations making a real difference</p>
 					</div>
 					
 					{/* Charity Cards */}
-					<div className="row g-4">
+					<div className="row g-4 pb-5 mb-5">
 						{charities.map((charity) => (
 							<div key={charity.id} className="col-sm-6 col-lg-3">
 								<div className="card h-100 shadow-sm" style={{ minHeight: "500px" }}>
