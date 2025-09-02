@@ -20,18 +20,17 @@ System: Charity Directory Platform
   │    │    ├── Organization Management
   │    │    ├── Status Tracking
   │    │    └── Media Upload
-  │    └── Platform Admin Dashboard
-  │         ├── Submission Review
-  │         ├── Organization Management
-  │         ├── User Management
-  │         ├── Analytics & Reports
-  │         ├── Advertisement Management
-  │         └── Audit Logs
   │
   ├── Backend Layer (Flask API - src/api/)
   │    ├── Core API Routes (routes.py)
   │    ├── Database Models (models.py)
-  │    ├── Admin Interface (admin.py)
+  │    ├── Flask-Admin Interface (admin.py) 🚀
+  │    │    ├── Interactive Dashboard with Real-time Analytics
+  │    │    ├── User Management & Role Assignment
+  │    │    ├── Organization Review & Approval
+  │    │    ├── Audit Logs & Security Monitoring
+  │    │    ├── Advertisement Management
+  │    │    └── System Configuration
   │    ├── Utility Functions (utils.py)
   │    ├── CLI Commands (commands.py)
   │    └── Main Application (app.py)
@@ -110,10 +109,15 @@ System: Charity Directory
   │
   └── Platform Admin
        ├── Authentication
-       │    ├── Secure login (encrypted)
+       │    ├── Secure login via Flask-Admin interface
        │    ├── Google OAuth login
        │    └── Two-factor authentication
-       ├── Organization Management
+       ├── Flask-Admin Dashboard Access (/admin) 🚀
+       │    ├── Real-time Analytics Dashboard
+       │    ├── Interactive Metrics & Statistics
+       │    ├── Clickable Navigation Panels
+       │    └── System Health Monitoring
+       ├── Organization Management (via Flask-Admin)
        │    ├── Review submissions queue
        │    │    ├── View pending applications
        │    │    ├── Review documentation
@@ -128,34 +132,34 @@ System: Charity Directory
        │    └── Verification management
        │         ├── Set verification criteria
        │         └── Manage verification badges
-       ├── User Management
+       ├── User Management (via Flask-Admin)
        │    ├── View user accounts
        │    ├── Manage user roles
        │    ├── Handle user reports
        │    └── Ban/suspend users
-       ├── Content Management
+       ├── Content Management (via Flask-Admin)
        │    ├── Manage categories
        │    ├── Update location database
        │    ├── Moderate user content
        │    └── Manage site content
-       ├── Analytics & Reporting
+       ├── Analytics & Reporting (Built-in Dashboard)
        │    ├── Platform usage statistics
        │    ├── Organization performance metrics
        │    ├── User engagement reports
        │    └── Revenue analytics
-       ├── Monetization Management
+       ├── Monetization Management (via Flask-Admin)
        │    ├── Manage sponsored listings
        │    ├── Configure ad placements
-       │    ├── Shop inventory management
+       │    ├── Advertisement analytics
        │    └── Revenue tracking
-       ├── Communication
+       ├── Communication (via Flask-Admin)
        │    ├── Send notifications
        │    ├── Broadcast announcements
        │    └── Manage email templates
-       └── System Administration
+       └── System Administration (via Flask-Admin)
             ├── View audit logs
             ├── System health monitoring
-            ├── Backup management
+            ├── User activity tracking
             └── Security monitoring
 ```
 
@@ -617,84 +621,59 @@ Monetization Tables:
 ```
 API Routes (Consolidated in src/api/routes.py):
 
-Authentication:
+Authentication ( Implemented):
 ├── POST /api/auth/register
 ├── POST /api/auth/login
-├── POST /api/auth/google-login
 ├── POST /api/auth/logout
-├── POST /api/auth/refresh-token
 ├── POST /api/auth/forgot-password
 ├── POST /api/auth/reset-password
-└── GET /api/auth/verify-email/:token
+├── POST /api/auth/verify-email
+├── GET /api/auth/me
+└── POST /api/auth/change-password
 
-Organizations:
-├── GET /api/organizations (with filters)
-├── GET /api/organizations/:id
-├── POST /api/organizations (create)
-├── PUT /api/organizations/:id (update)
-├── DELETE /api/organizations/:id
-├── POST /api/organizations/:id/photos
-├── DELETE /api/organizations/:id/photos/:photoId
-├── POST /api/organizations/:id/social-links
-└── GET /api/organizations/:id/analytics
+Admin Management ( Handled by Flask-Admin):
+├── Flask-Admin Interface: /admin/
+│   ├── Dashboard with real-time analytics
+│   ├── User Management (/admin/users/)
+│   ├── Organization Management (/admin/organizations/)
+│   │   ├── Approve/Reject functionality
+│   │   ├── Status tracking
+│   │   └── Bulk operations
+│   ├── Category Management (/admin/categories/)
+│   ├── Advertisement Management (/admin/advertisements/)
+│   ├── Notification Management (/admin/notifications/)
+│   └── Audit Log Viewing (/admin/audit-logs/)
 
-Categories:
-├── GET /api/categories
-├── POST /api/categories (admin only)
-├── PUT /api/categories/:id (admin only)
-└── DELETE /api/categories/:id (admin only)
+Public API ( To Be Implemented):
+├── Organizations:
+│   ├── GET /api/organizations (with filters)
+│   ├── GET /api/organizations/:id
+│   ├── POST /api/organizations (create/submit for approval)
+│   └── GET /api/organizations/:id/contact
+├── Categories:
+│   ├── GET /api/categories
+│   └── GET /api/categories/:id/organizations
+├── Locations:
+│   ├── GET /api/locations
+│   └── GET /api/locations/search
+├── Search:
+│   ├── GET /api/search/organizations
+│   ├── GET /api/search/suggestions
+│   └── GET /api/search/popular
+├── Users (Authenticated):
+│   ├── GET /api/users/profile
+│   ├── PUT /api/users/profile
+│   ├── GET /api/users/bookmarks
+│   ├── POST /api/users/bookmarks
+│   └── DELETE /api/users/bookmarks/:id
+└── Notifications:
+    ├── GET /api/notifications
+    ├── PUT /api/notifications/:id/read
+    └── GET /api/notifications/unread-count
 
-Locations:
-├── GET /api/locations
-├── GET /api/locations/search
-└── POST /api/locations (admin only)
-
-Users:
-├── GET /api/users/profile
-├── PUT /api/users/profile
-├── GET /api/users/bookmarks
-├── POST /api/users/bookmarks
-├── DELETE /api/users/bookmarks/:id
-└── GET /api/users/search-history
-
-Admin:
-├── GET /api/admin/organizations/pending
-├── POST /api/admin/organizations/:id/approve
-├── POST /api/admin/organizations/:id/reject
-├── GET /api/admin/users
-├── PUT /api/admin/users/:id/role
-├── GET /api/admin/analytics
-├── GET /api/admin/audit-logs
-└── POST /api/admin/notifications/broadcast
-
-Search:
-├── GET /api/search/organizations
-├── GET /api/search/suggestions
-└── GET /api/search/popular
-
-Notifications:
-├── GET /api/notifications
-├── PUT /api/notifications/:id/read
-├── POST /api/notifications/mark-all-read
-└── GET /api/notifications/unread-count
-
-File Upload:
-├── POST /api/upload/image
-└── DELETE /api/upload/:filename
-
-Contact:
-├── POST /api/contact/organization/:id
-└── GET /api/contact/messages (org admin only)
-
-Monetization:
-├── GET /api/advertisements
-├── POST /api/advertisements (admin only)
-├── PUT /api/advertisements/:id (admin only)
-└── POST /api/advertisements/:id/click
-
-Development & Deployment:
+Development & Health:
 ├── GET /health (health check)
-├── GET / (API sitemap)
+├── GET /api/hello (test endpoint - can be removed)
 └── Admin Interface at /admin (Flask-Admin)
 ```
 
@@ -807,13 +786,6 @@ charity-directory/
 │   │   │   │   ├── LocationFilter.jsx
 │   │   │   │   └── SearchResults.jsx
 │   │   │   │
-│   │   │   ├── admin/                          # Admin components
-│   │   │   │   ├── ReviewCard.jsx
-│   │   │   │   ├── AdminStats.jsx
-│   │   │   │   ├── PendingQueue.jsx
-│   │   │   │   ├── AuditLogTable.jsx
-│   │   │   │   └── UserManagementTable.jsx
-│   │   │   │
 │   │   │   └── forms/                          # Form components
 │   │   │       ├── LoginForm.jsx
 │   │   │       ├── SignupForm.jsx
@@ -847,14 +819,6 @@ charity-directory/
 │   │   │   │   ├── OrgSettings.jsx
 │   │   │   │   ├── MediaUpload.jsx
 │   │   │   │   └── StatusTracking.jsx
-│   │   │   │
-│   │   │   ├── platform-admin/                 # Platform admin pages
-│   │   │   │   ├── AdminDashboard.jsx
-│   │   │   │   ├── ReviewQueue.jsx
-│   │   │   │   ├── UserManagement.jsx
-│   │   │   │   ├── OrgManagement.jsx
-│   │   │   │   ├── Analytics.jsx
-│   │   │   │   └── Advertisements.jsx
 │   │   │   │
 │   │   │   └── error/                          # Error pages
 │   │   │       ├── NotFound.jsx
@@ -950,393 +914,3 @@ Deployment Options:
      ├── Development (.env)
      └── Production (platform-specific)
 ```
-
-
-## GitHub Issues & Development Roadmap (Organized by Logic)
-
-### Phase 1: Foundation Setup
-
-#### Feat/Backend - Core Infrastructure
-```
-1. Feat/backend - Set up Flask application structure (Priority: CRITICAL)
-   Labels: backend, enhancement, priority: critical, phase: foundation
-   - Initialize Flask app factory pattern in src/app.py
-   - Configure environment variables and settings
-   - Set up CORS and basic middleware
-   - Create health check endpoint
-
-2. Feat/backend - Database models and SQLAlchemy setup (Priority: CRITICAL)
-   Labels: backend, enhancement, priority: critical, phase: foundation, database
-   - Create User model with authentication fields
-   - Create Organization model with all attributes
-   - Create Category and Location models
-   - Create relationship models (UserBookmarks, SearchHistory, etc.)
-   - Set up database configuration and connection
-```
-
-#### Feat/Migrations - Database Foundation
-```
-1. Feat/migrations - Initial database schema setup (Priority: CRITICAL)
-   Labels: migrations, enhancement, priority: critical, phase: foundation, database
-   - Create initial migration for core tables
-   - Set up users, organizations, categories, locations tables
-   - Add proper indexes and constraints
-   - Configure foreign key relationships
-
-2. Feat/migrations - Data seeding and sample data (Priority: HIGH)
-   Labels: migrations, enhancement, priority: high, phase: foundation, database
-   - Create seed data for categories
-   - Add sample locations and organizations
-   - Create test user accounts
-   - Generate dummy data for development
-```
-
-#### Feat/Frontend - Project Setup
-```
-1. Feat/frontend - React project setup and configuration (Priority: CRITICAL)
-   Labels: frontend, enhancement, priority: critical, phase: foundation
-   - Initialize React + Vite project structure
-   - Configure routing with React Router
-   - Set up global state management (Context/Redux)
-   - Configure build and development scripts
-
-2. Feat/frontend - Common UI components (Priority: HIGH)
-   Labels: frontend, enhancement, priority: high, phase: foundation, ui
-   - Navigation bar and footer
-   - Form input components
-   - Modal and dialog components
-   - Loading states and error handling
-```
-
-### Phase 2: Authentication & User Management
-
-#### Feat/Backend - Authentication System
-```
-3. Feat/backend - Authentication system implementation (Priority: CRITICAL)
-   Labels: backend, enhancement, priority: critical, phase: authentication, security
-   - Implement JWT-based authentication
-   - Create user registration and login endpoints
-   - Add password hashing and validation
-   - Implement password reset functionality
-
-4. Feat/backend - User management and profiles (Priority: HIGH)
-   Labels: backend, enhancement, priority: high, phase: authentication, user-management
-   - User profile CRUD operations
-   - Bookmark management system
-   - Search history tracking
-   - User role management (visitor/org_admin/platform_admin)
-```
-
-#### Feat/Frontend - Authentication UI
-```
-3. Feat/frontend - Authentication UI components (Priority: CRITICAL)
-   Labels: frontend, enhancement, priority: critical, phase: authentication, ui
-   - Create Login and Signup forms
-   - Implement Google OAuth login button
-   - Add password reset flow
-   - Create protected route components
-
-4. Feat/frontend - User dashboard and profile (Priority: HIGH)
-   Labels: frontend, enhancement, priority: high, phase: authentication, ui
-   - Create user dashboard layout
-   - Build profile management interface
-   - Implement bookmarks/favorites page
-   - Add search history page
-```
-
-#### Feat/Migrations - User Data
-```
-3. Feat/migrations - User interaction tables (Priority: HIGH)
-   Labels: migrations, enhancement, priority: high, phase: authentication, database
-   - Create user_bookmarks table
-   - Create search_history table
-   - Create contact_messages table
-   - Add user activity tracking tables
-```
-
-### Phase 3: Core Features - Organizations
-
-#### Feat/Backend - Organization Management
-```
-5. Feat/backend - Organization management API (Priority: CRITICAL)
-   Labels: backend, enhancement, priority: critical, phase: organizations, api
-   - Create organization CRUD endpoints
-   - Implement organization approval workflow
-   - Add photo upload functionality
-   - Create organization search and filtering
-
-6. Feat/backend - File upload and media handling (Priority: HIGH)
-   Labels: backend, enhancement, priority: high, phase: organizations, file-upload
-   - Image upload for organization logos
-   - Photo gallery management
-   - File validation and security
-   - Image resizing and optimization
-```
-
-#### Feat/Frontend - Organization Interface
-```
-5. Feat/frontend - Landing page and public interface (Priority: CRITICAL)
-   Labels: frontend, enhancement, priority: critical, phase: organizations, ui
-   - Design and build homepage
-   - Create organization directory/browse page
-   - Build organization profile page
-   - Add search and filter interface
-
-6. Feat/frontend - Organization admin interface (Priority: HIGH)
-   Labels: frontend, enhancement, priority: high, phase: organizations, ui, admin
-   - Create organization registration form
-   - Build organization management dashboard
-   - Add photo upload and gallery management
-   - Implement status tracking interface
-```
-
-#### Feat/Migrations - Organization Data
-```
-4. Feat/migrations - Media and content tables (Priority: HIGH)
-   Labels: migrations, enhancement, priority: high, phase: organizations, database
-   - Create organization_photos table
-   - Create organization_social_links table
-   - Add file metadata tracking
-   - Set up content moderation tables
-```
-
-### Phase 4: Advanced Features
-
-#### Feat/Backend - Advanced Systems
-```
-7. Feat/backend - Admin dashboard API (Priority: HIGH)
-   Labels: backend, enhancement, priority: high, phase: advanced, admin, api
-   - Admin authentication and authorization
-   - Organization review and approval endpoints
-   - User management for administrators
-   - Audit logging system
-
-8. Feat/backend - Search and filtering system (Priority: MEDIUM)
-   Labels: backend, enhancement, priority: medium, phase: advanced, search
-   - Advanced organization search
-   - Category and location filtering
-   - Search suggestions and autocomplete
-   - Search analytics and popular searches
-
-9. Feat/backend - Google OAuth integration (Priority: MEDIUM)
-   Labels: backend, enhancement, priority: medium, phase: advanced, oauth, integration
-   - Set up Google OAuth 2.0 client
-   - Create OAuth login and callback endpoints
-   - Implement account linking/unlinking
-   - Handle OAuth user creation and authentication
-
-10. Feat/backend - Notification system (Priority: LOW)
-    Labels: backend, enhancement, priority: low, phase: advanced, notifications
-    - Email notification service
-    - In-app notification management
-    - Notification preferences
-    - Bulk notification broadcasting
-```
-
-#### Feat/Frontend - Advanced UI
-```
-7. Feat/frontend - Platform admin dashboard (Priority: HIGH)
-   Labels: frontend, enhancement, priority: high, phase: advanced, admin, ui
-   - Create admin dashboard layout
-   - Build organization review queue
-   - Add user management interface
-   - Implement analytics and reporting views
-
-8. Feat/frontend - Search and discovery features (Priority: MEDIUM)
-   Labels: frontend, enhancement, priority: medium, phase: advanced, search, ui
-   - Advanced search interface
-   - Category and location filters
-   - Search results with pagination
-   - Auto-complete and suggestions
-
-9. Feat/frontend - Responsive design and styling (Priority: MEDIUM)
-   Labels: frontend, enhancement, priority: medium, phase: advanced, ui, responsive
-   - Mobile-responsive layouts
-   - CSS framework integration (Tailwind/Bootstrap)
-   - Consistent design system
-   - Accessibility improvements
-
-10. Feat/frontend - API integration and services (Priority: HIGH)
-    Labels: frontend, enhancement, priority: high, phase: advanced, api, services
-    - Axios configuration and interceptors
-    - API service modules
-    - Error handling and retry logic
-    - Caching and performance optimization
-```
-
-#### Feat/Migrations - Advanced Data
-```
-5. Feat/migrations - System and audit tables (Priority: MEDIUM)
-   Labels: migrations, enhancement, priority: medium, phase: advanced, database, audit
-   - Create notifications table
-   - Create audit_log table for tracking changes
-   - Add system configuration tables
-   - Set up performance monitoring tables
-
-6. Feat/migrations - Monetization tables (Priority: LOW)
-   Labels: migrations, enhancement, priority: low, phase: advanced, database, monetization
-   - Create advertisements table
-   - Add sponsored listing functionality
-   - Create payment tracking tables (future)
-   - Set up analytics and metrics tables
-```
-
-### Phase 5: Production & Quality Assurance
-
-#### Feat/Production - Deployment
-```
-1. Feat/production - Docker containerization (Priority: HIGH)
-   Labels: production, enhancement, priority: high, phase: production, docker, deployment
-   - Create Dockerfile for production builds
-   - Set up docker-compose for local development
-   - Configure multi-stage builds
-   - Optimize container size and security
-
-2. Feat/production - Environment management (Priority: HIGH)
-   Labels: production, enhancement, priority: high, phase: production, configuration
-   - Production environment variables
-   - Staging environment setup
-   - Configuration management
-   - Secret management and rotation
-
-3. Feat/production - Render platform deployment (Priority: HIGH)
-   Labels: production, enhancement, priority: high, phase: production, deployment, render
-   - Configure render.yaml for deployment
-   - Set up build scripts for Render
-   - Configure environment variables
-   - Set up automatic deployments
-
-4. Feat/production - Database production setup (Priority: CRITICAL)
-   Labels: production, enhancement, priority: critical, phase: production, database
-   - PostgreSQL configuration for production
-   - Database migration automation
-   - Backup and recovery procedures
-   - Performance monitoring and optimization
-
-5. Feat/production - Security implementation (Priority: CRITICAL)
-   Labels: production, enhancement, priority: critical, phase: production, security
-   - HTTPS/SSL configuration
-   - Security headers and CORS setup
-   - Rate limiting and DDoS protection
-   - Input validation and sanitization
-
-6. Feat/production - Monitoring and logging (Priority: HIGH)
-   Labels: production, enhancement, priority: high, phase: production, monitoring
-   - Application performance monitoring
-   - Error tracking and alerting
-   - User analytics and behavior tracking
-   - System health monitoring
-
-7. Feat/production - CDN and static asset optimization (Priority: MEDIUM)
-   Labels: production, enhancement, priority: medium, phase: production, optimization
-   - Static file serving optimization
-   - Image compression and optimization
-   - CDN integration for better performance
-   - Caching strategies implementation
-
-8. Feat/production - Backup and disaster recovery (Priority: MEDIUM)
-   Labels: production, enhancement, priority: medium, phase: production, backup
-   - Automated database backups
-   - File storage backup procedures
-   - Disaster recovery planning
-   - Data retention policies
-```
-
-#### Feat/Testing - Quality Assurance
-```
-1. Feat/testing - Backend API testing setup (Priority: HIGH)
-   Labels: testing, enhancement, priority: high, phase: production, backend
-   - Unit tests for models and utilities
-   - Integration tests for API endpoints
-   - Authentication and authorization tests
-   - Database operation testing
-
-2. Feat/testing - Frontend component testing (Priority: HIGH)
-   Labels: testing, enhancement, priority: high, phase: production, frontend
-   - React component unit tests
-   - Integration tests for user workflows
-   - Form validation testing
-   - State management testing
-
-3. Feat/testing - End-to-end testing (Priority: MEDIUM)
-   Labels: testing, enhancement, priority: medium, phase: production, e2e
-   - User registration and login flows
-   - Organization submission and approval
-   - Search and filtering functionality
-   - Admin dashboard operations
-
-4. Feat/testing - Security testing (Priority: HIGH)
-   Labels: testing, enhancement, priority: high, phase: production, security
-   - Authentication bypass testing
-   - Input validation and XSS testing
-   - SQL injection prevention tests
-   - File upload security testing
-
-5. Feat/testing - Performance testing (Priority: MEDIUM)
-   Labels: testing, enhancement, priority: medium, phase: production, performance
-   - API response time testing
-   - Database query optimization tests
-   - Frontend loading performance
-   - Stress testing for concurrent users
-
-6. Feat/testing - Cross-browser and device testing (Priority: MEDIUM)
-   Labels: testing, enhancement, priority: medium, phase: production, compatibility
-   - Mobile responsiveness testing
-   - Browser compatibility testing
-   - Accessibility testing (WCAG compliance)
-   - Performance across different devices
-
-7. Feat/testing - Test automation and CI/CD (Priority: HIGH)
-   Labels: testing, enhancement, priority: high, phase: production, automation, ci-cd
-   - GitHub Actions workflow setup
-   - Automated testing on pull requests
-   - Test coverage reporting
-   - Automated deployment testing
-```
-
-#### Feat/Migrations - Performance
-```
-7. Feat/migrations - Database optimization (Priority: MEDIUM)
-   Labels: migrations, enhancement, priority: medium, phase: production, database, optimization
-   - Add database indexes for performance
-   - Optimize query performance
-   - Set up database backup procedures
-   - Configure database monitoring
-```
-
-## Logical Development Sprint Planning
-
-### Sprint 1: Foundation (Week 1)
-**Dependencies: None**
-- Backend Flask setup
-- Database schema creation
-- Frontend React setup
-- Basic UI components
-
-### Sprint 2: Authentication (Week 2)
-**Dependencies: Sprint 1**
-- User authentication system
-- Login/Signup UI
-- User management
-- Basic user data tables
-
-### Sprint 3: Organizations Core (Week 3-4)
-**Dependencies: Sprint 2**
-- Organization CRUD operations
-- Organization UI pages
-- File upload system
-- Media data tables
-
-### Sprint 4: Admin & Advanced Features (Week 5-6)
-**Dependencies: Sprint 3**
-- Admin dashboard
-- Search functionality
-- Google OAuth
-- Audit and notification systems
-
-### Sprint 5: Production & Testing (Week 7-9)
-**Dependencies: Sprint 4**
-- Production deployment
-- Security hardening
-- Comprehensive testing
-- Performance optimization

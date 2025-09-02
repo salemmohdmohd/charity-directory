@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"
+import React, { useEffect } from "react";
 import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
 
 export const Home = () => {
@@ -76,7 +76,7 @@ export const Home = () => {
 			<h1 className="display-4 mb-5">Featured Charities</h1>
 			
 			{/* Cards Container */}
-			<div className="container-fluid px-4">
+			<div className="container-fluid px-4 pb-5 mb-5">
 				<div className="row g-4">
 					{charities.map((charity) => (
 						<div key={charity.id} className="col-sm-6 col-lg-3">
