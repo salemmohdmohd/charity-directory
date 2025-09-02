@@ -1,187 +1,216 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-export const Signup=()=>{
-    const [userState,setUserState]=useState({
-        firstName:'',
-        lastName:'',
-        email:'',
-        city:'',
-        state:'',
-        zip:'',
-    })
-    const navigate = useNavigate();
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import useGlobalReducer from '../hooks/useGlobalReducer';
+import Button from '../components/forms/Button';
+import Input from '../components/forms/Input';
+import Checkbox from '../components/forms/Checkbox';
 
+export const Signup = () => {
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    agreeToTerms: false
+  });
+  const [errors, setErrors] = useState({});
+  const { dispatch } = useGlobalReducer();
+  const navigate = useNavigate();
 
-    const handleSubmit= async (e)=>{
-      e.preventDefault();
-      try{
-    const response = await fetch('http://localhost:3001/signup',{
-      method:"POST",
-      headers:{
-        'Content-Type':"application/json"
-      },
-      body:JSON.stringify(userState),
-    })
-    if(!response.ok){
-      throw new Error(`Error: ${response.status}`)
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+
+    // Clear errors when user types
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
     }
-    const data = await response.json();
-    navigate("/login")
-  }catch(error){
-    console.log("error from handle Submit signup ")
-  }
-}
+  };
 
+  const validateForm = () => {
+    const newErrors = {};
 
-    const handleChange = (e) =>{
-      const {name, value} = e.target 
-
-      setUserState({...userState,[name]:value})
+    if (!formData.name) {
+      newErrors.name = 'Name is required';
+    } else if (formData.name.length < 2) {
+      newErrors.name = 'Name must be at least 2 characters';
     }
 
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (!formData.agreeToTerms) {
+      newErrors.agreeToTerms = 'You must agree to the terms and conditions';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    try {
+      // Simulate API call for visitor signup
+      setTimeout(() => {
+        dispatch({ type: 'SET_USER', payload: {
+          name: formData.name,
+          email: formData.email,
+          role: 'visitor'
+        }});
+        dispatch({ type: 'SET_NOTIFICATION', payload: 'Welcome! Your account has been created successfully.' });
+        navigate('/');
+      }, 1500);
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Signup failed. Please try again.' });
+    }
+  };
+
+  const handleGoogleSignup = () => {
+    dispatch({ type: 'SET_NOTIFICATION', payload: 'Google OAuth integration coming soon!' });
+  };
 
   return (
-    <div className="mx-auto mt-5 border text-center" style={{width:"400px", color:'white',backgroundColor:"#005555", borderRadius:".975rem"}}>
-         <div>
-    {/* <h1 className="mt-4">UNSEEN</h1> */}
-    <h2 className="mt-4">Welcome</h2>
-    <p className="m-4">Sign Up to see the Unseen!</p>
-  </div>
-    <form className="row g-3 m-3 needs-validation" noValidate onSubmit={handleSubmit}>
-  <div className="">
-    <label htmlFor="validationCustom01" className="form-label"></label>
-    <input type="text" className="form-control" id="validationCustom01" value={userState.firstName} 
-    name="firstName"
-    placeholder='First name' required onChange={handleChange} />
-    <div className="valid-feedback">
-      Looks good!
-    </div>
-  </div>
-  <div className="">
-    <label htmlFor="validationCustom02" className="form-label"></label>
-    <input type="text" className="form-control" id="validationCustom02" value={userState.lastName}
-    name="lastName"
-    placeholder="Last name" required onChange={handleChange} />
-    <div className="valid-feedback">
-      Looks good!
-    </div>
-  </div>
-  <div className="">
-    <label htmlFor="validationCustomUsername" className="form-label"></label>
-    <div className="input-group has-validation">
-      {/* <span className="input-group-text" id="inputGroupPrepend">@</span> */}
-      <input type="email" className="form-control" id="validationCustomUsername" aria-describedby="inputGroupPrepend" 
-      name="email"
-      placeholder='Email' 
-      onChange={handleChange}
-      value={userState.email} required />
-      <div className="invalid-feedback">
-        Please provide email.
-      </div>
-    </div>
-  </div>
-  
-  <div className="col-md-4">
-    <label htmlFor="validationCustom03" className="form-label"> </label>
-    <input type="text" className="form-control" id="validationCustom03"value={userState.city}
-    name="city"
-    placeholder='City' 
-    onChange={handleChange}
-    required />
-    <div className="invalid-feedback">
-      Please provide a valid city.
-    </div>
-  </div>
-  <div className="col-md-4">
-    <label htmlFor="validationCustom04" className="form-label"> </label>
-    <select className="form-select" id="validationCustom04" placeholder='State' 
-     value={userState.state} name='state' 
-     onChange={handleChange}
-     required>
-      <option selected disabled>Choose...</option>
-    <option value="AL">Alabama</option>
-  <option value="AK">Alaska</option>
-  <option value="AZ">Arizona</option>
-  <option value="AR">Arkansas</option>
-  <option value="CA">California</option>
-  <option value="CO">Colorado</option>
-  <option value="CT">Connecticut</option>
-  <option value="DE">Delaware</option>
-  <option value="DC">District Of Columbia</option>
-  <option value="FL">Florida</option>
-  <option value="GA">Georgia</option>
-  <option value="HI">Hawaii</option>
-  <option value="ID">Idaho</option>
-  <option value="IL">Illinois</option>
-  <option value="IN">Indiana</option>
-  <option value="IA">Iowa</option>
-  <option value="KS">Kansas</option>
-  <option value="KY">Kentucky</option>
-  <option value="LA">Louisiana</option>
-  <option value="ME">Maine</option>
-  <option value="MD">Maryland</option>
-  <option value="MA">Massachusetts</option>
-  <option value="MI">Michigan</option>
-  <option value="MN">Minnesota</option>
-  <option value="MS">Mississippi</option>
-  <option value="MO">Missouri</option>
-  <option value="MT">Montana</option>
-  <option value="NE">Nebraska</option>
-  <option value="NV">Nevada</option>
-  <option value="NH">New Hampshire</option>
-  <option value="NJ">New Jersey</option>
-  <option value="NM">New Mexico</option>
-  <option value="NY">New York</option>
-  <option value="NC">North Carolina</option>
-  <option value="ND">North Dakota</option>
-  <option value="OH">Ohio</option>
-  <option value="OK">Oklahoma</option>
-  <option value="OR">Oregon</option>
-  <option value="PA">Pennsylvania</option>
-  <option value="RI">Rhode Island</option>
-  <option value="SC">South Carolina</option>
-  <option value="SD">South Dakota</option>
-  <option value="TN">Tennessee</option>
-  <option value="TX">Texas</option>
-  <option value="UT">Utah</option>
-  <option value="VT">Vermont</option>
-  <option value="VA">Virginia</option>
-  <option value="WA">Washington</option>
-  <option value="WV">West Virginia</option>
-  <option value="WI">Wisconsin</option>
-  <option value="WY">Wyoming</option>
-    </select>
-    <div className="invalid-feedback">
-      Please select a valid state.
-    </div>
-  </div>
-  <div className="col-4">
-    <label htmlFor="validationCustom05" className="form-label"> </label>
-    <input type="text" className="form-control" id="validationCustom05" placeholder='Zip' 
-    onChange={handleChange}
-    name="zip"
-    value={userState.zip} required/>
-    <div className="invalid-feedback">
-      Please provide a valid zip.
-    </div>
-  </div>
-  <div className="col-12">
-    <div className="form-check">
-      <label className="form-check-label" htmlFor="invalidCheck">
-      <input className="form-check-input" type="checkbox" value="" id="invalidCheck" 
-      required/>
-        Agree to terms & conditions
-      </label>
-      <div className="invalid-feedback">
-        You must agree before submitting.
-      </div>
-    </div>
-  </div>
-  <div className="col-12">
-    <button className="btn btn-light" type="submit">Sign Up</button>
-  </div>
-</form>
-    </div>
-  )
-}
+    <div className="container mt-5">
+      <div className="row justify-content-center">
+        <div className="col-md-6 col-lg-5">
+          <div className="card shadow">
+            <div className="card-body p-5">
+              <div className="text-center mb-4">
+                <h2 className="h3 mb-3">Create Your Account</h2>
+                <p className="text-muted">Join to discover and support amazing charities</p>
+              </div>
 
+              <form onSubmit={handleSubmit}>
+                <Input
+                  name="name"
+                  type="text"
+                  label="Full Name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  error={errors.name}
+                  placeholder="Enter your full name"
+                  required
+                />
+
+                <Input
+                  name="email"
+                  type="email"
+                  label="Email Address"
+                  value={formData.email}
+                  onChange={handleChange}
+                  error={errors.email}
+                  placeholder="your@email.com"
+                  required
+                />
+
+                <Input
+                  name="password"
+                  type="password"
+                  label="Password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  error={errors.password}
+                  placeholder="Create a password"
+                  required
+                />
+
+                <Input
+                  name="confirmPassword"
+                  type="password"
+                  label="Confirm Password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  error={errors.confirmPassword}
+                  placeholder="Confirm your password"
+                  required
+                />
+
+                <div className="mb-3">
+                  <Checkbox
+                    name="agreeToTerms"
+                    checked={formData.agreeToTerms}
+                    onChange={handleChange}
+                    error={errors.agreeToTerms}
+                    label={
+                      <span>
+                        I agree to the{' '}
+                        <Link to="/terms" className="text-decoration-none">Terms of Service</Link>
+                        {' '}and{' '}
+                        <Link to="/privacy" className="text-decoration-none">Privacy Policy</Link>
+                      </span>
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="d-grid gap-2 mb-3">
+                  <Button type="submit" variant="primary" size="lg">
+                    Create Account
+                  </Button>
+                </div>
+
+                <div className="text-center mb-3">
+                  <span className="text-muted">or</span>
+                </div>
+
+                <div className="d-grid gap-2 mb-4">
+                  <Button
+                    type="button"
+                    variant="outline-danger"
+                    onClick={handleGoogleSignup}
+                  >
+                    <i className="fab fa-google me-2"></i>
+                    Sign up with Google
+                  </Button>
+                </div>
+
+                <div className="text-center">
+                  <small className="text-muted">
+                    Already have an account? <Link to="/login" className="text-decoration-none">Login here</Link>
+                  </small>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          {/* Organization Portal Link */}
+          <div className="card mt-4 bg-success text-white">
+            <div className="card-body text-center p-4">
+              <h6 className="card-title mb-2">
+                <i className="fas fa-plus-circle me-2"></i>
+                Want to list your charity organization?
+              </h6>
+              <p className="card-text small mb-3">
+                Register your organization to connect with supporters
+              </p>
+              <Link to="/organization-signup" className="btn btn-light btn-sm">
+                List Your Organization
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,52 +1,47 @@
-import React, { useEffect } from "react"
-import rigoImageUrl from "../assets/img/rigo-baby.jpg";
-import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+import React from "react"
+import { HeroSection } from "../components/HeroSection.jsx";
 
 export const Home = () => {
-
-	const { store, dispatch } = useGlobalReducer()
-
-	const loadMessage = async () => {
-		try {
-			const backendUrl = import.meta.env.VITE_BACKEND_URL
-
-			if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env file")
-
-			const response = await fetch(backendUrl + "/api/hello")
-			const data = await response.json()
-
-			if (response.ok) dispatch({ type: "set_hello", payload: data.message })
-
-			return data
-
-		} catch (error) {
-			if (error.message) throw new Error(
-				`Could not fetch the message from the backend.
-				Please check if the backend is running and the backend port is public.`
-			);
-		}
-
-	}
-
-	useEffect(() => {
-		loadMessage()
-	}, [])
-
 	return (
-		<div className="text-center mt-5">
-			<h1 className="display-4">Hello Rigo!!</h1>
-			<p className="lead">
-				<img src={rigoImageUrl} className="img-fluid rounded-circle mb-3" alt="Rigo Baby" />
-			</p>
-			<div className="alert alert-info">
-				{store.message ? (
-					<span>{store.message}</span>
-				) : (
-					<span className="text-danger">
-						Loading message from the backend (make sure your python 🐍 backend is running)...
-					</span>
-				)}
-			</div>
+		<div>
+			<HeroSection />
+
+			{/* Featured Charities Section */}
+			<section className="py-5 bg-light">
+
+			</section>
+
+			{/* Statistics Section */}
+			<section className="py-5">
+				<div className="container">
+					<div className="row text-center">
+						<div className="col-md-3 mb-4">
+							<div className="h2 fw-bold text-primary">1000+</div>
+							<p className="text-muted">Verified Charities</p>
+						</div>
+						<div className="col-md-3 mb-4">
+							<div className="h2 fw-bold text-primary">50+</div>
+							<p className="text-muted">Categories</p>
+						</div>
+						<div className="col-md-3 mb-4">
+							<div className="h2 fw-bold text-primary">25</div>
+							<p className="text-muted">Countries</p>
+						</div>
+						<div className="col-md-3 mb-4">
+							<div className="h2 fw-bold text-primary">100%</div>
+							<p className="text-muted">Verified Organizations</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			{/* Call to Action Section */}
+			<section className="py-5 bg-primary text-white">
+				<div className="container text-center">
+					<div className="row">
+					</div>
+				</div>
+			</section>
 		</div>
 	);
-}; 
+};
