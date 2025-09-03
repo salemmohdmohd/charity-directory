@@ -1,12 +1,14 @@
-from flask import request, Blueprint
+from flask import request, Blueprint, redirect, session, url_for
 from flask_restx import Api, Resource, Namespace, fields, marshal
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from api.models import db, User, PasswordReset, EmailVerification, AuditLog, Organization, UserBookmark, SearchHistory, Advertisement, Category, Notification, Location, ContactMessage, OrganizationPhoto, OrganizationSocialLink
 from api.auth_utils import AuthService, validate_password, validate_email_format
+from api.oauth_utils import oauth_service, GoogleAuthError
 from datetime import datetime, timedelta
 from sqlalchemy import func, desc, text, or_, and_
 from functools import wraps
 import json
+import os
 
 # Create Blueprint for Flask-RESTX
 api_bp = Blueprint('api', __name__)
@@ -427,6 +429,274 @@ class ChangePassword(Resource):
         except Exception:
             db.session.rollback()
             api.abort(500, 'Password change failed')
+
+# GOOGLE OAUTH ENDPOINTS
+@auth_ns.route('/google')
+class GoogleOAuth(Resource):
+    @auth_ns.doc(responses={
+        302: 'Redirect to Google OAuth authorization page',
+        500: 'OAuth initialization failed'
+    })
+    def get(self):
+        """Initiate Google OAuth flow"""
+        try:
+            # Generate state parameter for security
+            state = oauth_service.generate_state()
+            session['oauth_state'] = state
+
+            # Get Google authorization URL
+            authorization_url, _ = oauth_service.get_authorization_url(state)
+
+            return redirect(authorization_url)
+        except GoogleAuthError as e:
+            api.abort(500, f'OAuth initialization failed: {str(e)}')
+        except Exception as e:
+            api.abort(500, f'Unexpected error: {str(e)}')
+
+@auth_ns.route('/google/callback')
+class GoogleOAuthCallback(Resource):
+    @auth_ns.doc(responses={
+        200: 'OAuth callback processed successfully',
+        400: 'Invalid OAuth callback parameters',
+        401: 'OAuth authentication failed',
+        500: 'OAuth callback processing failed'
+    })
+    def get(self):
+        """Handle Google OAuth callback"""
+        try:
+            # Get authorization code and state from callback
+            authorization_code = request.args.get('code')
+            state = request.args.get('state')
+            error = request.args.get('error')
+            error_description = request.args.get('error_description')
+
+            # Debug logging
+            print(f"OAuth callback received - Code: {bool(authorization_code)}, State: {state}, Error: {error}")
+            print(f"Session state: {session.get('oauth_state')}")
+            print(f"All request args: {dict(request.args)}")
+
+            # Check for OAuth errors
+            if error:
+                error_msg = f'OAuth error: {error}'
+                if error_description:
+                    error_msg += f' - {error_description}'
+                # Redirect to frontend with error
+                frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+                return redirect(f'{frontend_url}/login?error={error}')
+
+            if not authorization_code:
+                print("No authorization code provided")
+                # Redirect to frontend with error
+                frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+                return redirect(f'{frontend_url}/login?error=no_code')
+
+            # Verify state parameter (skip if no state in session - first time)
+            session_state = session.get('oauth_state')
+            if session_state and state != session_state:
+                print(f"State mismatch - Session: {session_state}, Received: {state}")
+                # Clear session and redirect
+                session.pop('oauth_state', None)
+                frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+                return redirect(f'{frontend_url}/login?error=invalid_state')
+
+            # Exchange code for credentials
+            credentials = oauth_service.exchange_code_for_token(authorization_code, state)
+
+            # Get user info from Google
+            user_info = oauth_service.get_user_info_from_credentials(credentials)
+            print(f"User info received: {user_info.get('email', 'no email')}")
+
+            # Find or create user
+            user = self._find_or_create_user(user_info)
+
+            # Create JWT token
+            access_token = create_access_token(identity=user.id)
+
+            # Update last login
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+
+            # Log the action
+            log_action(user.id, 'oauth_login', {'provider': 'google'})
+            db.session.commit()
+
+            # Clear OAuth state from session
+            session.pop('oauth_state', None)
+
+            # Check if this is an account linking request
+            linking_user_id = session.pop('linking_user_id', None)
+
+            if linking_user_id:
+                # This is an account linking request
+                existing_user = User.query.get(linking_user_id)
+                if existing_user:
+                    existing_user.google_id = user_info['google_id']
+                    if not existing_user.profile_picture and user_info.get('profile_picture'):
+                        existing_user.profile_picture = user_info['profile_picture']
+                    if not existing_user.is_verified and user_info.get('email_verified'):
+                        existing_user.is_verified = True
+                    existing_user.updated_at = datetime.utcnow()
+                    db.session.commit()
+
+                    log_action(existing_user.id, 'oauth_link', {'provider': 'google'})
+                    db.session.commit()
+
+                    # Redirect to frontend with success message
+                    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+                    return redirect(f'{frontend_url}/profile?linked=google')
+
+            # Regular OAuth login/signup - redirect to frontend with token
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+            redirect_url = f'{frontend_url}/auth/callback?token={access_token}&user_id={user.id}'
+
+            print(f"Redirecting to: {redirect_url}")
+            return redirect(redirect_url)
+
+        except GoogleAuthError as e:
+            print(f"GoogleAuthError: {str(e)}")
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+            return redirect(f'{frontend_url}/login?error=auth_failed')
+        except Exception as e:
+            print(f"Unexpected error in OAuth callback: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            db.session.rollback()
+            frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+            return redirect(f'{frontend_url}/login?error=server_error')
+
+    def _find_or_create_user(self, user_info):
+        """Find existing user or create new one from OAuth data"""
+        # First, try to find user by Google ID
+        user = User.query.filter_by(google_id=user_info['google_id']).first()
+
+        if user:
+            # Update user info if needed
+            self._update_user_from_oauth(user, user_info)
+            return user
+
+        # Then try to find by email
+        user = User.query.filter_by(email=user_info['email']).first()
+
+        if user:
+            # Link Google account to existing user
+            user.google_id = user_info['google_id']
+            if not user.profile_picture and user_info.get('profile_picture'):
+                user.profile_picture = user_info['profile_picture']
+            if not user.is_verified and user_info.get('email_verified'):
+                user.is_verified = True
+            db.session.commit()
+            return user
+
+        # Create new user
+        return self._create_user_from_oauth(user_info)
+
+    def _update_user_from_oauth(self, user, user_info):
+        """Update existing user with OAuth data"""
+        updated = False
+
+        if not user.profile_picture and user_info.get('profile_picture'):
+            user.profile_picture = user_info['profile_picture']
+            updated = True
+
+        if not user.is_verified and user_info.get('email_verified'):
+            user.is_verified = True
+            updated = True
+
+        if not user.name and user_info.get('name'):
+            user.name = user_info['name']
+            updated = True
+
+        if updated:
+            user.updated_at = datetime.utcnow()
+            db.session.commit()
+
+    def _create_user_from_oauth(self, user_info):
+        """Create new user from OAuth data"""
+        user = User(
+            name=user_info.get('name', ''),
+            email=user_info['email'],
+            google_id=user_info['google_id'],
+            profile_picture=user_info.get('profile_picture', ''),
+            is_verified=user_info.get('email_verified', False),
+            role='visitor',  # Default role
+            password_hash=None  # OAuth users don't have passwords
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        # Log user creation
+        log_action(user.id, 'user_created', {'method': 'oauth_google'})
+        db.session.commit()
+
+        return user
+
+@auth_ns.route('/google/link')
+class GoogleOAuthLink(Resource):
+    @jwt_required()
+    @auth_ns.doc(responses={
+        302: 'Redirect to Google OAuth for account linking',
+        401: 'Authentication required',
+        500: 'Account linking initialization failed'
+    })
+    def get(self):
+        """Link Google account to existing user"""
+        try:
+            user_id = get_jwt_identity()
+
+            # Generate state parameter with user ID for linking
+            state = oauth_service.generate_state()
+            session['oauth_state'] = state
+            session['linking_user_id'] = user_id
+
+            # Get Google authorization URL
+            authorization_url, _ = oauth_service.get_authorization_url(state)
+
+            return redirect(authorization_url)
+        except GoogleAuthError as e:
+            api.abort(500, f'Account linking initialization failed: {str(e)}')
+        except Exception as e:
+            api.abort(500, f'Unexpected error: {str(e)}')
+
+@auth_ns.route('/google/unlink')
+class GoogleOAuthUnlink(Resource):
+    @jwt_required()
+    @auth_ns.doc(responses={
+        200: 'Google account unlinked successfully',
+        400: 'No Google account linked or cannot unlink',
+        401: 'Authentication required',
+        500: 'Account unlinking failed'
+    })
+    def post(self):
+        """Unlink Google account from user"""
+        try:
+            user_id = get_jwt_identity()
+            user = User.query.get(user_id)
+
+            if not user:
+                api.abort(404, 'User not found')
+
+            if not user.google_id:
+                api.abort(400, 'No Google account linked to this user')
+
+            # Check if user has a password (can't unlink if it's the only auth method)
+            if not user.password_hash:
+                api.abort(400, 'Cannot unlink Google account: set a password first')
+
+            # Unlink Google account
+            user.google_id = None
+            user.updated_at = datetime.utcnow()
+            db.session.commit()
+
+            # Log the action
+            log_action(user.id, 'oauth_unlink', {'provider': 'google'})
+            db.session.commit()
+
+            return {'message': 'Google account unlinked successfully'}
+
+        except Exception as e:
+            db.session.rollback()
+            api.abort(500, f'Account unlinking failed: {str(e)}')
 
 # ORGANIZATION ENDPOINTS
 @org_ns.route('')

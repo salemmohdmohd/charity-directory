@@ -11,16 +11,20 @@ export const Navbar = () => {
 
 	return (
 		<nav
-			className="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm"
-			style={{ backgroundColor: 'var(--charity-primary)' }}
+			className="navbar navbar-expand-lg navbar-dark bg-totoro shadow-sm nav-ghibli"
 		>
 			<div className="container">
 				{/* Brand */}
 				<Link
 					to="/"
-					className="navbar-brand fw-bold fs-3"
+					className="navbar-brand fw-bold fs-3 d-flex align-items-center"
 				>
-					<i className="fas fa-heart me-2 text-danger" aria-hidden="true"></i>
+					<img
+						src="/Logo.png"
+						alt="Unseen Logo"
+						height="32"
+						className="me-2"
+					/>
 					Unseen
 				</Link>
 
@@ -93,7 +97,7 @@ export const Navbar = () => {
 						<li className="nav-item">
 							<Link
 								to="/list-your-charity"
-								className="btn btn-success ms-2"
+								className="btn calcifer-button ms-2 float-magic"
 								role="button"
 							>
 								<i className="fas fa-plus me-1" aria-hidden="true"></i>

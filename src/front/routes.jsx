@@ -16,6 +16,7 @@ import ListYourCharity from "./pages/ListYourCharity";
 import UserDashboard from "./pages/UserDashboard";
 import UserProfile from "./pages/UserProfile";
 import SearchHistory from "./pages/SearchHistory";
+import OAuthCallback from "./pages/OAuthCallback";
 
 export const router = createBrowserRouter(
     createRoutesFromElements(
@@ -41,6 +42,7 @@ export const router = createBrowserRouter(
         {/* Authentication Routes */}
         <Route path="/login" element={<Login/>}/>
         <Route path="/signup" element={<Signup/>}/>
+        <Route path="/auth/callback" element={<OAuthCallback/>}/>
 
         {/* Organization Routes */}
         <Route path="/organization-login" element={<OrganizationLogin/>}/>
