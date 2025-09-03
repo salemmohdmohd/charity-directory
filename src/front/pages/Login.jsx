@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
+import {login} from '../data/userAuth'
 
 export const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -43,34 +44,24 @@ export const Login = () => {
     e.preventDefault();
 
     if (!validateForm()) return;
+try{
+    const data = await login(formData.email, formData.password);
+    dispatch({ type: "SET_USER", payload: data.user });
+    dispatch({ type: "SET_NOTIFICATION", payload: "Welcome back!" });
 
-    try {
-      // Simulate API call for visitor login
-      setTimeout(() => {
-        dispatch({ type: 'SET_USER', payload: {
-          ...formData,
-          role: 'visitor',
-          name: 'User'
-        }});
-        dispatch({ type: 'SET_NOTIFICATION', payload: 'Welcome! You can now browse and bookmark charities.' });
-        navigate('/dashboard');
-      }, 1500);
+    navigate("/")
+
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Login failed. Please try again.' });
     }
+    
   };
 
   const handleGoogleLogin = () => {
-    try {
-      // Get backend URL from environment - corrected default port
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+    dispatch({ type: 'SET_NOTIFICATION', payload: 'Google OAuth integration coming soon!' });
+  };
 
-      // Redirect to Google OAuth endpoint
-      window.location.href = `${backendUrl}/api/auth/google`;
-    } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Failed to initiate Google login. Please try again.' });
-    }
-  };  return (
+  return (
     <div className="container mt-5">
       <div className="row justify-content-center">
         <div className="col-md-6 col-lg-5">
@@ -117,11 +108,11 @@ export const Login = () => {
                 <div className="d-grid gap-2 mb-4">
                   <Button
                     type="button"
-                    className="btn calcifer-button"
+                    variant="outline-danger"
                     onClick={handleGoogleLogin}
                   >
                     <i className="fab fa-google me-2"></i>
-                    Continue with Google ✨
+                    Continue with Google
                   </Button>
                 </div>
 
