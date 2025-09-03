@@ -4,7 +4,7 @@ import useGlobalReducer from '../hooks/useGlobalReducer';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
 import Checkbox from '../components/forms/Checkbox';
-
+import {signup} from '../data/userAuth'
 export const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -71,32 +71,22 @@ export const Signup = () => {
     if (!validateForm()) return;
 
     try {
-      // Simulate API call for visitor signup
-      setTimeout(() => {
-        dispatch({ type: 'SET_USER', payload: {
-          name: formData.name,
-          email: formData.email,
-          role: 'visitor'
-        }});
-        dispatch({ type: 'SET_NOTIFICATION', payload: 'Welcome! Your account has been created successfully.' });
-        navigate('/');
-      }, 1500);
+     const data = await signup(formData);
+
+ 
+    dispatch({ type: "SET_USER", payload: data.user });
+    dispatch({ type: "SET_NOTIFICATION", payload: "Welcome!" });
+    navigate("/")
     } catch (error) {
       dispatch({ type: 'SET_ERROR', payload: 'Signup failed. Please try again.' });
     }
   };
 
   const handleGoogleSignup = () => {
-    try {
-      // Get backend URL from environment - corrected default port
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+    dispatch({ type: 'SET_NOTIFICATION', payload: 'Google OAuth integration coming soon!' });
+  };
 
-      // Redirect to Google OAuth endpoint (same as login, handles both scenarios)
-      window.location.href = `${backendUrl}/api/auth/google`;
-    } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Failed to initiate Google signup. Please try again.' });
-    }
-  };  return (
+  return (
     <div className="container mt-5">
       <div className="row justify-content-center">
         <div className="col-md-6 col-lg-5">
@@ -183,11 +173,11 @@ export const Signup = () => {
                 <div className="d-grid gap-2 mb-4">
                   <Button
                     type="button"
-                    className="btn calcifer-button"
+                    variant="outline-danger"
                     onClick={handleGoogleSignup}
                   >
                     <i className="fab fa-google me-2"></i>
-                    Sign up with Google ✨
+                    Sign up with Google
                   </Button>
                 </div>
 
