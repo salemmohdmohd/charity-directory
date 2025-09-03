@@ -1,0 +1,128 @@
+"""
+Google OAuth 2.0 Configuration and Utilities
+Handles Google OAuth client setup, token verification, and user info retrieval
+"""
+
+import os
+import json
+from google.auth.transport import requests
+from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
+from google.auth.exceptions import GoogleAuthError
+import secrets
+import string
+
+class GoogleOAuthService:
+    """Service class for handling Google OAuth 2.0 operations"""
+
+    def __init__(self):
+        # OAuth configuration from environment variables
+        self.client_id = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
+        self.client_secret = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
+        self.redirect_uri = os.getenv('GOOGLE_OAUTH_REDIRECT_URI', 'http://localhost:5000/api/auth/google/callback')
+
+        # OAuth scopes
+        self.scopes = [
+            'openid',
+            'email',
+            'profile'
+        ]
+
+        # Validate required environment variables
+        if not self.client_id or not self.client_secret:
+            raise ValueError("Google OAuth credentials not found in environment variables")
+
+    def get_client_config(self):
+        """Get Google OAuth client configuration"""
+        return {
+            "web": {
+                "client_id": self.client_id,
+                "client_secret": self.client_secret,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [self.redirect_uri]
+            }
+        }
+
+    def create_flow(self, state=None):
+        """Create OAuth flow for authentication"""
+        try:
+            flow = Flow.from_client_config(
+                self.get_client_config(),
+                scopes=self.scopes
+            )
+            flow.redirect_uri = self.redirect_uri
+
+            if state:
+                flow.state = state
+
+            return flow
+        except Exception as e:
+            raise GoogleAuthError(f"Failed to create OAuth flow: {str(e)}")
+
+    def get_authorization_url(self, state=None):
+        """Get Google OAuth authorization URL"""
+        try:
+            flow = self.create_flow(state)
+            authorization_url, state = flow.authorization_url(
+                access_type='offline',
+                include_granted_scopes='true',
+                prompt='consent'
+            )
+            return authorization_url, state
+        except Exception as e:
+            raise GoogleAuthError(f"Failed to get authorization URL: {str(e)}")
+
+    def exchange_code_for_token(self, authorization_code, state=None):
+        """Exchange authorization code for access token"""
+        try:
+            flow = self.create_flow(state)
+            flow.fetch_token(code=authorization_code)
+            return flow.credentials
+        except Exception as e:
+            raise GoogleAuthError(f"Failed to exchange code for token: {str(e)}")
+
+    def verify_token(self, token):
+        """Verify Google ID token and return user info"""
+        try:
+            # Verify the token
+            idinfo = id_token.verify_oauth2_token(
+                token,
+                requests.Request(),
+                self.client_id
+            )
+
+            # Check issuer
+            if idinfo['iss'] not in ['accounts.google.com', 'https://accounts.google.com']:
+                raise ValueError('Invalid token issuer')
+
+            return {
+                'google_id': idinfo['sub'],
+                'email': idinfo['email'],
+                'name': idinfo.get('name', ''),
+                'profile_picture': idinfo.get('picture', ''),
+                'email_verified': idinfo.get('email_verified', False)
+            }
+        except ValueError as e:
+            raise GoogleAuthError(f"Invalid token: {str(e)}")
+        except Exception as e:
+            raise GoogleAuthError(f"Token verification failed: {str(e)}")
+
+    def get_user_info_from_credentials(self, credentials):
+        """Get user info from OAuth credentials"""
+        try:
+            # Get the ID token from credentials
+            if hasattr(credentials, 'id_token') and credentials.id_token:
+                return self.verify_token(credentials.id_token)
+            else:
+                raise GoogleAuthError("No ID token found in credentials")
+        except Exception as e:
+            raise GoogleAuthError(f"Failed to get user info: {str(e)}")
+
+    @staticmethod
+    def generate_state():
+        """Generate a secure random state parameter for OAuth"""
+        return ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+
+# Global instance
+oauth_service = GoogleOAuthService()

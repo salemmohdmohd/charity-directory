@@ -1,86 +1,318 @@
-/* Strict Bootstrap CSS - Minimal Custom Overrides */
+/* Studio Ghibli Inspired CSS - Nature & Magic Color Palette */
 
-/* Custom CSS Variables for Bootstrap theming */
+/* Custom CSS Variables for Studio Ghibli theming */
 :root {
-  /* Bootstrap color system override */
-  --bs-primary: #007bff;
-  --bs-secondary: #6c757d;
-  --bs-success: #28a745;
-  --bs-danger: #dc3545;
-  --bs-warning: #ffc107;
-  --bs-info: #17a2b8;
-  --bs-light: #f8f9fa;
-  --bs-dark: #343a40;
+  /* Studio Ghibli Primary Palette - From Totoro & Castle in the Sky */
+  --bs-primary: #4a7c59;        /* Forest Green (Totoro's world) */
+  --bs-secondary: #8fbc8f;      /* Sage Green (Moss & nature) */
+  --bs-success: #2d5016;        /* Deep Forest (Ancient trees) */
+  --bs-danger: #d2691e;         /* Burnt Orange (Calcifer's flame) */
+  --bs-warning: #f4a460;        /* Sandy Brown (Desert winds) */
+  --bs-info: #4682b4;          /* Steel Blue (Sky kingdom) */
+  --bs-light: #f5f5dc;         /* Beige (Soft sunlight) */
+  --bs-dark: #2f4f2f;          /* Dark Forest Green */
 
-  /* Custom charity theme colors */
-  --charity-primary: #005555;
-  --charity-secondary: #28a745;
-  --charity-accent: #218838;
-  --charity-text: #343a40;
-  --charity-light: #f8f9fa;
+  /* Studio Ghibli Signature Colors */
+  --ghibli-totoro-green: #4a7c59;       /* Totoro's belly */
+  --ghibli-forest-deep: #2d5016;        /* Deep forest shadows */
+  --ghibli-meadow: #90ee90;             /* Sunny meadows */
+  --ghibli-sky-blue: #87ceeb;           /* Clear sky */
+  --ghibli-sunset: #ffa07a;             /* Warm sunset */
+  --ghibli-calcifer-flame: #ff6347;     /* Calcifer's fire */
+  --ghibli-castle-stone: #696969;       /* Castle walls */
+  --ghibli-magic-glow: #dda0dd;         /* Magical elements */
+  --ghibli-earth-brown: #8b4513;        /* Rich earth */
+  --ghibli-cream: #fdf5e6;              /* Soft cream */
+
+  /* Nature-inspired gradients */
+  --ghibli-forest-gradient: linear-gradient(135deg, #2d5016 0%, #4a7c59 50%, #90ee90 100%);
+  --ghibli-sky-gradient: linear-gradient(135deg, #87ceeb 0%, #4682b4 50%, #2f4f2f 100%);
+  --ghibli-sunset-gradient: linear-gradient(135deg, #ffa07a 0%, #f4a460 50%, #d2691e 100%);
+  --ghibli-magic-gradient: linear-gradient(135deg, #dda0dd 0%, #87ceeb 50%, #90ee90 100%);
+
+  /* Custom charity theme colors with Ghibli inspiration */
+  --charity-primary: var(--ghibli-totoro-green);
+  --charity-secondary: var(--ghibli-meadow);
+  --charity-accent: var(--ghibli-forest-deep);
+  --charity-text: var(--ghibli-castle-stone);
+  --charity-light: var(--ghibli-cream);
 
   /* Bootstrap spacing and sizing variables */
-  --bs-border-radius: 0.375rem;
-  --bs-border-radius-lg: 0.5rem;
-  --bs-box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  --bs-box-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  --bs-box-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+  --bs-border-radius: 0.5rem;
+  --bs-border-radius-lg: 0.75rem;
+  --bs-box-shadow: 0 0.25rem 0.5rem rgba(45, 80, 22, 0.15);
+  --bs-box-shadow-sm: 0 0.125rem 0.25rem rgba(45, 80, 22, 0.1);
+  --bs-box-shadow-lg: 0 1rem 3rem rgba(45, 80, 22, 0.2);
 }
 
-/* Only minimal custom utilities beyond Bootstrap */
+/* Studio Ghibli Inspired Utilities and Effects */
 
-/* Smooth transitions for interactive elements */
+/* Smooth transitions with nature-inspired timing */
 .btn, .card, .nav-link {
-  transition: all 0.3s ease !important;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important; /* Gentle, organic easing */
 }
 
-/* Enhanced hover effects */
+/* Enhanced hover effects with Ghibli magic */
 .btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(74, 124, 89, 0.3) !important;
+}
+
+.btn-primary:hover {
+  background: var(--ghibli-forest-gradient) !important;
+  border-color: var(--ghibli-forest-deep) !important;
 }
 
 .card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 35px rgba(74, 124, 89, 0.2) !important;
+  border-color: var(--ghibli-meadow) !important;
 }
 
-/* Custom gradient for hero sections */
+/* Ghibli-inspired gradient backgrounds */
 .hero-gradient {
-  background: linear-gradient(135deg, var(--charity-primary) 0%, var(--charity-secondary) 100%);
+  background: var(--ghibli-forest-gradient);
 }
 
-/* Loading states */
+.sky-gradient {
+  background: var(--ghibli-sky-gradient);
+}
+
+.sunset-gradient {
+  background: var(--ghibli-sunset-gradient);
+}
+
+.magic-gradient {
+  background: var(--ghibli-magic-gradient);
+}
+
+/* Nature-themed section backgrounds */
+.forest-section {
+  background: linear-gradient(45deg, var(--ghibli-forest-deep) 0%, var(--ghibli-totoro-green) 100%);
+  color: var(--ghibli-cream);
+}
+
+.meadow-section {
+  background: linear-gradient(45deg, var(--ghibli-meadow) 0%, var(--ghibli-cream) 100%);
+  color: var(--ghibli-castle-stone);
+}
+
+.sky-section {
+  background: linear-gradient(45deg, var(--ghibli-sky-blue) 0%, var(--ghibli-cream) 100%);
+  color: var(--ghibli-castle-stone);
+}
+
+/* Ghibli-inspired component styles */
+.totoro-card {
+  background: var(--ghibli-cream);
+  border: 2px solid var(--ghibli-totoro-green);
+  border-radius: 1rem;
+  box-shadow: 0 8px 25px rgba(74, 124, 89, 0.15);
+}
+
+.calcifer-button {
+  background: var(--ghibli-sunset-gradient) !important;
+  border: none !important;
+  color: white !important;
+  border-radius: 2rem !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.calcifer-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.6s;
+}
+
+.calcifer-button:hover::before {
+  left: 100%;
+}
+
+.magic-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.magic-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(221, 160, 221, 0.4), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Forest-inspired loading animation */
 .loading-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.9);
+  background: var(--ghibli-forest-gradient);
+  opacity: 0.95;
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-/* Error and success states with Bootstrap colors */
+.forest-spinner {
+  width: 60px;
+  height: 60px;
+  border: 4px solid var(--ghibli-meadow);
+  border-top: 4px solid var(--ghibli-totoro-green);
+  border-radius: 50%;
+  animation: forestSpin 1.5s linear infinite;
+}
+
+@keyframes forestSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Ghibli-themed alert states */
 .error-state {
-  border-left: 4px solid var(--bs-danger) !important;
-  background-color: rgba(220, 53, 69, 0.1) !important;
+  border-left: 4px solid var(--ghibli-calcifer-flame) !important;
+  background: linear-gradient(45deg, rgba(255, 99, 71, 0.1), rgba(244, 164, 96, 0.1)) !important;
 }
 
 .success-state {
-  border-left: 4px solid var(--bs-success) !important;
-  background-color: rgba(40, 167, 69, 0.1) !important;
+  border-left: 4px solid var(--ghibli-forest-deep) !important;
+  background: linear-gradient(45deg, rgba(45, 80, 22, 0.1), rgba(144, 238, 144, 0.1)) !important;
 }
 
-/* Modal enhancements */
+.info-state {
+  border-left: 4px solid var(--ghibli-sky-blue) !important;
+  background: linear-gradient(45deg, rgba(135, 206, 235, 0.1), rgba(221, 160, 221, 0.1)) !important;
+}
+
+/* Modal enhancements with Ghibli magic */
 .modal-backdrop {
-  backdrop-filter: blur(3px);
+  backdrop-filter: blur(5px);
+  background: rgba(74, 124, 89, 0.3);
 }
 
-/* Accessibility improvements */
+.modal-content {
+  border: none;
+  border-radius: 1rem;
+  background: var(--ghibli-cream);
+  box-shadow: 0 20px 60px rgba(74, 124, 89, 0.3);
+}
+
+/* Ghibli-inspired text colors */
+.text-totoro { color: var(--ghibli-totoro-green) !important; }
+.text-forest { color: var(--ghibli-forest-deep) !important; }
+.text-meadow { color: var(--ghibli-meadow) !important; }
+.text-sky { color: var(--ghibli-sky-blue) !important; }
+.text-sunset { color: var(--ghibli-sunset) !important; }
+.text-calcifer { color: var(--ghibli-calcifer-flame) !important; }
+.text-magic { color: var(--ghibli-magic-glow) !important; }
+
+/* Ghibli-inspired background colors */
+.bg-totoro { background-color: var(--ghibli-totoro-green) !important; }
+.bg-forest { background-color: var(--ghibli-forest-deep) !important; }
+.bg-meadow { background-color: var(--ghibli-meadow) !important; }
+.bg-sky { background-color: var(--ghibli-sky-blue) !important; }
+.bg-sunset { background-color: var(--ghibli-sunset) !important; }
+.bg-calcifer { background-color: var(--ghibli-calcifer-flame) !important; }
+.bg-magic { background-color: var(--ghibli-magic-glow) !important; }
+.bg-cream { background-color: var(--ghibli-cream) !important; }
+
+/* Nature-inspired borders */
+.border-totoro { border-color: var(--ghibli-totoro-green) !important; }
+.border-forest { border-color: var(--ghibli-forest-deep) !important; }
+.border-meadow { border-color: var(--ghibli-meadow) !important; }
+.border-magic { border-color: var(--ghibli-magic-glow) !important; }
+
+/* Floating animation for magical elements */
+.float-magic {
+  animation: floatMagic 4s ease-in-out infinite;
+}
+
+@keyframes floatMagic {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+/* Gentle glow effect for special elements */
+.glow-soft {
+  box-shadow: 0 0 20px rgba(221, 160, 221, 0.5);
+}
+
+.glow-forest {
+  box-shadow: 0 0 20px rgba(74, 124, 89, 0.5);
+}
+
+/* Organic shape utilities */
+.organic-shape {
+  border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+}
+
+.leaf-shape {
+  border-radius: 0 100% 0 100%;
+}
+
+/* Nature-inspired hover effects for navigation */
+.nav-ghibli .nav-link {
+  position: relative;
+  color: white !important;
+  font-weight: 500;
+}
+
+.nav-ghibli .nav-link i {
+  color: white !important;
+}
+
+.nav-ghibli .navbar-brand {
+  color: white !important;
+}
+
+.nav-ghibli .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 1%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='m4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+}
+
+.nav-ghibli .nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 50%;
+  background: var(--ghibli-cream);
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.nav-ghibli .nav-link:hover::after,
+.nav-ghibli .nav-link.active::after {
+  width: 100%;
+}
+
+.nav-ghibli .nav-link:hover {
+  color: var(--ghibli-cream) !important;
+  text-shadow: 0 0 8px rgba(245, 245, 220, 0.5);
+}
+
+.nav-ghibli .nav-link.active {
+  color: var(--ghibli-cream) !important;
+  text-shadow: 0 0 8px rgba(245, 245, 220, 0.5);
+}
+
+/* Accessibility improvements with Ghibli theming */
 .sr-only {
   position: absolute !important;
   width: 1px !important;
@@ -93,12 +325,12 @@
   border: 0 !important;
 }
 
-/* Focus indicators for better accessibility */
+/* Focus indicators with nature colors */
 .btn:focus,
 .form-control:focus,
 .form-select:focus,
 .nav-link:focus {
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+  box-shadow: 0 0 0 0.25rem rgba(74, 124, 89, 0.25) !important;
   outline: none !important;
 }
 
@@ -111,6 +343,32 @@
 .my-6 {
   margin-top: 4rem !important;
   margin-bottom: 4rem !important;
+}
+
+.py-7 {
+  padding-top: 5rem !important;
+  padding-bottom: 5rem !important;
+}
+
+/* Seasonal color variations */
+.spring-theme {
+  --seasonal-primary: var(--ghibli-meadow);
+  --seasonal-secondary: var(--ghibli-sky-blue);
+}
+
+.summer-theme {
+  --seasonal-primary: var(--ghibli-sunset);
+  --seasonal-secondary: var(--ghibli-calcifer-flame);
+}
+
+.autumn-theme {
+  --seasonal-primary: var(--ghibli-earth-brown);
+  --seasonal-secondary: var(--ghibli-sunset);
+}
+
+.winter-theme {
+  --seasonal-primary: var(--ghibli-sky-blue);
+  --seasonal-secondary: var(--ghibli-cream);
 }
 
 /* Print styles */
@@ -134,6 +392,253 @@
 
   .card {
     border: 2px solid currentColor !important;
+  }
+}
+
+/* Enhanced Hero Section Styling with Studio Ghibli Magic */
+.hero-ghibli {
+  position: relative;
+  background-attachment: fixed;
+  background-blend-mode: overlay;
+  overflow: hidden;
+}
+
+.hero-ghibli::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(74, 124, 89, 0.3) 0%, rgba(45, 80, 22, 0.5) 50%, rgba(74, 124, 89, 0.3) 100%);
+  z-index: 1;
+}
+
+.hero-ghibli .container {
+  position: relative;
+  z-index: 2;
+}
+
+.magical-title {
+  font-family: 'Georgia', serif;
+  letter-spacing: 1px;
+  text-transform: none;
+  line-height: 1.2;
+  animation: float-gentle 4s ease-in-out infinite;
+}
+
+.enchanted-text {
+  font-family: 'Georgia', serif;
+  letter-spacing: 0.5px;
+  font-size: 1.3rem;
+  line-height: 1.6;
+  max-width: 700px;
+  margin: 0 auto 2rem;
+  animation: fade-in-up 1s ease-out 0.5s both;
+}
+
+.float-magic {
+  animation: float-gentle 3s ease-in-out infinite;
+  transform-origin: center;
+}
+
+.float-magic:hover {
+  animation: magic-pulse 0.6s ease-in-out;
+  transform: translateY(-4px) scale(1.05);
+}
+
+/* Keyframe animations for magical effects */
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes magic-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 99, 71, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 20px rgba(255, 99, 71, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 99, 71, 0);
+  }
+}
+
+/* Enhanced text shadows for better readability */
+.hero-text-shadow {
+  text-shadow:
+    3px 3px 0px rgba(0, 0, 0, 0.8),
+    2px 2px 8px rgba(0, 0, 0, 0.6),
+    1px 1px 4px rgba(74, 124, 89, 0.4);
+}
+
+.subtitle-shadow {
+  text-shadow:
+    2px 2px 0px rgba(0, 0, 0, 0.7),
+    1px 1px 6px rgba(0, 0, 0, 0.5),
+    0px 0px 3px rgba(74, 124, 89, 0.3);
+}
+
+/* Responsive hero adjustments */
+@media (max-width: 768px) {
+  .hero-ghibli {
+    min-height: 400px !important;
+    background-attachment: scroll;
+  }
+
+  .magical-title {
+    font-size: 2.5rem !important;
+  }
+
+  .enchanted-text {
+    font-size: 1.1rem !important;
+    padding: 0 1rem;
+  }
+}
+
+/* Enhanced Footer Styling with Studio Ghibli Magic */
+.footer-ghibli {
+  background: linear-gradient(135deg, var(--ghibli-totoro-green) 0%, var(--ghibli-forest-deep) 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.footer-ghibli::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Ccircle cx='50' cy='50' r='4'/%3E%3Ccircle cx='10' cy='10' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  z-index: 1;
+}
+
+.footer-ghibli .container {
+  position: relative;
+  z-index: 2;
+}
+
+.text-ghibli-cream {
+  color: var(--ghibli-cream) !important;
+}
+
+.text-ghibli-light {
+  color: rgba(245, 245, 220, 0.85) !important;
+}
+
+.border-ghibli-cream {
+  border-color: var(--ghibli-cream) !important;
+}
+
+/* Footer Links Styling */
+.footer-link {
+  color: rgba(245, 245, 220, 0.8) !important;
+  text-decoration: none !important;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.footer-link:hover {
+  color: var(--ghibli-cream) !important;
+  transform: translateX(5px);
+  text-shadow: 0 0 8px rgba(245, 245, 220, 0.3);
+}
+
+.footer-link::before {
+  content: '🌿';
+  position: absolute;
+  left: -20px;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.footer-link:hover::before {
+  opacity: 1;
+  left: -15px;
+}
+
+/* Social Links */
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(245, 245, 220, 0.1);
+  transition: all 0.3s ease;
+  text-decoration: none !important;
+}
+
+.social-link:hover {
+  background: var(--ghibli-cream);
+  color: var(--ghibli-totoro-green) !important;
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(245, 245, 220, 0.2);
+}
+
+/* Policy Links */
+.footer-policy-link {
+  color: rgba(245, 245, 220, 0.7) !important;
+  text-decoration: none !important;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.footer-policy-link:hover {
+  color: var(--ghibli-cream) !important;
+  text-decoration: underline !important;
+}
+
+/* Magical Message Animation */
+.magical-message {
+  animation: gentle-glow 3s ease-in-out infinite alternate;
+  font-style: italic;
+}
+
+@keyframes gentle-glow {
+  0% {
+    text-shadow: 0 0 5px rgba(245, 245, 220, 0.5);
+  }
+  100% {
+    text-shadow: 0 0 20px rgba(245, 245, 220, 0.8), 0 0 30px rgba(245, 245, 220, 0.4);
+  }
+}
+
+/* Responsive Footer Adjustments */
+@media (max-width: 768px) {
+  .footer-ghibli {
+    text-align: center;
+  }
+
+  .footer-link::before {
+    display: none;
+  }
+
+  .footer-link:hover {
+    transform: none;
+  }
+
+  .social-links {
+    justify-content: center;
+    margin-top: 1rem;
   }
 }
 

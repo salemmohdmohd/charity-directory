@@ -61,10 +61,16 @@ export const Login = () => {
   };
 
   const handleGoogleLogin = () => {
-    dispatch({ type: 'SET_NOTIFICATION', payload: 'Google OAuth integration coming soon!' });
-  };
+    try {
+      // Get backend URL from environment - corrected default port
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
-  return (
+      // Redirect to Google OAuth endpoint
+      window.location.href = `${backendUrl}/api/auth/google`;
+    } catch (error) {
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to initiate Google login. Please try again.' });
+    }
+  };  return (
     <div className="container mt-5">
       <div className="row justify-content-center">
         <div className="col-md-6 col-lg-5">
@@ -111,11 +117,11 @@ export const Login = () => {
                 <div className="d-grid gap-2 mb-4">
                   <Button
                     type="button"
-                    variant="outline-danger"
+                    className="btn calcifer-button"
                     onClick={handleGoogleLogin}
                   >
                     <i className="fab fa-google me-2"></i>
-                    Continue with Google
+                    Continue with Google ✨
                   </Button>
                 </div>
 

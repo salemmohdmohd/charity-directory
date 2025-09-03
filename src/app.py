@@ -40,7 +40,22 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)  # Tokens expire in 1
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)  # Refresh tokens expire in 30 days
 jwt = JWTManager(app)
 
-# Configure Flask-Mail
+# Configure Flask Session for OAuth
+app.config['SECRET_KEY'] = os.getenv('FLASK_APP_KEY', 'your-secret-key-for-sessions')
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
+app.config['SESSION_COOKIE_HTTPONLY'] = os.getenv('SESSION_COOKIE_HTTPONLY', 'true').lower() == 'true'
+app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
+
+# Initialize Flask-Session
+try:
+    from flask_session import Session
+    Session(app)
+except ImportError:
+    print("Warning: Flask-Session not installed. Using default Flask session handling.")
+    # Default Flask sessions will still work for OAuth
+
+# Configure Flask-Mail/ still need configuration... see .env
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = True
