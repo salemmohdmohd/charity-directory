@@ -13,7 +13,7 @@ class User(db.Model):
     email = db.Column(db.String(150), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=True)  # Nullable for OAuth users
     role = db.Column(db.String(20), default='visitor')  # visitor / org_admin / platform_admin
-    is_verified = db.Column(db.Boolean, default=False)
+    is_verified = db.Column(db.Boolean, default=True)
     google_id = db.Column(db.String(50), nullable=True)
     profile_picture = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -244,7 +244,7 @@ class PasswordReset(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    user = db.relationship('User', backref='password_resets')
+    user = db.relationship('User', backref=db.backref('password_resets', cascade='all, delete-orphan'))
 
 class EmailVerification(db.Model):
     __tablename__ = 'email_verifications'
@@ -256,4 +256,4 @@ class EmailVerification(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
-    user = db.relationship('User', backref='email_verifications')
+    user = db.relationship('User', backref=db.backref('email_verifications', cascade='all, delete-orphan'))

@@ -17,6 +17,8 @@ import UserDashboard from "./pages/UserDashboard";
 import UserProfile from "./pages/UserProfile";
 import SearchHistory from "./pages/SearchHistory";
 import OAuthCallback from "./pages/OAuthCallback";
+import OrgDashboard from "./pages/OrgDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter(
     createRoutesFromElements(
@@ -35,9 +37,26 @@ export const router = createBrowserRouter(
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/list-your-charity" element={<ListYourCharity />} />
 
-        <Route path="/dashboard" element={<UserDashboard />} />
-        <Route path="/profile" element={<UserProfile />} />
-        <Route path="/search-history" element={<SearchHistory />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute allowedRoles={['visitor', 'platform_admin']}>
+            <UserDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/org-dashboard" element={
+          <ProtectedRoute allowedRoles={['org_admin']}>
+            <OrgDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <UserProfile />
+          </ProtectedRoute>
+        } />
+        <Route path="/search-history" element={
+          <ProtectedRoute>
+            <SearchHistory />
+          </ProtectedRoute>
+        } />
 
         {/* Authentication Routes */}
         <Route path="/login" element={<Login/>}/>

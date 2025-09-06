@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import useGlobalReducer from '../hooks/useGlobalReducer';
+import useAuth from '../hooks/useAuth';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
 import Select from '../components/forms/Select';
@@ -9,20 +9,21 @@ import Checkbox from '../components/forms/Checkbox';
 
 export const OrganizationSignup = () => {
   const [formData, setFormData] = useState({
-    // Organization Details
-    organizationName: '',
-    category: '',
+    // Organization info
+    organization_name: '',
+    category_id: '',
     mission: '',
+    description: '',
     website: '',
 
-    // Contact Information
-    adminName: '',
-    adminEmail: '',
+    // Admin contact
+    admin_name: '',
+    admin_email: '',
     password: '',
     confirmPassword: '',
     phone: '',
 
-    // Address
+    // Location
     address: '',
     city: '',
     state: '',
@@ -33,8 +34,36 @@ export const OrganizationSignup = () => {
     verifyInformation: false
   });
   const [errors, setErrors] = useState({});
-  const { store, dispatch } = useGlobalReducer();
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const { organizationSignup, error, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/categories');
+        const data = await response.json();
+        setCategories(data.categories || []);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Clear global errors when component unmounts
+  useEffect(() => {
+    return () => clearError();
+  }, [clearError]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -53,14 +82,14 @@ export const OrganizationSignup = () => {
     const newErrors = {};
 
     // Organization validation
-    if (!formData.organizationName) {
-      newErrors.organizationName = 'Organization name is required';
-    } else if (formData.organizationName.length < 3) {
-      newErrors.organizationName = 'Organization name must be at least 3 characters';
+    if (!formData.organization_name) {
+      newErrors.organization_name = 'Organization name is required';
+    } else if (formData.organization_name.length < 3) {
+      newErrors.organization_name = 'Organization name must be at least 3 characters';
     }
 
-    if (!formData.category) {
-      newErrors.category = 'Please select a category';
+    if (!formData.category_id) {
+      newErrors.category_id = 'Please select a category';
     }
 
     if (!formData.mission) {
@@ -70,20 +99,20 @@ export const OrganizationSignup = () => {
     }
 
     // Admin contact validation
-    if (!formData.adminName) {
-      newErrors.adminName = 'Admin name is required';
+    if (!formData.admin_name) {
+      newErrors.admin_name = 'Admin name is required';
     }
 
-    if (!formData.adminEmail) {
-      newErrors.adminEmail = 'Admin email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.adminEmail)) {
-      newErrors.adminEmail = 'Please enter a valid email';
+    if (!formData.admin_email) {
+      newErrors.admin_email = 'Admin email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.admin_email)) {
+      newErrors.admin_email = 'Please enter a valid email';
     }
 
     if (!formData.password) {
       newErrors.password = 'Password is required';
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters for organizations';
+      newErrors.password = 'Password must be at least 8 characters';
     }
 
     if (!formData.confirmPassword) {
@@ -119,19 +148,27 @@ export const OrganizationSignup = () => {
 
     if (!validateForm()) return;
 
+    setLoading(true);
+    clearError();
+
     try {
-      // Simulate API call for organization signup
+      // Prepare data for the API (exclude confirmPassword and agreements)
+      const { confirmPassword, agreeToTerms, verifyInformation, ...apiData } = formData;
+
+      // Convert category_id to integer
+      apiData.category_id = parseInt(apiData.category_id);
+
+      const response = await organizationSignup(apiData);
+
+      setLoading(false);
+
+      // Redirect to login page with success message after a short delay
       setTimeout(() => {
-        dispatch({ type: 'SET_USER', payload: {
-          name: formData.organizationName,
-          email: formData.email,
-          role: 'organization'
-        }});
-        dispatch({ type: 'SET_NOTIFICATION', payload: 'Organization registered successfully! Please check your email for verification.' });
-        navigate('/organization-dashboard');
-      }, 1500);
+        navigate('/organization-login?message=registration-success');
+      }, 2000);
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Registration failed. Please try again.' });
+      setLoading(false);
+      // Error handling is done in useAuth hook
     }
   };
 
@@ -150,6 +187,14 @@ export const OrganizationSignup = () => {
               </div>
 
               <form onSubmit={handleSubmit}>
+                {/* Error Display */}
+                {error && (
+                  <div className="alert alert-danger mb-4">
+                    <i className="fas fa-exclamation-triangle me-2"></i>
+                    {error}
+                  </div>
+                )}
+
                 {/* Organization Information */}
                 <div className="mb-4">
                   <h5 className="text-primary mb-3">
@@ -157,29 +202,37 @@ export const OrganizationSignup = () => {
                     Organization Information
                   </h5>
 
-                  <Input
-                    name="organizationName"
+                                    <Input
+                    name="organization_name"
                     type="text"
                     label="Organization Name"
-                    value={formData.organizationName}
+                    value={formData.organization_name}
                     onChange={handleChange}
-                    error={errors.organizationName}
+                    error={errors.organization_name}
                     placeholder="Your Charity Organization Name"
                     required
                   />
 
                   <Select
-                    name="category"
-                    label="Organization Category"
-                    value={formData.category}
+                    name="category_id"
+                    label="Category"
+                    value={formData.category_id}
                     onChange={handleChange}
-                    error={errors.category}
+                    error={errors.category_id}
                     required
-                    options={[
-                      { value: '', label: 'Select a category' },
-                      ...store.categories.map(cat => ({ value: cat, label: cat }))
-                    ]}
-                  />
+                  >
+                    <option value="">Select a category</option>
+                    <option value="1">Health</option>
+                    <option value="2">Education</option>
+                    <option value="3">Environment</option>
+                    <option value="4">Community Development</option>
+                    <option value="5">Animals & Wildlife</option>
+                    <option value="6">Disaster Relief</option>
+                    <option value="7">Human Rights</option>
+                    <option value="8">Arts & Culture</option>
+                    <option value="9">Social Services</option>
+                    <option value="10">Other</option>
+                  </Select>
 
                   <TextArea
                     name="mission"
@@ -213,12 +266,12 @@ export const OrganizationSignup = () => {
                   <div className="row">
                     <div className="col-md-6">
                       <Input
-                        name="adminName"
+                        name="admin_name"
                         type="text"
                         label="Admin Full Name"
-                        value={formData.adminName}
+                        value={formData.admin_name}
                         onChange={handleChange}
-                        error={errors.adminName}
+                        error={errors.admin_name}
                         placeholder="Primary contact person"
                         required
                       />
@@ -237,12 +290,12 @@ export const OrganizationSignup = () => {
                   </div>
 
                   <Input
-                    name="adminEmail"
+                    name="admin_email"
                     type="email"
                     label="Admin Email Address"
-                    value={formData.adminEmail}
+                    value={formData.admin_email}
                     onChange={handleChange}
-                    error={errors.adminEmail}
+                    error={errors.admin_email}
                     placeholder="admin@yourorganization.org"
                     required
                   />
@@ -369,8 +422,20 @@ export const OrganizationSignup = () => {
                 </div>
 
                 <div className="d-grid gap-2 mb-4">
-                  <Button type="submit" variant="primary" size="lg">
-                    Submit Organization Registration
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin me-2"></i>
+                        Registering Organization...
+                      </>
+                    ) : (
+                      'Submit Organization Registration'
+                    )}
                   </Button>
                 </div>
 

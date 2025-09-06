@@ -1,15 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import useGlobalReducer from '../hooks/useGlobalReducer';
+import useAuth from '../hooks/useAuth';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
-import {login} from '../data/userAuth'
 
 export const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
-  const { dispatch } = useGlobalReducer();
+  const { login, initiateGoogleOAuth, error, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Clear global errors when component unmounts
+  useEffect(() => {
+    return () => clearError();
+  }, [clearError]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,21 +55,19 @@ export const Login = () => {
     e.preventDefault();
 
     if (!validateForm()) return;
-try{
-    const data = await login(formData.email, formData.password);
-    dispatch({ type: "SET_USER", payload: data.user });
-    dispatch({ type: "SET_NOTIFICATION", payload: "Welcome back!" });
 
-    navigate("/")
-
+    try {
+      await login(formData.email, formData.password);
+      navigate("/dashboard");
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Login failed. Please try again.' });
+      // Error is already handled by useAuth hook
+      console.error('Login error:', error);
     }
-    
   };
 
   const handleGoogleLogin = () => {
-    dispatch({ type: 'SET_NOTIFICATION', payload: 'Google OAuth integration coming soon!' });
+    clearError(); // Clear any existing errors
+    initiateGoogleOAuth();
   };
 
   return (
@@ -127,6 +136,13 @@ try{
                     Forgot your password?
                   </Link>
                 </div>
+
+                {/* Global Error Display */}
+                {error && (
+                  <div className="alert alert-danger mt-3" role="alert">
+                    {error}
+                  </div>
+                )}
               </form>
             </div>
           </div>

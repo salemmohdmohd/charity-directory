@@ -3,6 +3,9 @@ export { Navbar } from './Navbar.jsx';
 export { Footer } from './Footer.jsx';
 export { HeroSection } from './HeroSection.jsx';
 
+// Auth Components
+export { default as ProtectedRoute } from './ProtectedRoute.jsx';
+
 // Form Components
 export * from './forms/index.js';
 
