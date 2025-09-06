@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import useGlobalReducer from '../hooks/useGlobalReducer';
+import useAuth from '../hooks/useAuth';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
 import Checkbox from '../components/forms/Checkbox';
-import {signup} from '../data/userAuth'
+
 export const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -14,8 +14,20 @@ export const Signup = () => {
     agreeToTerms: false
   });
   const [errors, setErrors] = useState({});
-  const { dispatch } = useGlobalReducer();
+  const { signup, initiateGoogleOAuth, error, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  // Clear global errors when component unmounts
+  useEffect(() => {
+    return () => clearError();
+  }, [clearError]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -71,19 +83,18 @@ export const Signup = () => {
     if (!validateForm()) return;
 
     try {
-     const data = await signup(formData);
-
- 
-    dispatch({ type: "SET_USER", payload: data.user });
-    dispatch({ type: "SET_NOTIFICATION", payload: "Welcome!" });
-    navigate("/")
+      await signup(formData.name, formData.email, formData.password);
+      // Redirect to dashboard since user is now immediately active
+      navigate("/dashboard");
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Signup failed. Please try again.' });
+      // Error is already handled by useAuth hook
+      console.error('Signup error:', error);
     }
   };
 
   const handleGoogleSignup = () => {
-    dispatch({ type: 'SET_NOTIFICATION', payload: 'Google OAuth integration coming soon!' });
+    clearError(); // Clear any existing errors
+    initiateGoogleOAuth();
   };
 
   return (
@@ -186,6 +197,13 @@ export const Signup = () => {
                     Already have an account? <Link to="/login" className="text-decoration-none">Login here</Link>
                   </small>
                 </div>
+
+                {/* Global Error Display */}
+                {error && (
+                  <div className="alert alert-danger mt-3" role="alert">
+                    {error}
+                  </div>
+                )}
               </form>
             </div>
           </div>

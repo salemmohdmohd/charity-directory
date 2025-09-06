@@ -1,6 +1,6 @@
 # Charity Directory Platform
 
-A comprehensive full-stack web application for discovering, managing, and connecting with non-profit organizations. This platform provides a centralized directory for charities with advanced search capabilities, user management, and administrative tools.
+A comprehensive full-stack web application for discovering, managing, and connecting with small and mid-size non-profit organizations. This platform provides a centralized directory for charities that will also help those charities be accessible on the web and be search engine optimized and AI platform optimized.
 
 ##  Features
 
@@ -30,6 +30,7 @@ A comprehensive full-stack web application for discovering, managing, and connec
 - **Framework**: React 18.2.0
 - **Build Tool**: Vite 4.4.8
 - **Routing**: React Router DOM 6.18.0
+- **HTTP Client**: Axios for API communication
 - **Styling**: CSS3 with responsive design
 - **State Management**: React/redux Context API
 
@@ -88,8 +89,10 @@ A comprehensive full-stack web application for discovering, managing, and connec
 4. **Run the backend server**
    ```bash
    python app.py
-   # Server will run on http://localhost:3001
+   # Server will run on http://localhost:5000
    ```
+
+   ## note: remmber to close the terminal then open it again, also remmber to update your .env
 
 ### Method 2: Using pipenv and Pipfile
 
@@ -117,7 +120,7 @@ A comprehensive full-stack web application for discovering, managing, and connec
 5. **Start the backend server**
    ```bash
    pipenv run python app.py
-   # Server accessible at http://localhost:3001
+   # Server accessible at http://localhost:5000
    ```
 
 ### Frontend Setup
@@ -130,7 +133,7 @@ A comprehensive full-stack web application for discovering, managing, and connec
 2. **Start development server**
    ```bash
    npm run dev
-   # Frontend will run on http://localhost:5173
+   # Frontend will run on http://localhost:5000
    ```
 
 3. **Build for production**
@@ -167,7 +170,7 @@ CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-api-secret
 
 # Frontend URL
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:3000
 ```
 
 ##  Database Setup
@@ -183,7 +186,7 @@ The application will automatically create a local SQLite database for developmen
 
 ##  API Endpoints
 
-The API documentation is available at: `http://localhost:3001/api/docs/`
+The API documentation is available at: `http://localhost:5000/api/docs/`
 
 ### Key Endpoints:
 - `POST /api/auth/register` - User registration
