@@ -1,10 +1,13 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import useAuth from '../hooks/useAuth';
 import useGlobalReducer from '../hooks/useGlobalReducer';
+import { saveTokens, getCurrentUserData, removeToken } from '../data/userAuth';
 
 export const OAuthCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { initializeAuth } = useAuth();
   const { dispatch } = useGlobalReducer();
 
   useEffect(() => {
@@ -16,8 +19,9 @@ export const OAuthCallback = () => {
           throw new Error(`OAuth error: ${error}`);
         }
 
-        // Get token and user ID from URL params (sent by backend redirect)
+        // Get tokens and user ID from URL params (sent by backend redirect)
         const token = searchParams.get('token');
+        const refreshToken = searchParams.get('refresh_token');
         const userId = searchParams.get('user_id');
         const linked = searchParams.get('linked');
 
@@ -35,29 +39,11 @@ export const OAuthCallback = () => {
           throw new Error('Authentication data not received');
         }
 
-        // Store the JWT token
-        localStorage.setItem('access_token', token);
+        // Store both access and refresh tokens
+        saveTokens(token, refreshToken);
 
-        // Fetch user data using the token
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-        const response = await fetch(`${backendUrl}/api/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch user data');
-        }
-
-        const userData = await response.json();
-
-        // Update global state with user data
-        dispatch({
-          type: 'SET_USER',
-          payload: userData.user
-        });
+        // Initialize auth state using the useAuth hook (this will call getCurrentUserData internally)
+        await initializeAuth();
 
         dispatch({
           type: 'SET_NOTIFICATION',
@@ -74,8 +60,8 @@ export const OAuthCallback = () => {
           payload: `Authentication failed: ${error.message}`
         });
 
-        // Clear any stored token on error
-        localStorage.removeItem('access_token');
+        // Clear any stored token on error using userAuth function
+        removeToken();
 
         navigate('/login');
       }
@@ -93,7 +79,7 @@ export const OAuthCallback = () => {
               <div className="spinner-border text-primary mb-3" role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
-              <h4 className="mb-3">✨ Completing Google Authentication</h4>
+              <h4 className="mb-3"> Completing Google Authentication</h4>
               <p className="text-muted">
                 Please wait while we process your login with a touch of magic...
               </p>

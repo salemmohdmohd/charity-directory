@@ -21,7 +21,7 @@ class GoogleOAuthService:
         self.client_secret = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
         self.redirect_uri = os.getenv('GOOGLE_OAUTH_REDIRECT_URI', 'http://localhost:5000/api/auth/google/callback')
 
-        # OAuth scopes
+        # OAuth scopes - use simple names
         self.scopes = [
             'openid',
             'email',
@@ -29,8 +29,9 @@ class GoogleOAuthService:
         ]
 
         # Validate required environment variables
-        if not self.client_id or not self.client_secret:
-            raise ValueError("Google OAuth credentials not found in environment variables")
+        self.oauth_enabled = bool(self.client_id and self.client_secret)
+        if not self.oauth_enabled:
+            print("Warning: Google OAuth credentials not found. OAuth features will be disabled.")
 
     def get_client_config(self):
         """Get Google OAuth client configuration"""
@@ -46,6 +47,9 @@ class GoogleOAuthService:
 
     def create_flow(self, state=None):
         """Create OAuth flow for authentication"""
+        if not self.oauth_enabled:
+            raise GoogleAuthError("Google OAuth is not configured")
+
         try:
             flow = Flow.from_client_config(
                 self.get_client_config(),
@@ -74,13 +78,61 @@ class GoogleOAuthService:
             raise GoogleAuthError(f"Failed to get authorization URL: {str(e)}")
 
     def exchange_code_for_token(self, authorization_code, state=None):
-        """Exchange authorization code for access token"""
+        """Exchange authorization code for access token using direct HTTP request"""
         try:
-            flow = self.create_flow(state)
-            flow.fetch_token(code=authorization_code)
-            return flow.credentials
+            import requests
+
+            # Direct token exchange with Google without scope validation
+            token_url = "https://oauth2.googleapis.com/token"
+            data = {
+                'client_id': self.client_id,
+                'client_secret': self.client_secret,
+                'code': authorization_code,
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.redirect_uri
+            }
+
+            response = requests.post(token_url, data=data)
+            response.raise_for_status()
+
+            token_data = response.json()
+
+            # Create a simple credentials object with the token data
+            class SimpleCredentials:
+                def __init__(self, token_data):
+                    self.token = token_data.get('access_token')
+                    self.id_token = token_data.get('id_token')
+                    self.refresh_token = token_data.get('refresh_token')
+
+            return SimpleCredentials(token_data)
+
         except Exception as e:
             raise GoogleAuthError(f"Failed to exchange code for token: {str(e)}")
+
+    def get_user_info_from_credentials(self, credentials):
+        """Get user info from OAuth credentials"""
+        try:
+            # Use the access token to get user info from Google's API
+            # This avoids time-sensitive ID token validation issues
+            import requests
+            user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+            headers = {'Authorization': f'Bearer {credentials.token}'}
+
+            response = requests.get(user_info_url, headers=headers)
+            response.raise_for_status()
+
+            user_data = response.json()
+
+            return {
+                'google_id': user_data.get('id'),
+                'email': user_data.get('email'),
+                'name': user_data.get('name', ''),
+                'profile_picture': user_data.get('picture', ''),
+                'email_verified': user_data.get('verified_email', False)
+            }
+
+        except Exception as e:
+            raise GoogleAuthError(f"Failed to get user info: {str(e)}")
 
     def verify_token(self, token):
         """Verify Google ID token and return user info"""
@@ -109,14 +161,31 @@ class GoogleOAuthService:
             raise GoogleAuthError(f"Token verification failed: {str(e)}")
 
     def get_user_info_from_credentials(self, credentials):
-        """Get user info from OAuth credentials"""
+        """Get user info from OAuth credentials using access token API call"""
         try:
-            # Get the ID token from credentials
-            if hasattr(credentials, 'id_token') and credentials.id_token:
-                return self.verify_token(credentials.id_token)
-            else:
-                raise GoogleAuthError("No ID token found in credentials")
+            # Use the access token to get user info from Google's API
+            # This avoids time-sensitive ID token validation issues
+            import requests
+            user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+            headers = {'Authorization': f'Bearer {credentials.token}'}
+
+            print(f"Making API call to Google userinfo with access token")
+            response = requests.get(user_info_url, headers=headers)
+            response.raise_for_status()
+
+            user_data = response.json()
+            print(f"Successfully retrieved user data from Google API: {user_data}")
+
+            return {
+                'google_id': user_data.get('id'),
+                'email': user_data.get('email'),
+                'name': user_data.get('name', ''),
+                'profile_picture': user_data.get('picture', ''),
+                'email_verified': user_data.get('verified_email', False)
+            }
+
         except Exception as e:
+            print(f"Error getting user info via API call: {str(e)}")
             raise GoogleAuthError(f"Failed to get user info: {str(e)}")
 
     @staticmethod

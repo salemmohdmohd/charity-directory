@@ -1,11 +1,12 @@
-from flask import request, Blueprint, redirect, session, url_for
+from flask import request, Blueprint, redirect, session, url_for, current_app
 from flask_restx import Api, Resource, Namespace, fields, marshal
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
 from api.models import db, User, PasswordReset, EmailVerification, AuditLog, Organization, UserBookmark, SearchHistory, Advertisement, Category, Notification, Location, ContactMessage, OrganizationPhoto, OrganizationSocialLink
 from api.auth_utils import AuthService, validate_password, validate_email_format
 from api.oauth_utils import oauth_service, GoogleAuthError
 from datetime import datetime, timedelta
 from sqlalchemy import func, desc, text, or_, and_
+from sqlalchemy.exc import SQLAlchemyError
 from functools import wraps
 import json
 import os
@@ -46,6 +47,11 @@ api.add_namespace(ad_ns, path='/advertisements')
 user_model = api.model('User', {
     'id': fields.Integer, 'name': fields.String, 'email': fields.String, 'role': fields.String,
     'is_verified': fields.Boolean, 'profile_picture': fields.String, 'created_at': fields.String, 'last_login': fields.String
+})
+
+registration_response_model = api.model('RegistrationResponse', {
+    'message': fields.String(required=True, description='Registration status message'),
+    'user': fields.Nested(user_model, required=True, description='User information')
 })
 
 organization_model = api.model('Organization', {
@@ -188,6 +194,21 @@ change_password_parser.add_argument('current_password', type=str, required=True,
 change_password_parser.add_argument('new_password', type=str, required=True, help='New password', location='json')
 
 # ORGANIZATION PARSERS
+# ORG PARSERS
+org_signup_parser = api.parser()
+org_signup_parser.add_argument('admin_name', type=str, required=True, help='Admin full name', location='json')
+org_signup_parser.add_argument('admin_email', type=str, required=True, help='Admin email address', location='json')
+org_signup_parser.add_argument('password', type=str, required=True, help='Admin password', location='json')
+org_signup_parser.add_argument('organization_name', type=str, required=True, help='Organization name', location='json')
+org_signup_parser.add_argument('mission', type=str, required=True, help='Mission statement', location='json')
+org_signup_parser.add_argument('category_id', type=int, required=True, help='Category ID', location='json')
+org_signup_parser.add_argument('phone', type=str, help='Phone number', location='json')
+org_signup_parser.add_argument('website', type=str, help='Website URL', location='json')
+org_signup_parser.add_argument('address', type=str, help='Address', location='json')
+org_signup_parser.add_argument('city', type=str, help='City', location='json')
+org_signup_parser.add_argument('state', type=str, help='State/Province', location='json')
+org_signup_parser.add_argument('country', type=str, help='Country', location='json')
+
 org_create_parser = api.parser()
 org_create_parser.add_argument('name', type=str, required=True, help='Organization name', location='json')
 org_create_parser.add_argument('mission', type=str, required=True, help='Mission statement', location='json')
@@ -265,7 +286,7 @@ def check_org_admin(org_id, user_id):
 @auth_ns.route('/register')
 class Register(Resource):
     @auth_ns.expect(register_parser)
-    @auth_ns.marshal_with(user_model, code=201)
+    @auth_ns.marshal_with(registration_response_model, code=201)
     @auth_ns.doc(responses={
         201: 'Registration successful',
         400: 'Validation error',
@@ -276,11 +297,20 @@ class Register(Resource):
         try:
             args = register_parser.parse_args()
             email = args.email.strip().lower()
-            if not (valid := validate_email_format(email))[0]: api.abort(400, valid[1])
-            if not (valid := validate_password(args.password))[0]: api.abort(400, valid[1])
-            if User.query.filter_by(email=email).first(): api.abort(409, 'Email already registered')
 
-            user = User(name=args.name.strip(), email=email, role='visitor', is_verified=False)
+            # Validate email format
+            if not (valid := validate_email_format(email))[0]:
+                api.abort(400, valid[1])
+
+            # Validate password strength
+            if not (valid := validate_password(args.password))[0]:
+                api.abort(400, valid[1])
+
+            # Check if email already exists
+            if User.query.filter_by(email=email).first():
+                api.abort(409, 'Email already registered')
+
+            user = User(name=args.name.strip(), email=email, role='visitor', is_verified=True)
             user.set_password(args.password)
             db.session.add(user)
             db.session.commit()
@@ -289,15 +319,36 @@ class Register(Resource):
             db.session.add(EmailVerification(user_id=user.id, token=token, expires_at=datetime.utcnow() + timedelta(days=1)))
             db.session.commit()
 
-            try: AuthService.send_verification_email(email, token)
-            except: pass
+            try:
+                AuthService.send_verification_email(email, token)
+            except Exception as e:
+                print(f"Email verification failed: {str(e)}")
+                pass
 
             log_action(user.id, 'create', 'user', user.id, None, {'email': email, 'name': user.name})
             db.session.commit()
-            return {'message': 'Registration successful! Please verify your email.', 'user': marshal(user, user_model)}, 201
-        except Exception:
+
+            # Since users are now active by default, generate access tokens immediately
+            access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role, 'email': user.email, 'is_verified': user.is_verified})
+            refresh_token = create_refresh_token(identity=str(user.id))
+
+            return {
+                'message': 'Registration successful! Your account is now active.',
+                'user': marshal(user, user_model),
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }, 201
+        except Exception as e:
             db.session.rollback()
-            api.abort(500, 'Registration failed')
+
+            # Re-raise HTTP exceptions properly
+            from werkzeug.exceptions import HTTPException
+            if isinstance(e, HTTPException):
+                raise e
+
+            # Log and handle unexpected errors
+            print(f"Registration error: {str(e)}")
+            api.abort(500, f'Registration failed: {str(e)}')
 
 @auth_ns.route('/login')
 class Login(Resource):
@@ -311,16 +362,32 @@ class Login(Resource):
         try:
             args = login_parser.parse_args()
             user = User.query.filter_by(email=args.email.strip().lower()).first()
-            if not user or not user.check_password(args.password): api.abort(401, 'Invalid credentials')
+            if not user or not user.check_password(args.password):
+                api.abort(401, 'Invalid credentials')
 
             user.last_login = datetime.utcnow()
             db.session.commit()
 
-            token = create_access_token(identity=user.id, additional_claims={'role': user.role, 'email': user.email, 'is_verified': user.is_verified})
+            access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role, 'email': user.email, 'is_verified': user.is_verified})
+            refresh_token = create_refresh_token(identity=str(user.id))
+
             log_action(user.id, 'login')
             db.session.commit()
-            return {'message': 'Login successful', 'access_token': token, 'user': marshal(user, user_model)}
-        except Exception: api.abort(500, 'Login failed')
+
+            return {
+                'message': 'Login successful',
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'user': marshal(user, user_model)
+            }
+        except Exception as e:
+            # Re-raise HTTP exceptions (401, etc.) - don't convert to 500
+            if hasattr(e, 'code') and e.code == 401:
+                raise e
+
+            # Log and handle unexpected errors
+            print(f"Login error: {str(e)}")
+            api.abort(500, 'Login failed')
 
 @auth_ns.route('/forgot-password')
 class ForgotPassword(Resource):
@@ -403,8 +470,136 @@ class CurrentUser(Resource):
         404: 'User not found'
     })
     def get(self):
-        user = User.query.get(get_jwt_identity()) or api.abort(404, 'User not found')
-        return {'user': marshal(user, user_model)}
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id) or api.abort(404, 'User not found')
+        return user
+
+
+@auth_ns.route('/logout')
+class Logout(Resource):
+    @jwt_required()
+    @auth_ns.doc(responses={
+        200: 'Successfully logged out',
+        401: 'Invalid token'
+    })
+    def post(self):
+        """Logout user by blacklisting current token"""
+        # Get the JWT ID to blacklist the token
+        jwt_data = get_jwt()
+        jti = jwt_data['jti']
+
+        # Blacklist the token
+        current_app.blacklist_token(jti)
+
+        return {'message': 'Successfully logged out'}, 200
+
+
+@auth_ns.route('/refresh')
+class RefreshToken(Resource):
+    @jwt_required(refresh=True)
+    @auth_ns.doc(responses={
+        200: 'New access token generated',
+        401: 'Invalid refresh token'
+    })
+    def post(self):
+        """Generate new access token using refresh token"""
+        current_user_id = get_jwt_identity()
+
+        # Create new access token
+        new_token = create_access_token(identity=str(current_user_id))
+
+        return {'access_token': new_token}, 200
+
+
+@auth_ns.route('/organization-signup')
+class OrganizationSignup(Resource):
+    @auth_ns.expect(org_signup_parser)
+    @auth_ns.doc(responses={
+        201: 'Organization and admin account created successfully',
+        400: 'Validation error',
+        409: 'Email already registered',
+        500: 'Registration failed'
+    })
+    def post(self):
+        try:
+            args = org_signup_parser.parse_args()
+            email = args.admin_email.strip().lower()
+
+            # Validate email format
+            if not (valid := validate_email_format(email))[0]:
+                api.abort(400, valid[1])
+
+            # Validate password strength
+            if not (valid := validate_password(args.password))[0]:
+                api.abort(400, valid[1])
+
+            # Check if email already exists
+            if User.query.filter_by(email=email).first():
+                api.abort(409, 'Email already registered')
+
+            # Validate category
+            if not Category.query.get(args.category_id):
+                api.abort(400, 'Invalid category')
+
+            # Create org admin user
+            user = User(
+                name=args.admin_name.strip(),
+                email=email,
+                role='org_admin',  # Set role as org_admin
+                is_verified=True
+            )
+            user.set_password(args.password)
+            db.session.add(user)
+            db.session.flush()  # Get user ID without committing
+
+            # Create organization
+            org = Organization(
+                name=args.organization_name.strip(),
+                mission=args.mission.strip(),
+                category_id=args.category_id,
+                email=email,
+                phone=(args.phone or '').strip(),
+                website=(args.website or '').strip(),
+                address=(args.address or '').strip(),
+                admin_user_id=user.id,
+                status='pending'  # Organizations need approval
+            )
+            db.session.add(org)
+            db.session.commit()
+
+            # Generate access tokens for immediate login
+            access_token = create_access_token(
+                identity=str(user.id),
+                additional_claims={
+                    'role': user.role,
+                    'email': user.email,
+                    'is_verified': user.is_verified
+                }
+            )
+            refresh_token = create_refresh_token(identity=str(user.id))
+
+            # Log actions
+            log_action(user.id, 'create', 'user', user.id, None, {'email': email, 'name': user.name, 'role': 'org_admin'})
+            log_action(user.id, 'create', 'organization', org.id, None, {'name': org.name, 'status': 'pending'})
+            db.session.commit()
+
+            return {
+                'message': 'Organization registration successful! Your organization is pending approval.',
+                'user': marshal(user, user_model),
+                'organization': marshal(org, organization_model),
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }, 201
+
+        except Exception as e:
+            db.session.rollback()
+            # Re-raise HTTP exceptions properly
+            from werkzeug.exceptions import HTTPException
+            if isinstance(e, HTTPException):
+                raise e
+            print(f"Organization signup error: {str(e)}")
+            api.abort(500, f'Registration failed: {str(e)}')
+
 
 @auth_ns.route('/change-password')
 class ChangePassword(Resource):
@@ -412,22 +607,32 @@ class ChangePassword(Resource):
     @auth_ns.expect(change_password_parser)
     @auth_ns.doc(responses={
         200: 'Password changed successfully',
-        400: 'Current password incorrect or invalid new password',
+        400: 'Invalid new password format',
+        401: 'Current password incorrect',
+        404: 'User not found',
         500: 'Password change failed'
     })
     def post(self):
         try:
             args = change_password_parser.parse_args()
             user = User.query.get(get_jwt_identity())
-            if not user or not user.check_password(args.current_password): api.abort(400, 'Current password incorrect')
-            if not (valid := validate_password(args.new_password))[0]: api.abort(400, valid[1])
+            if not user:
+                api.abort(404, 'User not found')
+            if not user.check_password(args.current_password):
+                api.abort(401, 'Current password is incorrect')
+            if not (valid := validate_password(args.new_password))[0]:
+                api.abort(400, valid[1])
             user.set_password(args.new_password)
             db.session.commit()
             log_action(user.id, 'password_change')
             db.session.commit()
             return {'message': 'Password changed successfully'}
-        except Exception:
+        except Exception as e:
             db.session.rollback()
+            # Re-raise HTTP exceptions properly
+            from werkzeug.exceptions import HTTPException
+            if isinstance(e, HTTPException):
+                raise e
             api.abort(500, 'Password change failed')
 
 # GOOGLE OAUTH ENDPOINTS
@@ -442,10 +647,20 @@ class GoogleOAuth(Resource):
         try:
             # Generate state parameter for security
             state = oauth_service.generate_state()
+
+            # Store state in a more reliable way - encode it in the state itself
+            # We'll validate it on callback by checking the format
             session['oauth_state'] = state
+
+            # Also store it in a way that survives CORS issues
+            # For production, you might want to use Redis or database
+            # For now, we'll use a simple approach with encoded state
 
             # Get Google authorization URL
             authorization_url, _ = oauth_service.get_authorization_url(state)
+
+            print(f"OAuth initiated - State generated: {state}")
+            print(f"Session state stored: {session.get('oauth_state')}")
 
             return redirect(authorization_url)
         except GoogleAuthError as e:
@@ -490,34 +705,40 @@ class GoogleOAuthCallback(Resource):
                 frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
                 return redirect(f'{frontend_url}/login?error=no_code')
 
-            # Verify state parameter (skip if no state in session - first time)
+            # Verify state parameter (disabled in development for CORS issues)
             session_state = session.get('oauth_state')
-            if session_state and state != session_state:
-                print(f"State mismatch - Session: {session_state}, Received: {state}")
-                # Clear session and redirect
-                session.pop('oauth_state', None)
-                frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-                return redirect(f'{frontend_url}/login?error=invalid_state')
+
+            # Skip state validation in development mode to avoid CORS session issues
+            if os.getenv('FLASK_DEBUG') != '1':
+                if session_state and state != session_state:
+                    print(f"State mismatch - Session: {session_state}, Received: {state}")
+                    # Clear session and redirect
+                    session.pop('oauth_state', None)
+                    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+                    return redirect(f'{frontend_url}/login?error=invalid_state')
+            else:
+                print(f"Development mode: Skipping state validation. Session: {session_state}, Received: {state}")
 
             # Exchange code for credentials
             credentials = oauth_service.exchange_code_for_token(authorization_code, state)
 
             # Get user info from Google
             user_info = oauth_service.get_user_info_from_credentials(credentials)
-            print(f"User info received: {user_info.get('email', 'no email')}")
+            print(f"Google user info received: {user_info}")
 
             # Find or create user
             user = self._find_or_create_user(user_info)
 
-            # Create JWT token
-            access_token = create_access_token(identity=user.id)
+            # Create JWT tokens with string identity (Flask-JWT-Extended requirement)
+            access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
 
             # Update last login
             user.last_login = datetime.utcnow()
             db.session.commit()
 
             # Log the action
-            log_action(user.id, 'oauth_login', {'provider': 'google'})
+            log_action(user.id, 'oauth_login', 'auth', user.id, None, {'provider': 'google'})
             db.session.commit()
 
             # Clear OAuth state from session
@@ -538,31 +759,31 @@ class GoogleOAuthCallback(Resource):
                     existing_user.updated_at = datetime.utcnow()
                     db.session.commit()
 
-                    log_action(existing_user.id, 'oauth_link', {'provider': 'google'})
+                    log_action(existing_user.id, 'oauth_link', 'auth', existing_user.id, None, {'provider': 'google'})
                     db.session.commit()
 
                     # Redirect to frontend with success message
                     frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
                     return redirect(f'{frontend_url}/profile?linked=google')
 
-            # Regular OAuth login/signup - redirect to frontend with token
+            # Regular OAuth login/signup - redirect to frontend with tokens
             frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-            redirect_url = f'{frontend_url}/auth/callback?token={access_token}&user_id={user.id}'
-
-            print(f"Redirecting to: {redirect_url}")
+            redirect_url = f'{frontend_url}/auth/callback?token={access_token}&refresh_token={refresh_token}&user_id={user.id}'
             return redirect(redirect_url)
 
         except GoogleAuthError as e:
             print(f"GoogleAuthError: {str(e)}")
+            print(f"Error details: {repr(e)}")
             frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-            return redirect(f'{frontend_url}/login?error=auth_failed')
+            return redirect(f'{frontend_url}/login?error=oauth_error&message={str(e)}')
         except Exception as e:
             print(f"Unexpected error in OAuth callback: {str(e)}")
+            print(f"Error type: {type(e).__name__}")
             import traceback
             traceback.print_exc()
             db.session.rollback()
             frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-            return redirect(f'{frontend_url}/login?error=server_error')
+            return redirect(f'{frontend_url}/login?error=server_error&message={str(e)}')
 
     def _find_or_create_user(self, user_info):
         """Find existing user or create new one from OAuth data"""
@@ -579,13 +800,21 @@ class GoogleOAuthCallback(Resource):
 
         if user:
             # Link Google account to existing user
-            user.google_id = user_info['google_id']
-            if not user.profile_picture and user_info.get('profile_picture'):
-                user.profile_picture = user_info['profile_picture']
-            if not user.is_verified and user_info.get('email_verified'):
-                user.is_verified = True
-            db.session.commit()
-            return user
+            try:
+                print(f"Linking Google account to existing user: {user.email}")
+                user.google_id = user_info['google_id']
+                if not user.profile_picture and user_info.get('profile_picture'):
+                    user.profile_picture = user_info['profile_picture']
+                if not user.is_verified and user_info.get('email_verified'):
+                    user.is_verified = True
+                user.updated_at = datetime.utcnow()
+                db.session.commit()
+                print(f"Successfully linked Google account for user: {user.email}")
+                return user
+            except Exception as e:
+                print(f"Error linking Google account: {str(e)}")
+                db.session.rollback()
+                raise e
 
         # Create new user
         return self._create_user_from_oauth(user_info)
@@ -617,7 +846,7 @@ class GoogleOAuthCallback(Resource):
             email=user_info['email'],
             google_id=user_info['google_id'],
             profile_picture=user_info.get('profile_picture', ''),
-            is_verified=user_info.get('email_verified', False),
+            is_verified=True,  # Make all OAuth users verified by default
             role='visitor',  # Default role
             password_hash=None  # OAuth users don't have passwords
         )
@@ -626,7 +855,7 @@ class GoogleOAuthCallback(Resource):
         db.session.commit()
 
         # Log user creation
-        log_action(user.id, 'user_created', {'method': 'oauth_google'})
+        log_action(user.id, 'user_created', 'user', user.id, None, {'method': 'oauth_google'})
         db.session.commit()
 
         return user
@@ -689,12 +918,18 @@ class GoogleOAuthUnlink(Resource):
             db.session.commit()
 
             # Log the action
-            log_action(user.id, 'oauth_unlink', {'provider': 'google'})
+            log_action(user.id, 'oauth_unlink', 'auth', user.id, None, {'provider': 'google'})
             db.session.commit()
 
             return {'message': 'Google account unlinked successfully'}
 
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            api.abort(500, f'Database error during account unlinking: {str(e)}')
         except Exception as e:
+            # Don't catch abort exceptions - let them through
+            if hasattr(e, 'code') and hasattr(e, 'description'):
+                raise
             db.session.rollback()
             api.abort(500, f'Account unlinking failed: {str(e)}')
 

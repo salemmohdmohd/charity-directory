@@ -30,22 +30,94 @@ CORS(app, resources={
     r"/api/*": {
         "origins": ["http://localhost:3000", "http://localhost:5173"],
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"]
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True  # Enable credentials for sessions
     }
 })
 
 # Configure JWT
 app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-secret-string')
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(days=1)  # Tokens expire in 1 day
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=2)  # Shorter expiry for security
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=30)  # Refresh tokens expire in 30 days
+
+# Environment-based security configuration
+if ENV == "production":
+    # Enable CSRF protection in production
+    app.config['JWT_CSRF_IN_COOKIES'] = True
+    app.config['JWT_CSRF_CHECK_FORM'] = True
+    app.config['JWT_COOKIE_SECURE'] = True  # HTTPS only in production
+    app.config['JWT_COOKIE_CSRF_PROTECT'] = True
+else:
+    # Disable CSRF for development simplicity
+    app.config['JWT_CSRF_IN_COOKIES'] = False
+    app.config['JWT_CSRF_CHECK_FORM'] = False
+    app.config['JWT_COOKIE_SECURE'] = False
+
+# Token location and security
+app.config['JWT_TOKEN_LOCATION'] = ['headers']  # Accept tokens in Authorization header
+app.config['JWT_HEADER_NAME'] = 'Authorization'
+app.config['JWT_HEADER_TYPE'] = 'Bearer'
+
+# Blacklist support for logout functionality
+app.config['JWT_BLACKLIST_ENABLED'] = True
+app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
+
 jwt = JWTManager(app)
+
+# Token blacklist implementation
+# NOTE: In production, replace this with Redis for better performance and persistence
+# Example: redis_client = redis.Redis(host='localhost', port=6379, db=0)
+blacklisted_tokens = set()
+
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload):
+    """Check if token is in blacklist"""
+    jti = jwt_payload['jti']  # JWT ID
+    return jti in blacklisted_tokens
+
+def blacklist_token(jti):
+    """Add token to blacklist"""
+    blacklisted_tokens.add(jti)
+
+# Make blacklist function available to other modules
+app.blacklist_token = blacklist_token
+
+# JWT Error Handlers
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return {'message': 'Token has expired', 'error': 'token_expired'}, 401
+
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    return {'message': 'Invalid token', 'error': 'invalid_token'}, 422
+
+@jwt.unauthorized_loader
+def missing_token_callback(error):
+    return {'message': 'Authorization token is required', 'error': 'token_required'}, 401
+
+@jwt.needs_fresh_token_loader
+def token_not_fresh_callback(jwt_header, jwt_payload):
+    return {'message': 'Fresh token required', 'error': 'fresh_token_required'}, 401
+
+@jwt.revoked_token_loader
+def revoked_token_callback(jwt_header, jwt_payload):
+    return {'message': 'Token has been revoked', 'error': 'token_revoked'}, 401
+
+@jwt.user_identity_loader
+def user_identity_lookup(user):
+    return user
+
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    identity = jwt_data["sub"]
+    return identity
 
 # Configure Flask Session for OAuth
 app.config['SECRET_KEY'] = os.getenv('FLASK_APP_KEY', 'your-secret-key-for-sessions')
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', 'false').lower() == 'true'
-app.config['SESSION_COOKIE_HTTPONLY'] = os.getenv('SESSION_COOKIE_HTTPONLY', 'true').lower() == 'true'
-app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
+app.config['SESSION_COOKIE_SECURE'] = False  # Set to False for localhost development
+app.config['SESSION_COOKIE_HTTPONLY'] = True  # Keep secure
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Allow cross-site requests
 
 # Initialize Flask-Session
 try:
@@ -119,5 +191,5 @@ def serve_any_other_file(path):
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
-    PORT = int(os.environ.get('PORT', 3001))
+    PORT = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=PORT, debug=True)

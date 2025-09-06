@@ -85,4 +85,6 @@ def validate_email_format(email):
     """Validate email format using regex"""
     import re
     email_regex = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-    return email_regex.match(email) is not None
+    if email_regex.match(email) is not None:
+        return True, "Email format is valid"
+    return False, "Invalid email format"
