@@ -489,5 +489,5 @@ const Categories = () => {
     </div>
   );
 };
-
+//made more changes
 export default Categories;
