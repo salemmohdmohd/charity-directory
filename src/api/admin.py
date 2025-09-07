@@ -90,16 +90,36 @@ class OrganizationAdminView(SecureModelView):
     @expose('/approve/<int:id>')
     def approve_organization(self, id):
         org = Organization.query.get_or_404(id)
+        old_status = org.status
         org.status = 'approved'
         db.session.commit()
+
+        # Send approval notification
+        if old_status != 'approved':
+            try:
+                from .notification_service import notification_service
+                notification_service.send_organization_approval_notification(id, True)
+            except Exception as e:
+                print(f"Failed to send approval notification: {e}")
+
         flash(f'Organization "{org.name}" has been approved.', 'success')
         return redirect(url_for('.index_view'))
 
     @expose('/reject/<int:id>')
     def reject_organization(self, id):
         org = Organization.query.get_or_404(id)
+        old_status = org.status
         org.status = 'rejected'
         db.session.commit()
+
+        # Send rejection notification
+        if old_status != 'rejected':
+            try:
+                from .notification_service import notification_service
+                notification_service.send_organization_approval_notification(id, False)
+            except Exception as e:
+                print(f"Failed to send rejection notification: {e}")
+
         flash(f'Organization "{org.name}" has been rejected.', 'warning')
         return redirect(url_for('.index_view'))
 

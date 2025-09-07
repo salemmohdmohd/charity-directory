@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject }}</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f8f9fa;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .content h1 {
+            color: #2196F3;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .content p {
+            margin-bottom: 16px;
+            color: #555;
+        }
+
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white !important;
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            margin: 20px 0;
+            transition: transform 0.2s ease;
+        }
+
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .footer p {
+            margin-bottom: 8px;
+            color: #6c757d;
+            font-size: 13px;
+        }
+
+        .footer a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 0 10px;
+            }
+
+            .header,
+            .content,
+            .footer {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">Charity Directory</div>
+            <div class="tagline">Connecting Communities with Charitable Organizations</div>
+        </div>
+
+        <div class="content">
+            <h1>🎉 Welcome to Charity Directory!</h1>
+
+            <p>Hi {{ user_name }},</p>
+
+            <p>Welcome to Charity Directory! We're thrilled to have you join our community of people making a difference in the world.</p>
+
+            <div class="success-box">
+                <strong>Your account has been created successfully!</strong><br>
+                You can now explore thousands of charitable organizations and connect with causes you care about.
+            </div>
+
+            <p><strong>Here's what you can do with your new account:</strong></p>
+            <ul>
+                <li> <strong>Discover</strong> charitable organizations by category, location, or cause</li>
+                <li> <strong>Bookmark</strong> your favorite charities for quick access</li>
+                <li> <strong>Contact</strong> organizations directly through our platform</li>
+                <li> <strong>Track</strong> your search history and preferences</li>
+                <li> <strong>List</strong> your own charitable organization (if applicable)</li>
+            </ul>
+
+            {% if verification_url %}
+            <p><strong>Important:</strong> Please verify your email address to unlock all features:</p>
+            <div style="text-align: center;">
+                <a href="{{ verification_url }}" class="button">Verify Email Address</a>
+            </div>
+            <p style="font-size: 12px; color: #666;">
+                This verification link will expire in 24 hours. If you didn't create this account, please ignore this email.
+            </p>
+            {% else %}
+            <div style="text-align: center;">
+                <a href="{{ frontend_url }}" class="button">Start Exploring</a>
+            </div>
+            {% endif %}
+
+            <p>Thank you for joining us in making the world a better place, one connection at a time.</p>
+
+            <p>Best regards,<br>
+            <strong>The Charity Directory Team</strong></p>
+        </div>
+
+        <div class="footer">
+            <p><strong>Charity Directory</strong></p>
+            <p>Connecting communities with charitable organizations worldwide</p>
+            <p>© {{ year }} Charity Directory. All rights reserved.</p>
+
+            <p style="margin-top: 20px;">
+                <a href="{{ frontend_url }}/contact">Contact Us</a> •
+                <a href="{{ frontend_url }}/privacy">Privacy Policy</a> •
+                <a href="{{ unsubscribe_url }}">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

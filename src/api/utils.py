@@ -1,5 +1,7 @@
 from flask import jsonify, url_for
 from flask_restx import Api
+from flask_jwt_extended import get_jwt_identity
+
 
 class APIException(Exception):
     status_code = 400
@@ -15,6 +17,16 @@ class APIException(Exception):
         rv = dict(self.payload or ())
         rv['message'] = self.message
         return rv
+
+
+def check_admin_role(user_id):
+    """Check if user is platform admin"""
+    from .models import User
+    user = User.query.get(user_id)
+    if not user or user.role != 'platform_admin':
+        from flask_restx import abort
+        abort(403, 'Admin access required')
+    return user
 
 def has_no_empty_params(rule):
     defaults = rule.defaults if rule.defaults is not None else ()
