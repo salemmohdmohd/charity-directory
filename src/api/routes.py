@@ -1,7 +1,7 @@
 from flask import request, Blueprint, redirect, session, url_for, current_app
 from flask_restx import Api, Resource, Namespace, fields, marshal
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
-from api.models import db, User, PasswordReset, EmailVerification, AuditLog, Organization, UserBookmark, SearchHistory, Advertisement, Category, Notification, Location, ContactMessage, OrganizationPhoto, OrganizationSocialLink
+from api.models import db, User, PasswordReset, EmailVerification, AuditLog, Organization, UserBookmark, SearchHistory, Advertisement, Category, Notification, NotificationPreference, Location, ContactMessage, OrganizationPhoto, OrganizationSocialLink
 from api.auth_utils import AuthService, validate_password, validate_email_format
 from api.oauth_utils import oauth_service, GoogleAuthError
 from datetime import datetime, timedelta
@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from functools import wraps
 import json
 import os
+
 
 # Create Blueprint for Flask-RESTX
 api_bp = Blueprint('api', __name__)
@@ -110,10 +111,17 @@ bookmark_model = api.model('Bookmark', {
 })
 
 notification_model = api.model('Notification', {
-    'id': fields.Integer,
-    'message': fields.String,
-    'is_read': fields.Boolean,
-    'created_at': fields.String
+    'id': fields.Integer(description='Notification ID'),
+    'title': fields.String(description='Notification title'),
+    'message': fields.String(description='Notification message'),
+    'notification_type': fields.String(description='Type of notification'),
+    'priority': fields.String(description='Notification priority'),
+    'is_read': fields.Boolean(description='Whether notification is read'),
+    'read_at': fields.DateTime(description='When notification was read'),
+    'email_sent': fields.Boolean(description='Whether email was sent'),
+    'email_sent_at': fields.DateTime(description='When email was sent'),
+    'created_at': fields.DateTime(description='When notification was created'),
+    'updated_at': fields.DateTime(description='When notification was last updated')
 })
 
 advertisement_model = api.model('Advertisement', {
@@ -325,6 +333,26 @@ class Register(Resource):
                 print(f"Email verification failed: {str(e)}")
                 pass
 
+            # Send welcome notification and email verification reminder
+            try:
+                from .notification_service import NotificationService
+                notification_service = NotificationService()
+
+                # Send welcome notification
+                notification_service.send_welcome_email(user.id, token)
+
+                # Send email verification reminder notification
+                notification_service.send_notification(
+                    user_id=user.id,
+                    notification_type="email_verification",
+                    subject="Please verify your email to get a verified badge",
+                    message="Check your email and click the verification link to get your verified badge and unlock all features!",
+                    priority="high"
+                )
+            except Exception as e:
+                print(f"Notification sending failed: {str(e)}")
+                pass
+
             log_action(user.id, 'create', 'user', user.id, None, {'email': email, 'name': user.name})
             db.session.commit()
 
@@ -453,6 +481,23 @@ class VerifyEmail(Resource):
             if not verification or verification.expires_at < datetime.utcnow(): api.abort(400, 'Invalid or expired token')
             verification.user.is_verified = True
             verification.is_used = True
+
+            # Send verification success notification
+            try:
+                from .notification_service import NotificationService
+                notification_service = NotificationService()
+
+                notification_service.send_notification(
+                    user_id=verification.user.id,
+                    notification_type="security_alert",
+                    subject="🎉 Email verified successfully!",
+                    message="Congratulations! Your email has been verified and you now have a verified badge. You can now access all features on Charity Directory.",
+                    priority="high"
+                )
+            except Exception as e:
+                print(f"Verification notification failed: {str(e)}")
+                pass
+
             db.session.commit()
             log_action(verification.user.id, 'email_verified')
             db.session.commit()
@@ -581,6 +626,33 @@ class OrganizationSignup(Resource):
             # Log actions
             log_action(user.id, 'create', 'user', user.id, None, {'email': email, 'name': user.name, 'role': 'org_admin'})
             log_action(user.id, 'create', 'organization', org.id, None, {'name': org.name, 'status': 'pending'})
+
+            # Send welcome notification for organization admin
+            try:
+                from .notification_service import NotificationService
+                notification_service = NotificationService()
+
+                # Send welcome notification for organization admin
+                notification_service.send_notification(
+                    user_id=user.id,
+                    notification_type="welcome",
+                    subject=f"Welcome to Charity Directory, {user.name}!",
+                    message=f"Welcome to Charity Directory! Your organization '{org.name}' has been submitted for review. You'll receive a notification once it's approved.",
+                    priority="high"
+                )
+
+                # Send organization submission confirmation
+                notification_service.send_notification(
+                    user_id=user.id,
+                    notification_type="organization_update",
+                    subject="Organization submitted for review",
+                    message=f"Your organization '{org.name}' has been successfully submitted and is now under review. We'll notify you once the review is complete.",
+                    priority="normal"
+                )
+            except Exception as e:
+                print(f"Notification sending failed: {str(e)}")
+                pass
+
             db.session.commit()
 
             return {
@@ -1258,7 +1330,23 @@ class NotificationList(Resource):
     def get(self):
         args = pagination_parser.parse_args()
         items, pag = paginate(Notification.query.filter_by(user_id=get_jwt_identity()).order_by(desc(Notification.created_at)), args.page, args.per_page)
-        return {'notifications': [{'id': n.id, 'message': n.message, 'is_read': n.is_read, 'created_at': n.created_at.isoformat()} for n in items], 'pagination': pag}
+        notifications = []
+        for n in items:
+            notif_data = {
+                'id': n.id,
+                'title': n.title,
+                'message': n.message,
+                'notification_type': n.notification_type,
+                'priority': n.priority,
+                'is_read': n.is_read,
+                'read_at': n.read_at.isoformat() if n.read_at else None,
+                'email_sent': n.email_sent,
+                'email_sent_at': n.email_sent_at.isoformat() if n.email_sent_at else None,
+                'created_at': n.created_at.isoformat(),
+                'updated_at': n.updated_at.isoformat() if n.updated_at else None
+            }
+            notifications.append(notif_data)
+        return {'notifications': notifications, 'pagination': pag}
 
 @notification_ns.route('/<int:notification_id>/read')
 class NotificationRead(Resource):
@@ -1272,7 +1360,7 @@ class NotificationRead(Resource):
     def put(self, notification_id):
         try:
             notif = Notification.query.filter_by(id=notification_id, user_id=get_jwt_identity()).first() or api.abort(404, 'Notification not found')
-            notif.is_read = True
+            notif.mark_as_read()
             db.session.commit()
             return {'message': 'Marked as read'}
         except Exception:
@@ -1405,9 +1493,15 @@ class OrganizationContactMessages(Resource):
             db.session.add(msg)
             db.session.commit()
 
+            # Send notification using the new notification service
             if org.admin_user_id:
-                db.session.add(Notification(user_id=org.admin_user_id, message=f"New contact message from {args.sender_name} for {org.name}"))
-                db.session.commit()
+                try:
+                    from .notification_service import notification_service
+                    notification_service.send_contact_message_notification(
+                        org_id, args.sender_name, args.subject
+                    )
+                except Exception as e:
+                    print(f"Failed to send notification: {e}")
 
             return {'message': 'Message sent successfully', 'contact_message': {'id': msg.id, 'sender_name': msg.sender_name, 'subject': msg.subject, 'created_at': msg.created_at.isoformat()}}, 201
         except Exception:
@@ -1550,6 +1644,10 @@ class HealthCheck(Resource):
             return {'status': 'healthy', 'timestamp': datetime.utcnow().isoformat(), 'database': 'connected'}
         except Exception as e:
             return {'status': 'unhealthy', 'timestamp': datetime.utcnow().isoformat(), 'database': 'disconnected', 'error': str(e)}, 503
+
+
+# Import notification preferences routes to register them (at end to avoid circular imports)
+from . import notification_preferences_routes
 
 # Export the blueprint for use in app.py
 __all__ = ['api_bp']

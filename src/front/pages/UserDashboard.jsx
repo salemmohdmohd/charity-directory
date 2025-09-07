@@ -77,14 +77,14 @@ const UserDashboard = () => {
 						</div>
 						<div>
 							<button className="btn btn-primary me-2">Make a Donation</button>
-							<button 
+							<button
 								className="btn btn-outline-primary me-2"
 								onClick={() => navigate('/profile')}
 							>
 								<i className="bi bi-person me-2"></i>Profile
 							</button>
 							<button className="btn btn-outline-secondary me-2">Settings</button>
-							<button 
+							<button
 								className="btn btn-outline-danger"
 								onClick={handleLogout}
 							>
@@ -209,7 +209,21 @@ const UserDashboard = () => {
 									<i className="bi bi-heart me-2"></i>
 									My Favorites
 								</button>
-								<button 
+								<button
+									className="btn btn-outline-info"
+									onClick={() => navigate('/notifications')}
+								>
+									<i className="bi bi-bell me-2"></i>
+									Notifications
+								</button>
+								<button
+									className="btn btn-outline-success"
+									onClick={() => navigate('/notification-settings')}
+								>
+									<i className="bi bi-gear me-2"></i>
+									Notification Settings
+								</button>
+								<button
 									className="btn btn-outline-info"
 									onClick={() => navigate('/search-history')}
 								>

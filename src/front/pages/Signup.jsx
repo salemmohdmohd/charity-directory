@@ -14,6 +14,13 @@ export const Signup = () => {
     agreeToTerms: false
   });
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  const [validationHints, setValidationHints] = useState({
+    email: { isValid: false, message: '' },
+    password: { isValid: false, message: '', strength: 'weak' }
+  });
   const { signup, initiateGoogleOAuth, error, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
@@ -29,16 +36,91 @@ export const Signup = () => {
     return () => clearError();
   }, [clearError]);
 
+  // Email validation helper
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isValid = emailRegex.test(email);
+
+    if (!email) {
+      return { isValid: false, message: 'Email is required' };
+    } else if (!isValid) {
+      return { isValid: false, message: 'Please enter a valid email address' };
+    } else {
+      return { isValid: true, message: 'Valid email address' };
+    }
+  };
+
+  // Password validation helper
+  const validatePassword = (password) => {
+    const minLength = password.length >= 8;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    const validations = [
+      { condition: minLength, text: 'At least 8 characters' },
+      { condition: hasUppercase, text: 'One uppercase letter' },
+      { condition: hasLowercase, text: 'One lowercase letter' },
+      { condition: hasNumbers, text: 'One number' },
+      { condition: hasSpecialChar, text: 'One special character' }
+    ];
+
+    const validCount = validations.filter(v => v.condition).length;
+
+    let strength = 'weak';
+    let message = '';
+
+    if (!password) {
+      message = 'Password is required';
+    } else if (validCount < 3) {
+      strength = 'weak';
+      message = 'Password is too weak';
+    } else if (validCount < 4) {
+      strength = 'medium';
+      message = 'Password strength: Medium';
+    } else {
+      strength = 'strong';
+      message = 'Password strength: Strong';
+    }
+
+    return {
+      isValid: validCount >= 3,
+      strength,
+      message,
+      validations
+    };
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: newValue
     });
 
     // Clear errors when user types
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
+    }
+
+    // Real-time validation hints
+    if (name === 'email') {
+      const emailValidation = validateEmail(newValue);
+      setValidationHints(prev => ({
+        ...prev,
+        email: emailValidation
+      }));
+    }
+
+    if (name === 'password') {
+      const passwordValidation = validatePassword(newValue);
+      setValidationHints(prev => ({
+        ...prev,
+        password: passwordValidation
+      }));
     }
   };
 
@@ -51,16 +133,16 @@ export const Signup = () => {
       newErrors.name = 'Name must be at least 2 characters';
     }
 
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email';
+    // Use email validation helper
+    const emailValidation = validateEmail(formData.email);
+    if (!emailValidation.isValid) {
+      newErrors.email = emailValidation.message;
     }
 
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    // Use password validation helper
+    const passwordValidation = validatePassword(formData.password);
+    if (!passwordValidation.isValid) {
+      newErrors.password = 'Password must meet security requirements';
     }
 
     if (!formData.confirmPassword) {
@@ -120,38 +202,141 @@ export const Signup = () => {
                   required
                 />
 
-                <Input
-                  name="email"
-                  type="email"
-                  label="Email Address"
-                  value={formData.email}
-                  onChange={handleChange}
-                  error={errors.email}
-                  placeholder="your@email.com"
-                  required
-                />
+                <div className="mb-3">
+                  <Input
+                    name="email"
+                    type="email"
+                    label="Email Address"
+                    value={formData.email}
+                    onChange={handleChange}
+                    error={errors.email}
+                    placeholder="your@email.com"
+                    required
+                  />
+                  {formData.email && (
+                    <div className={`mt-1 small ${validationHints.email.isValid ? 'text-success' : 'text-danger'}`}>
+                      <i className={`fas ${validationHints.email.isValid ? 'fa-check-circle' : 'fa-exclamation-circle'} me-1`}></i>
+                      {validationHints.email.message}
+                    </div>
+                  )}
+                </div>
 
-                <Input
-                  name="password"
-                  type="password"
-                  label="Password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  error={errors.password}
-                  placeholder="Create a password"
-                  required
-                />
+                <div className="mb-3">
+                  <label className="form-label">
+                    Password <span className="text-danger">*</span>
+                  </label>
+                  <div className="input-group">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className={`form-control ${errors.password ? 'is-invalid' : ''}`}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      onFocus={() => setShowPasswordRequirements(true)}
+                      onBlur={() => setShowPasswordRequirements(false)}
+                      placeholder="Create a password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
+                  {errors.password && <div className="invalid-feedback d-block">{errors.password}</div>}
 
-                <Input
-                  name="confirmPassword"
-                  type="password"
-                  label="Confirm Password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  error={errors.confirmPassword}
-                  placeholder="Confirm your password"
-                  required
-                />
+                  {(formData.password || showPasswordRequirements) && (
+                    <div className="mt-2">
+                      {formData.password && (
+                        <div className={`small mb-2 ${
+                          validationHints.password.strength === 'strong' ? 'text-success' :
+                          validationHints.password.strength === 'medium' ? 'text-warning' : 'text-danger'
+                        }`}>
+                          <strong>{validationHints.password.message}</strong>
+                        </div>
+                      )}
+
+                      {!formData.password && showPasswordRequirements && (
+                        <div className="small mb-2 text-muted">
+                          <strong>Password Requirements:</strong>
+                        </div>
+                      )}
+
+                      <div className="row">
+                        {(validationHints.password.validations || [
+                          { condition: false, text: 'At least 8 characters' },
+                          { condition: false, text: 'One uppercase letter' },
+                          { condition: false, text: 'One lowercase letter' },
+                          { condition: false, text: 'One number' },
+                          { condition: false, text: 'One special character' }
+                        ]).map((validation, index) => (
+                          <div key={index} className="col-12 col-md-6">
+                            <small className={`${validation.condition ? 'text-success' : 'text-muted'}`}>
+                              <i className={`fas ${validation.condition ? 'fa-check' : 'fa-times'} me-1`}></i>
+                              {validation.text}
+                            </small>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Password strength bar */}
+                      {formData.password && (
+                        <div className="mt-2">
+                          <div className="progress" style={{ height: '4px' }}>
+                            <div
+                              className={`progress-bar ${
+                                validationHints.password.strength === 'strong' ? 'bg-success' :
+                                validationHints.password.strength === 'medium' ? 'bg-warning' : 'bg-danger'
+                              }`}
+                              style={{
+                                width: validationHints.password.strength === 'strong' ? '100%' :
+                                       validationHints.password.strength === 'medium' ? '60%' : '30%'
+                              }}
+                            ></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Confirm Password <span className="text-danger">*</span>
+                  </label>
+                  <div className="input-group">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Confirm your password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <div className="invalid-feedback d-block">{errors.confirmPassword}</div>}
+
+                  {formData.confirmPassword && formData.password && (
+                    <div className={`mt-1 small ${
+                      formData.password === formData.confirmPassword ? 'text-success' : 'text-danger'
+                    }`}>
+                      <i className={`fas ${
+                        formData.password === formData.confirmPassword ? 'fa-check-circle' : 'fa-exclamation-circle'
+                      } me-1`}></i>
+                      {formData.password === formData.confirmPassword ? 'Passwords match' : 'Passwords do not match'}
+                    </div>
+                  )}
+                </div>
 
                 <div className="mb-3">
                   <Checkbox
