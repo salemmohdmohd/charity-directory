@@ -224,5 +224,52 @@ export const authService = {
   }
 }
 
+// Category service methods
+export const categoryService = {
+  // Get all categories
+  getCategories: async () => {
+    const response = await api.get('/categories')
+    return response.data
+  },
+
+  // Get organizations by category
+  getOrganizationsByCategory: async (categoryId, params = {}) => {
+    const searchParams = new URLSearchParams({
+      per_page: '3',
+      ...params
+    })
+    const response = await api.get(`/categories/${categoryId}/organizations?${searchParams}`)
+    return response.data
+  }
+}
+
+// Organization service methods
+export const organizationService = {
+  // Get all organizations
+  getOrganizations: async (params = {}) => {
+    const searchParams = new URLSearchParams(params)
+    const response = await api.get(`/organizations?${searchParams}`)
+    return response.data
+  },
+
+  // Get single organization
+  getOrganization: async (orgId) => {
+    const response = await api.get(`/organizations/${orgId}`)
+    return response.data
+  },
+
+  // Get organization photos
+  getOrganizationPhotos: async (orgId) => {
+    const response = await api.get(`/organizations/${orgId}/photos`)
+    return response.data
+  },
+
+  // Contact organization
+  contactOrganization: async (orgId, contactData) => {
+    const response = await api.post(`/organizations/${orgId}/contact`, contactData)
+    return response.data
+  }
+}
+
 // Export the configured axios instance as default
 export default api

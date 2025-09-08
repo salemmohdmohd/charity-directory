@@ -15,6 +15,8 @@ import { NotificationList } from "./pages/NotificationList";
 import { OrganizationLogin } from "./pages/OrganizationLogin";
 import { OrganizationSignup } from "./pages/OrganizationSignup";
 import Categories from "./pages/Categories";
+import CategoryDetail from "./pages/CategoryDetail";
+import OrganizationDetail from "./pages/OrganizationDetail";
 import AboutUs from "./pages/AboutUs";
 import Advertise from "./pages/Advertise";
 import ListYourCharity from "./pages/ListYourCharity";
@@ -39,6 +41,8 @@ export const router = createBrowserRouter(
         {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
         <Route path= "/" element={<Home />} />
         <Route path="/categories" element={<Categories />} />
+        <Route path="/categories/:categorySlug" element={<CategoryDetail />} />
+        <Route path="/organizations/:organizationId" element={<OrganizationDetail />} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/advertise" element={<Advertise />} />
         <Route path="/list-your-charity" element={<ListYourCharity />} />

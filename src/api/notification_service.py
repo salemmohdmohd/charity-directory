@@ -439,6 +439,143 @@ class NotificationService:
             priority=NotificationPriority.HIGH
         )
 
+    def send_advertising_inquiry_notification(self, partnerships_email: str, inquiry_data: dict):
+        """Send advertising inquiry notification to partnerships team"""
+        try:
+            mail = self._get_mail_instance()
+            if not mail:
+                return False
+
+            # Create email content
+            content = f"""
+            <h2>New Advertising Inquiry Received</h2>
+            <p>A new advertising inquiry has been submitted through the website.</p>
+
+            <h3>Organization Details:</h3>
+            <ul>
+                <li><strong>Organization Name:</strong> {inquiry_data['organization_name']}</li>
+                <li><strong>Contact Person:</strong> {inquiry_data['contact_name']}</li>
+                <li><strong>Email:</strong> {inquiry_data['email']}</li>
+                <li><strong>Phone:</strong> {inquiry_data.get('phone', 'Not provided')}</li>
+                <li><strong>Organization Type:</strong> {inquiry_data['organization_type']}</li>
+                <li><strong>Website:</strong> {inquiry_data.get('website', 'Not provided')}</li>
+            </ul>
+
+            <h3>Advertising Details:</h3>
+            <ul>
+                <li><strong>Package Interest:</strong> {inquiry_data['ad_package']}</li>
+                <li><strong>Budget Range:</strong> {inquiry_data.get('budget', 'Not specified')}</li>
+                <li><strong>Campaign Goals:</strong> {inquiry_data.get('campaign_goals', 'Not provided')}</li>
+                <li><strong>Target Audience:</strong> {inquiry_data.get('target_audience', 'Not provided')}</li>
+            </ul>
+
+            {f"<h3>Additional Message:</h3><p>{inquiry_data['message']}</p>" if inquiry_data.get('message') else ''}
+
+            <p><strong>Submitted on:</strong> {inquiry_data['submitted_at'].strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
+
+            <p>Please respond to this inquiry within 2-3 business days.</p>
+            """
+
+            # Load template and render
+            template = self._load_template('general')
+            template_vars = {
+                'subject': f"New Advertising Inquiry from {inquiry_data['organization_name']}",
+                'content': content,
+                'year': datetime.now().year,
+                'frontend_url': current_app.config.get('FRONTEND_URL', 'http://localhost:3000'),
+                'unsubscribe_url': f"{current_app.config.get('FRONTEND_URL', 'http://localhost:3000')}/unsubscribe"
+            }
+
+            html_content = render_template_string(template, **template_vars)
+
+            # Create message
+            msg = Message(
+                subject=f"New Advertising Inquiry from {inquiry_data['organization_name']}",
+                recipients=[partnerships_email],
+                html=html_content
+            )
+
+            # Send email
+            mail.send(msg)
+            current_app.logger.info(f"Advertising inquiry notification sent to {partnerships_email}")
+            return True
+
+        except Exception as e:
+            current_app.logger.error(f"Failed to send advertising inquiry notification: {str(e)}")
+            return False
+
+    def send_advertising_inquiry_confirmation(self, email: str, contact_name: str, inquiry_data: dict):
+        """Send confirmation email to the person who submitted the advertising inquiry"""
+        try:
+            mail = self._get_mail_instance()
+            if not mail:
+                return False
+
+            # Create confirmation content
+            content = f"""
+            <h2>Thank You for Your Advertising Inquiry!</h2>
+            <p>Dear {contact_name},</p>
+
+            <p>Thank you for your interest in advertising with Unseen. We have received your inquiry and our partnerships team will review it carefully.</p>
+
+            <h3>Your Inquiry Summary:</h3>
+            <ul>
+                <li><strong>Organization:</strong> {inquiry_data['organization_name']}</li>
+                <li><strong>Package Interest:</strong> {inquiry_data['ad_package']}</li>
+                <li><strong>Budget Range:</strong> {inquiry_data.get('budget', 'Not specified')}</li>
+                <li><strong>Inquiry ID:</strong> ADV-{inquiry_data['submitted_at'].strftime('%Y%m%d%H%M%S')}</li>
+            </ul>
+
+            <h3>What Happens Next?</h3>
+            <ul>
+                <li>Our partnerships team will review your inquiry within 2-3 business days</li>
+                <li>We'll contact you via email to discuss your advertising needs in detail</li>
+                <li>We'll provide you with a customized proposal and pricing information</li>
+                <li>We'll schedule a consultation call if needed</li>
+            </ul>
+
+            <p>In the meantime, feel free to explore our platform to better understand our audience and charity network.</p>
+
+            <p>If you have any immediate questions, you can reach our partnerships team at:</p>
+            <ul>
+                <li>Email: partnerships@unseen.com</li>
+                <li>Phone: (555) 012-3456</li>
+            </ul>
+
+            <p>Thank you for considering Unseen as your advertising partner. We look forward to working with you!</p>
+
+            <p>Best regards,<br>
+            The Unseen Partnerships Team</p>
+            """
+
+            # Load template and render
+            template = self._load_template('general')
+            template_vars = {
+                'subject': "Your Advertising Inquiry - Confirmation Received",
+                'content': content,
+                'year': datetime.now().year,
+                'frontend_url': current_app.config.get('FRONTEND_URL', 'http://localhost:3000'),
+                'unsubscribe_url': f"{current_app.config.get('FRONTEND_URL', 'http://localhost:3000')}/unsubscribe"
+            }
+
+            html_content = render_template_string(template, **template_vars)
+
+            # Create message
+            msg = Message(
+                subject="Your Advertising Inquiry - Confirmation Received",
+                recipients=[email],
+                html=html_content
+            )
+
+            # Send email
+            mail.send(msg)
+            current_app.logger.info(f"Advertising inquiry confirmation sent to {email}")
+            return True
+
+        except Exception as e:
+            current_app.logger.error(f"Failed to send advertising inquiry confirmation: {str(e)}")
+            return False
+
     def get_notification_stats(self, days: int = 30) -> Dict:
         """Get notification statistics for the last N days"""
         since_date = datetime.utcnow() - timedelta(days=days)

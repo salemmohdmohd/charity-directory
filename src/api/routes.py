@@ -44,6 +44,43 @@ api.add_namespace(user_ns, path='/users')
 api.add_namespace(notification_ns, path='/notifications')
 api.add_namespace(ad_ns, path='/advertisements')
 
+# Helper function to serialize organization data
+def serialize_organization(org):
+    """Serialize organization with proper location handling"""
+    return {
+        'id': org.id,
+        'name': org.name,
+        'mission': org.mission,
+        'description': org.description,
+        'category_id': org.category_id,
+        'category_name': org.category.name if org.category else None,
+        'location_id': org.location_id,
+        'location': {
+            'city': org.location.city,
+            'state_province': org.location.state_province,
+            'country': org.location.country,
+            'postal_code': org.location.postal_code
+        } if org.location else None,
+        'phone': org.phone,
+        'email': org.email,
+        'website': org.website,
+        'donation_link': org.donation_link,
+        'logo_url': org.logo_url,
+        'status': org.status,
+        'verification_level': org.verification_level,
+        'view_count': org.view_count,
+        'bookmark_count': org.bookmark_count,
+        'created_at': org.created_at.isoformat() if org.created_at else None,
+        'address': org.address,
+        'operating_hours': org.operating_hours,
+        'established_year': org.established_year,
+        'verification_status': org.status,
+        'beneficiaries_served': getattr(org, 'beneficiaries_served', None),
+        'social_links': [{'platform': l.platform, 'url': l.url, 'is_verified': l.is_verified} for l in (org.social_links or [])],
+        'photos': [{'id': p.id, 'file_name': p.file_name, 'file_path': p.file_path, 'alt_text': p.alt_text, 'is_primary': p.is_primary} for p in (org.photos or [])],
+        'updated_at': org.updated_at.isoformat() if org.updated_at else None
+    }
+
 # Models
 user_model = api.model('User', {
     'id': fields.Integer, 'name': fields.String, 'email': fields.String, 'role': fields.String,
@@ -1015,8 +1052,14 @@ class OrganizationList(Resource):
     })
     def get(self):
         try:
+            from sqlalchemy.orm import joinedload
             args = org_parser.parse_args()
-            query = Organization.query
+            query = Organization.query.options(
+                joinedload(Organization.photos),
+                joinedload(Organization.social_links),
+                joinedload(Organization.category),
+                joinedload(Organization.location)
+            )
             if args.status: query = query.filter(Organization.status == args.status)
             else: query = query.filter(Organization.status == 'approved')
             if args.category_id: query = query.filter(Organization.category_id == args.category_id)
@@ -1026,7 +1069,7 @@ class OrganizationList(Resource):
                 query = query.filter(or_(Organization.name.ilike(s), Organization.description.ilike(s), Organization.mission.ilike(s)))
 
             items, pag = paginate(query.order_by(desc(Organization.created_at)), args.page, args.per_page)
-            return {'organizations': [marshal(o, organization_model) for o in items], 'pagination': pag}
+            return {'organizations': [serialize_organization(o) for o in items], 'pagination': pag}
         except Exception: api.abort(500, 'Failed to fetch organizations')
 
     @jwt_required()
@@ -1061,7 +1104,6 @@ class OrganizationList(Resource):
 
 @org_ns.route('/<int:org_id>')
 class OrganizationDetail(Resource):
-    @org_ns.marshal_with(organization_model)
     @org_ns.doc(responses={
         200: 'Organization details retrieved successfully',
         404: 'Organization not found',
@@ -1069,7 +1111,14 @@ class OrganizationDetail(Resource):
     })
     def get(self, org_id):
         try:
-            org = Organization.query.get(org_id) or api.abort(404, 'Organization not found')
+            # Use joinedload to eagerly load relationships
+            from sqlalchemy.orm import joinedload
+            org = Organization.query.options(
+                joinedload(Organization.photos),
+                joinedload(Organization.social_links),
+                joinedload(Organization.category),
+                joinedload(Organization.location)
+            ).get(org_id) or api.abort(404, 'Organization not found')
 
             is_admin = False
             try:
@@ -1082,16 +1131,39 @@ class OrganizationDetail(Resource):
             org.view_count = (org.view_count or 0) + 1
             db.session.commit()
 
-            org_data = marshal(org, organization_model)
-            org_data.update({
+            # Instead of using marshal, manually create the response
+            org_data = {
+                'id': org.id,
+                'name': org.name,
+                'mission': org.mission,
+                'description': org.description,
+                'category_id': org.category_id,
+                'category_name': org.category.name if org.category else None,
+                'location_id': org.location_id,
                 'location': {'city': org.location.city, 'state_province': org.location.state_province, 'country': org.location.country, 'postal_code': org.location.postal_code} if org.location else None,
-                'address': org.address, 'operating_hours': org.operating_hours, 'established_year': org.established_year,
-                'social_links': [{'platform': l.platform, 'url': l.url, 'is_verified': l.is_verified} for l in org.social_links],
-                'photos': [{'id': p.id, 'file_name': p.file_name, 'file_path': p.file_path, 'alt_text': p.alt_text, 'is_primary': p.is_primary} for p in org.photos],
+                'phone': org.phone,
+                'email': org.email,
+                'website': org.website,
+                'donation_link': org.donation_link,
+                'logo_url': org.logo_url,
+                'status': org.status,
+                'verification_level': org.verification_level,
+                'view_count': org.view_count,
+                'bookmark_count': org.bookmark_count,
+                'created_at': org.created_at.isoformat() if org.created_at else None,
+                'address': org.address,
+                'operating_hours': org.operating_hours,
+                'established_year': org.established_year,
+                'verification_status': org.status,  # Add this for frontend compatibility
+                'beneficiaries_served': getattr(org, 'beneficiaries_served', None),
+                'social_links': [{'platform': l.platform, 'url': l.url, 'is_verified': l.is_verified} for l in (org.social_links or [])],
+                'photos': [{'id': p.id, 'file_name': p.file_name, 'file_path': p.file_path, 'alt_text': p.alt_text, 'is_primary': p.is_primary} for p in (org.photos or [])],
                 'updated_at': org.updated_at.isoformat() if org.updated_at else None
-            })
-            return {'organization': org_data}
-        except Exception: api.abort(500, 'Failed to fetch organization')
+            }
+            return org_data
+        except Exception as e:
+            print(f"Error in organization detail: {e}")
+            api.abort(500, f'Failed to fetch organization: {str(e)}')
 
 @org_ns.route('/<int:org_id>/contact')
 class OrganizationContact(Resource):
@@ -1115,10 +1187,17 @@ class CategoryOrganizations(Resource):
         404: 'Category not found'
     })
     def get(self, category_id):
+        from sqlalchemy.orm import joinedload
         cat = Category.query.get(category_id) or api.abort(404, 'Category not found')
         args = pagination_parser.parse_args()
-        items, pag = paginate(Organization.query.filter_by(category_id=category_id, status='approved').order_by(desc(Organization.created_at)), args.page, args.per_page)
-        return {'category': {'id': cat.id, 'name': cat.name, 'description': cat.description}, 'organizations': [marshal(o, organization_model) for o in items], 'pagination': pag}
+        query = Organization.query.options(
+            joinedload(Organization.photos),
+            joinedload(Organization.social_links),
+            joinedload(Organization.category),
+            joinedload(Organization.location)
+        ).filter_by(category_id=category_id, status='approved')
+        items, pag = paginate(query.order_by(desc(Organization.created_at)), args.page, args.per_page)
+        return {'category': {'id': cat.id, 'name': cat.name, 'description': cat.description}, 'organizations': [serialize_organization(o) for o in items], 'pagination': pag}
 
 # LOCATION ENDPOINTS
 @location_ns.route('')
@@ -1169,8 +1248,14 @@ class OrganizationSearch(Resource):
     @search_ns.expect(search_parser)
     def get(self):
         try:
+            from sqlalchemy.orm import joinedload
             args = search_parser.parse_args()
-            query = Organization.query.filter(Organization.status == 'approved')
+            query = Organization.query.options(
+                joinedload(Organization.photos),
+                joinedload(Organization.social_links),
+                joinedload(Organization.category),
+                joinedload(Organization.location)
+            ).filter(Organization.status == 'approved')
             if args.q: query = query.filter(or_(Organization.name.ilike(f"%{args.q}%"), Organization.description.ilike(f"%{args.q}%"), Organization.mission.ilike(f"%{args.q}%")))
             if args.category_id: query = query.filter(Organization.category_id == args.category_id)
             if args.location_id: query = query.filter(Organization.location_id == args.location_id)
@@ -1184,7 +1269,7 @@ class OrganizationSearch(Resource):
                     db.session.commit()
             except: pass
 
-            return {'results': [marshal(o, organization_model) for o in items], 'pagination': pag, 'search_meta': {'query': args.q, 'filters': {'category_id': args.category_id, 'location_id': args.location_id, 'verification_level': args.verification_level}}}
+            return {'results': [serialize_organization(o) for o in items], 'pagination': pag, 'search_meta': {'query': args.q, 'filters': {'category_id': args.category_id, 'location_id': args.location_id, 'verification_level': args.verification_level}}}
         except Exception: api.abort(500, 'Search failed')
 
 @search_ns.route('/suggestions')
@@ -1459,6 +1544,92 @@ class AdvertisementImpression(Resource):
             db.session.rollback()
             api.abort(500, 'Failed to track impression')
 
+# ADVERTISING INQUIRY ROUTE
+advertising_inquiry_parser = api.parser()
+advertising_inquiry_parser.add_argument('organizationName', type=str, required=True, help='Organization name')
+advertising_inquiry_parser.add_argument('contactName', type=str, required=True, help='Contact person name')
+advertising_inquiry_parser.add_argument('email', type=str, required=True, help='Email address')
+advertising_inquiry_parser.add_argument('phone', type=str, required=False, help='Phone number')
+advertising_inquiry_parser.add_argument('organizationType', type=str, required=True, help='Organization type')
+advertising_inquiry_parser.add_argument('website', type=str, required=False, help='Website URL')
+advertising_inquiry_parser.add_argument('adPackage', type=str, required=True, help='Interested package')
+advertising_inquiry_parser.add_argument('budget', type=str, required=False, help='Budget range')
+advertising_inquiry_parser.add_argument('campaignGoals', type=str, required=False, help='Campaign goals')
+advertising_inquiry_parser.add_argument('targetAudience', type=str, required=False, help='Target audience')
+advertising_inquiry_parser.add_argument('message', type=str, required=False, help='Additional message')
+
+@ad_ns.route('/inquiry')
+class AdvertisingInquiry(Resource):
+    @ad_ns.expect(advertising_inquiry_parser)
+    @ad_ns.doc(responses={
+        201: 'Inquiry submitted successfully',
+        400: 'Invalid input data',
+        500: 'Server error'
+    })
+    def post(self):
+        """Submit an advertising inquiry"""
+        try:
+            args = advertising_inquiry_parser.parse_args()
+
+            # Validate email format
+            email = args.email.strip().lower()
+            if not validate_email_format(email):
+                api.abort(400, 'Invalid email format')
+
+            # Create inquiry data
+            inquiry_data = {
+                'organization_name': args.organizationName.strip(),
+                'contact_name': args.contactName.strip(),
+                'email': email,
+                'phone': args.phone.strip() if args.phone else None,
+                'organization_type': args.organizationType,
+                'website': args.website.strip() if args.website else None,
+                'ad_package': args.adPackage,
+                'budget': args.budget,
+                'campaign_goals': args.campaignGoals.strip() if args.campaignGoals else None,
+                'target_audience': args.targetAudience.strip() if args.targetAudience else None,
+                'message': args.message.strip() if args.message else None,
+                'submitted_at': datetime.utcnow()
+            }
+
+            # Send email notification to admin
+            from .notification_service import NotificationService
+            notification_service = NotificationService()
+
+            # Send notification email to partnerships team
+            try:
+                partnerships_email = os.getenv('PARTNERSHIPS_EMAIL', 'partnerships@unseen.com')
+                notification_service.send_advertising_inquiry_notification(
+                    partnerships_email,
+                    inquiry_data
+                )
+            except Exception as e:
+                current_app.logger.error(f"Failed to send advertising inquiry email: {str(e)}")
+                # Don't fail the request if email fails
+
+            # Send confirmation email to inquirer
+            try:
+                notification_service.send_advertising_inquiry_confirmation(
+                    email,
+                    args.contactName.strip(),
+                    inquiry_data
+                )
+            except Exception as e:
+                current_app.logger.error(f"Failed to send inquiry confirmation email: {str(e)}")
+
+            # Log the inquiry (you could also save to database if needed)
+            current_app.logger.info(f"Advertising inquiry submitted by {email} for {args.organizationName}")
+
+            return {
+                'message': 'Advertising inquiry submitted successfully',
+                'inquiry_id': f"ADV-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+                'status': 'submitted'
+            }, 201
+
+        except Exception as e:
+            current_app.logger.error(f"Error submitting advertising inquiry: {str(e)}")
+            api.abort(500, 'Failed to submit inquiry')
+
 # ORGANIZATION ADMIN ROUTES
 @org_ns.route('/<int:org_id>/contact-messages')
 class OrganizationContactMessages(Resource):
@@ -1553,7 +1724,6 @@ class OrganizationContactMessageDetail(Resource):
 
 @org_ns.route('/<int:org_id>/photos')
 class OrganizationPhotos(Resource):
-    @org_ns.marshal_list_with(photo_model)
     @org_ns.doc(responses={
         200: 'Organization photos retrieved successfully',
         404: 'Organization not found'
@@ -1566,8 +1736,8 @@ class OrganizationPhotos(Resource):
                 if user := User.query.get(uid): is_admin = user.role in ['platform_admin', 'org_admin']
         except: pass
         if org.status != 'approved' and not is_admin: api.abort(404, 'Organization not found')
-        photos = OrganizationPhoto.query.filter_by(organization_id=org_id).order_by(desc(OrganizationPhoto.is_primary), OrganizationPhoto.created_at).all()
-        return {'photos': [{'id': p.id, 'file_name': p.file_name, 'file_path': p.file_path, 'alt_text': p.alt_text, 'is_primary': p.is_primary, 'created_at': p.created_at.isoformat() if p.created_at else None} for p in photos], 'organization': {'id': org.id, 'name': org.name}}
+        photos = OrganizationPhoto.query.filter_by(organization_id=org_id).order_by(desc(OrganizationPhoto.is_primary), OrganizationPhoto.uploaded_at).all()
+        return [{'id': p.id, 'file_name': p.file_name, 'file_path': p.file_path, 'alt_text': p.alt_text, 'is_primary': p.is_primary, 'uploaded_at': p.uploaded_at.isoformat() if p.uploaded_at else None} for p in photos]
 
     @jwt_required()
     @org_ns.expect(photo_create_parser)
