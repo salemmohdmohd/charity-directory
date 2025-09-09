@@ -9,7 +9,7 @@ import AuthProvider from './components/AuthProvider';  // Import the AuthProvide
 
 const Main = () => {
     return (
-        <React.StrictMode>
+        <React.Fragment>
             {/* Provide SEO capabilities to all components */}
             <HelmetProvider>
                 {/* Provide global state to all components */}
@@ -22,7 +22,7 @@ const Main = () => {
                     </AuthProvider>
                 </StoreProvider>
             </HelmetProvider>
-        </React.StrictMode>
+        </React.Fragment>
     );
 }
 

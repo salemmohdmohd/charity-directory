@@ -19,7 +19,7 @@ class GoogleOAuthService:
         # OAuth configuration from environment variables
         self.client_id = os.getenv('GOOGLE_OAUTH_CLIENT_ID')
         self.client_secret = os.getenv('GOOGLE_OAUTH_CLIENT_SECRET')
-        self.redirect_uri = os.getenv('GOOGLE_OAUTH_REDIRECT_URI', 'http://localhost:5000/api/auth/google/callback')
+        self.redirect_uri = os.getenv('GOOGLE_OAUTH_REDIRECT_URI')
 
         # OAuth scopes - use simple names
         self.scopes = [
@@ -29,9 +29,9 @@ class GoogleOAuthService:
         ]
 
         # Validate required environment variables
-        self.oauth_enabled = bool(self.client_id and self.client_secret)
+        self.oauth_enabled = bool(self.client_id and self.client_secret and self.redirect_uri)
         if not self.oauth_enabled:
-            print("Warning: Google OAuth credentials not found. OAuth features will be disabled.")
+            print("Warning: Google OAuth credentials not found or are incomplete. OAuth features will be disabled.")
 
     def get_client_config(self):
         """Get Google OAuth client configuration"""

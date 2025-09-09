@@ -12,6 +12,12 @@ const ProtectedRoute = ({
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
 
+  console.log('ProtectedRoute Check:', {
+    pathname: location.pathname,
+    isAuthenticated,
+    userRole: user?.role
+  });
+
   // If route requires authentication and user is not authenticated
   if (requireAuth && !isAuthenticated) {
     // Redirect to login page with return URL
@@ -22,7 +28,7 @@ const ProtectedRoute = ({
   if (requireUnauth && isAuthenticated) {
     // Redirect based on user role
     if (user?.role === 'org_admin') {
-      return <Navigate to="/org-dashboard" replace />;
+      return <Navigate to="/organization-dashboard" replace />;
     }
     return <Navigate to="/dashboard" replace />;
   }
@@ -36,7 +42,7 @@ const ProtectedRoute = ({
 
     // Otherwise, redirect to appropriate dashboard based on role
     if (user?.role === 'org_admin') {
-      return <Navigate to="/org-dashboard" replace />;
+      return <Navigate to="/organization-dashboard" replace />;
     }
     return <Navigate to="/dashboard" replace />;
   }

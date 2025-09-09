@@ -3,8 +3,10 @@ from flask_restx import Resource, fields
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.exc import SQLAlchemyError
 
-from .models import db, NotificationPreference, User
-from .routes import api, notification_ns
+from ..models import db, NotificationPreference, User
+from ..core import api
+
+prefs_ns = api.namespace('notification-preferences', description='User Notification Preferences')
 
 
 # Notification Preferences Models
@@ -72,11 +74,11 @@ for field_name, field_obj in notification_preference_update_model.items():
         notification_preference_parser.add_argument(field_name, type=str, location='json')
 
 
-@notification_ns.route('/preferences')
+@prefs_ns.route('/')
 class NotificationPreferences(Resource):
     @jwt_required()
-    @notification_ns.marshal_with(notification_preference_model)
-    @notification_ns.doc(responses={
+    @prefs_ns.marshal_with(notification_preference_model)
+    @prefs_ns.doc(responses={
         200: 'Notification preferences retrieved successfully',
         404: 'Preferences not found (will create defaults)',
         500: 'Failed to retrieve preferences'
@@ -99,9 +101,9 @@ class NotificationPreferences(Resource):
             api.abort(500, f'Failed to retrieve preferences: {str(e)}')
 
     @jwt_required()
-    @notification_ns.expect(notification_preference_parser)
-    @notification_ns.marshal_with(notification_preference_model)
-    @notification_ns.doc(responses={
+    @prefs_ns.expect(notification_preference_parser)
+    @prefs_ns.marshal_with(notification_preference_model)
+    @prefs_ns.doc(responses={
         200: 'Preferences updated successfully',
         400: 'Invalid preference values',
         500: 'Failed to update preferences'
@@ -144,12 +146,12 @@ bulk_notification_parser.add_argument('enable_all_inapp', type=bool, location='j
 bulk_notification_parser.add_argument('disable_all_inapp', type=bool, location='json',
                                      help='Disable all in-app notifications')
 
-@notification_ns.route('/preferences/bulk')
+@prefs_ns.route('/bulk')
 class BulkNotificationPreferences(Resource):
     @jwt_required()
-    @notification_ns.expect(bulk_notification_parser)
-    @notification_ns.marshal_with(notification_preference_model)
-    @notification_ns.doc(responses={
+    @prefs_ns.expect(bulk_notification_parser)
+    @prefs_ns.marshal_with(notification_preference_model)
+    @prefs_ns.doc(responses={
         200: 'Bulk preferences updated successfully',
         400: 'Invalid bulk operation',
         500: 'Failed to update preferences'
@@ -196,10 +198,10 @@ class BulkNotificationPreferences(Resource):
 
 
 # Notification preferences summary
-@notification_ns.route('/preferences/summary')
+@prefs_ns.route('/summary')
 class NotificationPreferencesSummary(Resource):
     @jwt_required()
-    @notification_ns.marshal_with(api.model('PreferencesSummary', {
+    @prefs_ns.marshal_with(api.model('PreferencesSummary', {
         'total_enabled': fields.Integer(description='Total enabled notifications'),
         'email_enabled': fields.Integer(description='Email notifications enabled'),
         'inapp_enabled': fields.Integer(description='In-app notifications enabled'),
@@ -209,7 +211,7 @@ class NotificationPreferencesSummary(Resource):
         'timezone': fields.String(description='User timezone'),
         'language': fields.String(description='Preferred language')
     }))
-    @notification_ns.doc(responses={
+    @prefs_ns.doc(responses={
         200: 'Preferences summary retrieved successfully',
         500: 'Failed to get summary'
     })
@@ -257,11 +259,11 @@ class NotificationPreferencesSummary(Resource):
 
 
 # Reset preferences to defaults
-@notification_ns.route('/preferences/reset')
+@prefs_ns.route('/reset')
 class ResetNotificationPreferences(Resource):
     @jwt_required()
-    @notification_ns.marshal_with(notification_preference_model)
-    @notification_ns.doc(responses={
+    @prefs_ns.marshal_with(notification_preference_model)
+    @prefs_ns.doc(responses={
         200: 'Preferences reset to defaults successfully',
         500: 'Failed to reset preferences'
     })

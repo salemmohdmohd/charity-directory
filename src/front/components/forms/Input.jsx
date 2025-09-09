@@ -15,6 +15,7 @@ const Input = ({
   required = false,
   disabled = false,
   className = '',
+  helpText,
   ...rest
 }) => {
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
@@ -49,6 +50,11 @@ const Input = ({
         <div className="invalid-feedback d-block">
           {error}
         </div>
+      )}
+      {helpText && !error && (
+        <small className="form-text text-muted">
+          {helpText}
+        </small>
       )}
     </div>
   );
