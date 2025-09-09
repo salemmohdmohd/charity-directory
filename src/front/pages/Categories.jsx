@@ -1,493 +1,293 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import useGlobalReducer from '../hooks/useGlobalReducer';
-
-// Function to get representative images for each category
-const getCategoryImage = (categoryName) => {
-  const imageMap = {
-    'Healthcare': 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=300&h=200&fit=crop',
-    'Education': 'https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=300&h=200&fit=crop',
-    'Environment': 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=300&h=200&fit=crop',
-    'Animal Welfare': 'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=300&h=200&fit=crop',
-    'Human Rights': 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=200&fit=crop',
-    'Poverty Relief': 'https://images.unsplash.com/photo-1593113598332-cd288d649433?w=300&h=200&fit=crop',
-    'Disaster Relief': 'https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=300&h=200&fit=crop',
-    'Arts & Culture': 'https://images.unsplash.com/photo-1541961017774-22349e4a1262?w=300&h=200&fit=crop',
-    'Youth Development': 'https://images.unsplash.com/photo-1529390079861-591de354faf5?w=300&h=200&fit=crop',
-    'Senior Services': 'https://images.unsplash.com/photo-1581579438747-1dc8d17bbce4?w=300&h=200&fit=crop'
-  };
-  return imageMap[categoryName] || 'https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=300&h=200&fit=crop';
-};
-
-// Reusable Filter Component
-const FilterSection = ({ title, items, selectedItem, onItemSelect, type }) => {
-  return (
-    <div className="mb-4">
-      <h5 className="mb-3 text-forest">{title}</h5>
-      <div className="row g-2">
-        <div className="col-auto">
-          <button
-            className={`calcifer-button btn ${selectedItem === 'all' ? 'btn-primary' : 'btn-outline-secondary'} btn-sm`}
-            onClick={() => onItemSelect('all', type)}
-          >
-            All {title}
-          </button>
-        </div>
-        {items.map((item) => (
-          <div key={item.id} className="col-auto">
-            <button
-              className={`btn ${selectedItem === item.name ? 'btn-primary' : 'btn-outline-secondary'} btn-sm`}
-              onClick={() => onItemSelect(item.name, type)}
-              style={{ backgroundColor: selectedItem === item.name ? item.color_code : '', borderColor: item.color_code }}
-            >
-              {item.name} ({item.organization_count})
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Category Card Component - Clean white design
-const CategoryCard = ({ category, onCardClick }) => {
-  return (
-    <div className="col-md-6 col-lg-4">
-      <div 
-        className="card h-100 shadow-sm"
-        style={{ cursor: 'pointer', borderLeft: `4px solid ${category.color_code}`, backgroundColor: 'white' }}
-        onClick={() => onCardClick(category)}
-      >
-        <img 
-          src={getCategoryImage(category.name)} 
-          className="card-img-top" 
-          alt={category.name}
-          style={{ height: '300px', objectFit: 'cover', borderRadius: '0.375rem 0.375rem 0 0' }}
-          onError={(e) => {
-            e.target.style.display = 'none';
-            e.target.nextSibling.style.display = 'flex';
-          }}
-        />
-        <div className="card-body" style={{ backgroundColor: 'white' }}>
-          <h5 className="card-title text-forest fw-bold" style={{ color: category.color_code }}>
-            {category.name}
-          </h5>
-          <p className="card-text text-muted">{category.description}</p>
-          
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <small className="text-muted">Organizations:</small>
-            <span className="badge" style={{ backgroundColor: category.color_code, color: 'white' }}>
-              {category.organization_count}
-            </span>
-          </div>
-          
-          <button className="calcifer-button btn btn-outline-primary btn-sm w-100">
-            View Organizations
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Reusable Charity Card Component - Clean white design
-const CharityCard = ({ charity, onCardClick }) => {
-  return (
-    <div className="col-md-6 col-lg-4">
-      <div 
-        className="card h-100 shadow-sm"
-        style={{ cursor: 'pointer', backgroundColor: 'white' }}
-        onClick={() => onCardClick(charity)}
-      >
-        <img 
-          src={charity.image} 
-          className="card-img-top" 
-          alt={charity.name}
-          style={{ height: '200px', objectFit: 'cover', borderRadius: '0.375rem 0.375rem 0 0' }}
-        />
-        <div className="card-body" style={{ backgroundColor: 'white' }}>
-          <h6 className="card-title text-forest fw-bold">{charity.name}</h6>
-          <p className="card-text small text-muted">{charity.description}</p>
-          
-          <div className="d-flex justify-content-between mb-2">
-            <small className="text-muted">Category:</small>
-            <span className="badge bg-totoro">{charity.category}</span>
-          </div>
-          
-          <div className="d-flex justify-content-between mb-2">
-            <small className="text-muted">Location:</small>
-            <small className="text-forest fw-bold">{charity.location}</small>
-          </div>
-          
-          <div className="d-flex justify-content-between mb-3">
-            <small className="text-muted">Impact:</small>
-            <span className={`badge ${charity.impact === 'High' ? 'bg-forest' : charity.impact === 'Medium' ? 'bg-sunset' : 'bg-sky'}`}>
-              {charity.impact}
-            </span>
-          </div>
-          
-          <div className="text-center">
-            <button className="calcifer-button btn btn-outline-primary btn-sm" style={{ width: '50%' }}>
-              Learn More
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+import { OrganizationCard } from '../components';
+import { categoryService, organizationService } from '../Services/axios';
 
 const Categories = () => {
   const { store, dispatch } = useGlobalReducer();
   const [loading, setLoading] = useState(true);
-  const [categories, setCategories] = useState([]); // Real categories from backend
-  const [charities, setCharities] = useState([]);
-  const [filteredCharities, setFilteredCharities] = useState([]);
-  const [viewMode, setViewMode] = useState('categories'); // Toggle between categories and charities view
-  
-  // Filter states
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedLocation, setSelectedLocation] = useState('all');
-  const [selectedCause, setSelectedCause] = useState('all');
-  const [selectedImpact, setSelectedImpact] = useState('all');
+  const [categories, setCategories] = useState([]);
+  const [categoriesWithOrgs, setCategoriesWithOrgs] = useState([]);
+  const [error, setError] = useState(null);
 
-  // Function to fetch categories from your backend
+  // Function to create URL-friendly slug from category name
+  const createCategorySlug = (categoryName) => {
+    return categoryName.toLowerCase().replace(/\s+/g, '-');
+  };
+
+  // Function to create organization slug
+  const createOrgSlug = (org) => {
+    return `${org.id}-${org.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+  };
+
+  // Function to fetch categories from backend
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://127.0.0.1:5000/api/categories');
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setCategories(data.categories);
-      setLoading(false);
-      
-      console.log('Categories loaded:', data.categories); // For debugging
-      
+      setError(null);
+
+      const data = await categoryService.getCategories();
+      setCategories(data.categories || []);
+
+      // Fetch organizations for each category (limit 3 per category)
+      const categoriesWithOrganizations = await Promise.all(
+        (data.categories || []).map(async (category) => {
+          try {
+            const orgData = await categoryService.getOrganizationsByCategory(category.id, { per_page: 3 });
+            const organizations = orgData.organizations || [];
+
+            // Load photos for each organization
+            const organizationsWithPhotos = await Promise.all(
+              organizations.map(async (org) => {
+                try {
+                  const photos = await organizationService.getOrganizationPhotos(org.id);
+                  return { ...org, photos };
+                } catch (photoError) {
+                  console.error(`Error loading photos for organization ${org.id}:`, photoError);
+                  return { ...org, photos: [] };
+                }
+              })
+            );
+
+            return {
+              ...category,
+              organizations: organizationsWithPhotos
+            };
+          } catch (error) {
+            console.error(`Error fetching organizations for category ${category.name}:`, error);
+            return { ...category, organizations: [] };
+          }
+        })
+      );
+
+      setCategoriesWithOrgs(categoriesWithOrganizations);
+
+      console.log('Categories with organizations loaded:', categoriesWithOrganizations);
+
     } catch (error) {
       console.error('Error fetching categories:', error);
-      setLoading(false);
-      
-      // You can dispatch an error notification
-      dispatch({ 
-        type: 'SET_NOTIFICATION', 
-        payload: 'Failed to load categories. Please try again.' 
+      setError('Failed to load categories. Please try again.');
+
+      dispatch({
+        type: 'SET_ERROR',
+        payload: 'Failed to load categories.'
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Mock data for charities (you can replace this with another API call later)
-  const mockCharities = [
-    {
-      id: 1,
-      name: "Ocean Conservation Fund",
-      description: "Protecting marine ecosystems worldwide",
-      category: "Environment",
-      location: "California",
-      cause: "Conservation",
-      impact: "High",
-      image: "https://images.unsplash.com/photo-1583212292454-1fe6229603b7?w=400&h=250&fit=crop"
-    },
-    {
-      id: 2,
-      name: "Children's Education Initiative",
-      description: "Providing education to underprivileged children",
-      category: "Education",
-      location: "Texas",
-      cause: "Education Access",
-      impact: "High",
-      image: "https://images.unsplash.com/photo-1497486751825-1233686d5d80?w=400&h=250&fit=crop"
-    },
-    {
-      id: 3,
-      name: "Community Food Bank",
-      description: "Fighting hunger in local communities",
-      category: "Poverty Relief",
-      location: "New York",
-      cause: "Hunger Relief",
-      impact: "Medium",
-      image: "https://images.unsplash.com/photo-1593113598332-cd288d649433?w=400&h=250&fit=crop"
-    },
-    {
-      id: 4,
-      name: "Mental Health Support Network",
-      description: "Providing mental health services",
-      category: "Healthcare",
-      location: "Florida",
-      cause: "Healthcare",
-      impact: "Medium",
-      image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&h=250&fit=crop"
-    },
-    {
-      id: 5,
-      name: "Animal Rescue Center",
-      description: "Rescuing and caring for abandoned animals",
-      category: "Animal Welfare",
-      location: "California",
-      cause: "Animal Welfare",
-      impact: "Medium",
-      image: "https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=400&h=250&fit=crop"
-    }
-  ];
-
-  // Generate filter options from data
-  const getFilterOptions = (field) => {
-    const items = [...new Set(charities.map(charity => charity[field]))];
-    return items.map(item => ({
-      id: item,
-      name: item,
-      count: charities.filter(charity => charity[field] === item).length
-    }));
-  };
-
-  // Load categories from backend when component mounts
   useEffect(() => {
     fetchCategories();
-    
-    // Load mock charities (later you can replace this with another API call)
-    setTimeout(() => {
-      setCharities(mockCharities);
-      setFilteredCharities(mockCharities);
-    }, 500);
   }, []);
-
-  // Filter charities based on selected filters
-  useEffect(() => {
-    let filtered = charities;
-
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(charity => charity.category === selectedCategory);
-    }
-    if (selectedLocation !== 'all') {
-      filtered = filtered.filter(charity => charity.location === selectedLocation);
-    }
-    if (selectedCause !== 'all') {
-      filtered = filtered.filter(charity => charity.cause === selectedCause);
-    }
-    if (selectedImpact !== 'all') {
-      filtered = filtered.filter(charity => charity.impact === selectedImpact);
-    }
-
-    setFilteredCharities(filtered);
-  }, [selectedCategory, selectedLocation, selectedCause, selectedImpact, charities]);
-
-  const handleFilterSelect = (value, type) => {
-    switch (type) {
-      case 'Categories':
-        setSelectedCategory(value);
-        break;
-      case 'Locations':
-        setSelectedLocation(value);
-        break;
-      case 'Causes':
-        setSelectedCause(value);
-        break;
-      case 'Impact Levels':
-        setSelectedImpact(value);
-        break;
-      default:
-        break;
-    }
-  };
-
-  const handleCardClick = (item) => {
-    dispatch({ 
-      type: 'SET_NOTIFICATION', 
-      payload: `Viewing details for ${item.name}` 
-    });
-  };
-
-  const handleCategoryClick = (category) => {
-    // When a category is clicked, filter charities by that category and switch to charities view
-    setSelectedCategory(category.name);
-    setViewMode('charities');
-    dispatch({ 
-      type: 'SET_NOTIFICATION', 
-      payload: `Viewing organizations in ${category.name}` 
-    });
-  };
 
   if (loading) {
     return (
-      <div className="loading-overlay">
-        <div className="container py-6 text-center">
-          <div className="forest-spinner mx-auto mb-4"></div>
-          <p className="text-cream magical-message fs-5">Loading categories from the magical realm...</p>
+      <div className="container py-5">
+        <div className="row justify-content-center">
+          <div className="col-md-6 text-center">
+            <div className="forest-spinner mx-auto mb-4"></div>
+            <h5 className="text-forest">Loading Categories...</h5>
+            <p className="text-muted">Please wait while we fetch the latest categories and organizations</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-5">
+        <div className="row justify-content-center">
+          <div className="col-md-6 text-center">
+            <div className="totoro-card p-5">
+              <i className="fas fa-exclamation-triangle text-sunset mb-3" style={{ fontSize: '3rem' }}></i>
+              <h5 className="text-forest mb-3">Oops! Something went wrong</h5>
+              <p className="text-muted mb-4">{error}</p>
+              <button
+                className="btn calcifer-button"
+                onClick={fetchCategories}
+              >
+                <i className="fas fa-sync-alt me-2"></i>
+                Try Again
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ backgroundColor: 'white', minHeight: '100vh' }}>
-      {/* Header with Ghibli Magic */}
-      <section className="hero-ghibli forest-section py-7">
-        <div className="container">
-          <div className="row">
-            <div className="col-12 text-center">
-              <h1 className="magical-title hero-text-shadow display-4 fw-bold mb-3 float-magic">
-                {viewMode === 'categories' ? 'Charity Categories' : 'Organizations'}
-              </h1>
-              <p className="enchanted-text subtitle-shadow lead">
-                {viewMode === 'categories' 
-                  ? 'Discover causes that matter to you in our magical world of giving' 
-                  : 'Find organizations making a difference across the lands'
-                }
-              </p>
-              
-              {/* View Toggle Buttons with Ghibli styling */}
-              <div className="mt-4">
-                <button 
-                  className={`calcifer-button btn me-3 ${viewMode === 'categories' ? 'btn-light' : 'btn-outline-light'}`}
-                  onClick={() => setViewMode('categories')}
-                >
-                  Browse Categories
-                </button>
-                <button 
-                  className={`calcifer-button btn ${viewMode === 'charities' ? 'btn-light' : 'btn-outline-light'}`}
-                  onClick={() => setViewMode('charities')}
-                >
-                  View Organizations
-                </button>
+    <>
+      <Helmet>
+        <title>Charity Categories - Find Organizations by Cause</title>
+        <meta name="description" content="Browse charity categories and discover verified nonprofit organizations making a difference. Find causes you care about and connect with organizations in your community." />
+        <meta name="keywords" content="charity categories, nonprofit organizations, donations, volunteer, causes, community service" />
+        <link rel="canonical" href={`${window.location.origin}/categories`} />
+
+        {/* Open Graph tags */}
+        <meta property="og:title" content="Charity Categories - Find Organizations by Cause" />
+        <meta property="og:description" content="Browse charity categories and discover verified nonprofit organizations making a difference." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={`${window.location.origin}/categories`} />
+
+        {/* JSON-LD structured data */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            "name": "Charity Categories",
+            "description": "Browse charity categories and discover verified nonprofit organizations making a difference.",
+            "url": `${window.location.origin}/categories`,
+            "mainEntity": {
+              "@type": "ItemList",
+              "numberOfItems": categoriesWithOrgs.length,
+              "itemListElement": categoriesWithOrgs.map((category, index) => ({
+                "@type": "Thing",
+                "position": index + 1,
+                "name": category.name,
+                "description": category.description,
+                "url": `${window.location.origin}/categories/${createCategorySlug(category.name)}`
+              }))
+            }
+          })}
+        </script>
+      </Helmet>
+
+      <div className="min-vh-100 bg-light">
+        {/* Header Section */}
+        <header className="bg-totoro py-5">
+          <div className="container">
+            <div className="row">
+              <div className="col-12 text-center">
+                <h1 className="magical-title display-4 fw-bold text-cream mb-3 float-magic">
+                  Charity Categories
+                </h1>
+                <p className="enchanted-text lead text-cream fs-5">
+                  Explore causes and discover organizations making a difference
+                </p>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </header>
 
-      {/* Main Content with white background */}
-      <div className="container py-6" style={{ backgroundColor: 'white' }}>
-        
-        {/* Categories View */}
-        {viewMode === 'categories' && (
-          <div style={{ backgroundColor: 'white', padding: '3rem 0', borderRadius: '2rem', margin: '2rem 0' }}>
-            <div className="text-center mb-5">
-              <h2 className="text-forest magical-title">Browse by Category</h2>
-              <p className="text-muted enchanted-text">Choose a category to explore organizations in our magical realm</p>
-            </div>
-            
-            {categories.length === 0 ? (
-              <div className="text-center py-5" style={{ backgroundColor: 'white', borderRadius: '1rem', border: '1px solid #dee2e6' }}>
-                <i className="bi bi-exclamation-circle fs-1 text-calcifer"></i>
-                <h5 className="text-muted mt-3">No categories available</h5>
-                <p className="text-muted">Please try again later</p>
-                <button 
-                  className="calcifer-button btn btn-primary"
-                  onClick={fetchCategories}
-                >
-                  Retry
-                </button>
+        {/* Categories and Organizations Section */}
+        <main className="py-5">
+          <div className="container">
+            {categoriesWithOrgs.length === 0 ? (
+              <div className="row justify-content-center">
+                <div className="col-lg-6 text-center">
+                  <div className="totoro-card p-5">
+                    <i className="fas fa-info-circle text-muted mb-3" style={{ fontSize: '2rem' }}></i>
+                    <h2 className="h5 text-muted">No categories available</h2>
+                    <p className="text-muted">Categories will appear here once they're added</p>
+                    <button
+                      className="btn calcifer-button"
+                      onClick={fetchCategories}
+                    >
+                      <i className="fas fa-sync-alt me-2"></i>
+                      Refresh
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
-              <div className="row g-4">
-                {categories.map((category) => (
-                  <CategoryCard
-                    key={category.id}
-                    category={category}
-                    onCardClick={handleCategoryClick}
-                  />
-                ))}
-              </div>
+              categoriesWithOrgs.map((category, categoryIndex) => (
+                <section key={category.id} className="mb-5">
+                  {/* Category Header */}
+                  <header className="row mb-4">
+                    <div className="col-12">
+                      <div className="d-flex align-items-center justify-content-between mb-3">
+                        <div className="d-flex align-items-center">
+                          <div
+                            className="rounded-circle me-3"
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              backgroundColor: category.color_code || '#28a745',
+                              flexShrink: 0
+                            }}
+                          ></div>
+                          <h2 className="magical-title text-forest mb-0" style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
+                            {category.name} ({category.organization_count || 0})
+                          </h2>
+                        </div>
+                        <Link
+                          to={`/categories/${createCategorySlug(category.name)}`}
+                          className="btn btn-outline-primary"
+                          style={{
+                            borderColor: category.color_code,
+                            color: category.color_code
+                          }}
+                        >
+                          View All
+                          <i className="fas fa-arrow-right ms-2"></i>
+                        </Link>
+                      </div>
+                      {category.description && (
+                        <p className="text-muted lead fs-5 ms-5">
+                          {category.description}
+                        </p>
+                      )}
+                    </div>
+                  </header>
+
+                  {/* Organizations Preview */}
+                  {category.organizations && category.organizations.length > 0 ? (
+                    <div className="row g-4 mb-4">
+                      {category.organizations.map((organization) => (
+                        <div key={organization.id} className="col-md-6 col-lg-4">
+                          <OrganizationCard
+                            organization={organization}
+                            categoryColorCode={category.color_code}
+                            onCardClick={(org) => {
+                              const orgSlug = createOrgSlug(org);
+                              window.location.href = `/organizations/${orgSlug}`;
+                            }}
+                            onWebsiteClick={(url) => {
+                              window.open(url, '_blank', 'noopener,noreferrer');
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="row mb-4">
+                      <div className="col-12">
+                        <div className="text-center py-4" style={{
+                          backgroundColor: '#f8f9fa',
+                          borderRadius: '1rem',
+                          border: '2px dashed #dee2e6'
+                        }}>
+                          <i className="fas fa-info-circle text-muted mb-2" style={{ fontSize: '1.5rem' }}></i>
+                          <p className="text-muted mb-1">No organizations yet in this category</p>
+                          <Link to="/list-your-charity" className="btn btn-sm btn-outline-primary">
+                            Be the first to list here
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Divider between categories (except last one) */}
+                  {categoryIndex < categoriesWithOrgs.length - 1 && (
+                    <hr className="my-5" style={{
+                      height: '2px',
+                      background: `linear-gradient(90deg, transparent, ${category.color_code || '#28a745'}, transparent)`,
+                      border: 'none'
+                    }} />
+                  )}
+                </section>
+              ))
             )}
           </div>
-        )}
-
-        {/* Charities View */}
-        {viewMode === 'charities' && (
-          <div className="row">
-            <div className="col-lg-3">
-              <div className="card shadow-sm" style={{ backgroundColor: 'white' }}>
-                <div className="card-header bg-totoro text-cream">
-                  <h5 className="mb-0 text-cream">Filter Organizations</h5>
-                </div>
-                <div className="card-body" style={{ backgroundColor: 'white' }}>
-                  <FilterSection
-                    title="Categories"
-                    items={categories.map(cat => ({
-                      id: cat.id,
-                      name: cat.name,
-                      organization_count: cat.organization_count,
-                      color_code: cat.color_code
-                    }))}
-                    selectedItem={selectedCategory}
-                    onItemSelect={handleFilterSelect}
-                    type="Categories"
-                  />
-                  
-                  <FilterSection
-                    title="Locations"
-                    items={getFilterOptions('location')}
-                    selectedItem={selectedLocation}
-                    onItemSelect={handleFilterSelect}
-                    type="Locations"
-                  />
-                  
-                  <FilterSection
-                    title="Causes"
-                    items={getFilterOptions('cause')}
-                    selectedItem={selectedCause}
-                    onItemSelect={handleFilterSelect}
-                    type="Causes"
-                  />
-                  
-                  <FilterSection
-                    title="Impact Levels"
-                    items={getFilterOptions('impact')}
-                    selectedItem={selectedImpact}
-                    onItemSelect={handleFilterSelect}
-                    type="Impact Levels"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Results Section */}
-            <div className="col-lg-9">
-              <div className="d-flex justify-content-between align-items-center mb-4 p-3" style={{ backgroundColor: 'white', borderRadius: '0.5rem', border: '1px solid #dee2e6' }}>
-                <h4 className="text-forest magical-title">Organizations ({filteredCharities.length})</h4>
-                <div>
-                  <small className="text-muted">
-                    Showing {filteredCharities.length} of {charities.length} organizations
-                  </small>
-                </div>
-              </div>
-
-              {filteredCharities.length === 0 ? (
-                <div className="text-center py-6" style={{ backgroundColor: 'white', borderRadius: '2rem', border: '1px solid #dee2e6' }}>
-                  <i className="bi bi-search fs-1 text-sky"></i>
-                  <h5 className="text-muted mt-3">No organizations found in this realm</h5>
-                  <p className="text-muted">Try adjusting your magical filters</p>
-                  <button 
-                    className="calcifer-button btn btn-primary"
-                    onClick={() => {
-                      setSelectedCategory('all');
-                      setSelectedLocation('all');
-                      setSelectedCause('all');
-                      setSelectedImpact('all');
-                    }}
-                  >
-                    Reset Magic Filters
-                  </button>
-                </div>
-              ) : (
-                <div className="row g-4">
-                  {filteredCharities.map((charity) => (
-                    <CharityCard
-                      key={charity.id}
-                      charity={charity}
-                      onCardClick={handleCardClick}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        </main>
       </div>
-    </div>
+    </>
   );
 };
-//made more changes
+
 export default Categories;

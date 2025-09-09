@@ -2,7 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 export const Footer = () => (
-	<footer className="bg-totoro text-light mt-auto py-5 footer-ghibli">
+	<footer className="bg-totoro text-light mt-5 py-5 footer-ghibli d-none d-md-block" style={{ marginTop: '4rem' }}>
+\
 		<div className="container">
 			<div className="row g-4">
 				{/* Brand Section */}

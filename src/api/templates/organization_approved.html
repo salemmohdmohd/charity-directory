@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject }}</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f8f9fa;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .content h1 {
+            color: #28a745;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .content p {
+            margin-bottom: 16px;
+            color: #555;
+        }
+
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white !important;
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            margin: 20px 0;
+            transition: transform 0.2s ease;
+        }
+
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .org-details {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .footer p {
+            margin-bottom: 8px;
+            color: #6c757d;
+            font-size: 13px;
+        }
+
+        .footer a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 0 10px;
+            }
+
+            .header,
+            .content,
+            .footer {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">Charity Directory</div>
+            <div class="tagline">Connecting Communities with Charitable Organizations</div>
+        </div>
+
+        <div class="content">
+            <h1>Congratulations! Your Organization is Approved</h1>
+
+            <p>Great news! We're excited to inform you that <strong>{{ organization_name }}</strong> has been successfully approved and is now live on Charity Directory.</p>
+
+            <div class="success-box">
+                <strong>Your organization is now visible to thousands of users</strong><br>
+                People can discover, bookmark, and contact your organization through our platform.
+            </div>
+
+            <div class="org-details">
+                <h3>What happens next?</h3>
+                <ul>
+                    <li><strong>Your organization is live:</strong> Visitors can now find and learn about your work</li>
+                    <li> <strong>Enhanced visibility:</strong> Your organization appears in search results and category listings</li>
+                    <li><strong>Direct contact:</strong> Users can send messages through your organization's profile</li>
+                    <li><strong>Analytics access:</strong> Track views, bookmarks, and engagement metrics</li>
+                    <li><strong>Profile management:</strong> Update your information anytime through your dashboard</li>
+                </ul>
+            </div>
+
+            <p><strong>To manage your organization:</strong></p>
+            <ul>
+                <li>View and respond to contact messages</li>
+                <li>Update your organization's information and photos</li>
+                <li>Monitor your organization's performance metrics</li>
+                <li>Upload additional photos and resources</li>
+            </ul>
+
+            <div style="text-align: center;">
+                <a href="{{ dashboard_url }}" class="button">Access Your Dashboard</a>
+            </div>
+
+            <p><strong>Tips for success on our platform:</strong></p>
+            <ul>
+                <li>Keep your information current and detailed</li>
+                <li>Respond promptly to contact messages</li>
+                <li>Add high-quality photos of your work</li>
+                <li>Include clear donation links and contact information</li>
+                <li>Regularly update your operating hours and programs</li>
+            </ul>
+
+            <p>Thank you for joining our community of changemakers. We're honored to help connect you with supporters who care about your mission.</p>
+
+            <p>If you have any questions or need assistance, our support team is always here to help.</p>
+
+            <p>Best regards,<br>
+            <strong>The Charity Directory Team</strong></p>
+        </div>
+
+        <div class="footer">
+            <p><strong>Charity Directory</strong></p>
+            <p>Connecting communities with charitable organizations worldwide</p>
+            <p>© {{ year }} Charity Directory. All rights reserved.</p>
+
+            <p style="margin-top: 20px;">
+                <a href="{{ frontend_url }}/contact">Contact Us</a> •
+                <a href="{{ frontend_url }}/help">Help Center</a> •
+                <a href="{{ unsubscribe_url }}">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

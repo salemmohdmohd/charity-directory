@@ -24,6 +24,7 @@ class User(db.Model):
     bookmarks = db.relationship('UserBookmark', back_populates='user', cascade='all, delete-orphan')
     search_history = db.relationship('SearchHistory', back_populates='user', cascade='all, delete-orphan')
     notifications = db.relationship('Notification', back_populates='user', cascade='all, delete-orphan')
+    notification_preferences = db.relationship('NotificationPreference', back_populates='user', cascade='all, delete-orphan', uselist=False)
     audit_logs = db.relationship('AuditLog', back_populates='user', cascade='all, delete-orphan')
     administered_orgs = db.relationship('Organization', foreign_keys='Organization.admin_user_id', back_populates='admin_user')
     approved_orgs = db.relationship('Organization', foreign_keys='Organization.approved_by', back_populates='approver')
@@ -186,12 +187,61 @@ class Notification(db.Model):
     __tablename__ = 'notifications'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=True)  # Notification title
     message = db.Column(db.Text, nullable=False)
+    notification_type = db.Column(db.String(50), default='general')  # Type of notification
+    priority = db.Column(db.String(20), default='normal')  # Priority level
     is_read = db.Column(db.Boolean, default=False)
+    read_at = db.Column(db.DateTime, nullable=True)  # When it was read
+    email_sent = db.Column(db.Boolean, default=False)  # Whether email was sent
+    email_sent_at = db.Column(db.DateTime, nullable=True)  # When email was sent
+    data = db.Column(db.Text, nullable=True)  # JSON data for additional context
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     user = db.relationship('User', back_populates='notifications')
+
+    def mark_as_read(self):
+        """Mark notification as read"""
+        self.is_read = True
+        self.read_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
+
+
+class NotificationPreference(db.Model):
+    __tablename__ = 'notification_preferences'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+
+    # Email notification preferences
+    email_welcome = db.Column(db.Boolean, default=True)
+    email_organization_updates = db.Column(db.Boolean, default=True)
+    email_contact_messages = db.Column(db.Boolean, default=True)
+    email_system_announcements = db.Column(db.Boolean, default=True)
+    email_security_alerts = db.Column(db.Boolean, default=True)
+    email_bookmark_digest = db.Column(db.Boolean, default=False)  # Weekly digest
+    email_reminders = db.Column(db.Boolean, default=True)
+
+    # In-app notification preferences
+    inapp_welcome = db.Column(db.Boolean, default=True)
+    inapp_organization_updates = db.Column(db.Boolean, default=True)
+    inapp_contact_messages = db.Column(db.Boolean, default=True)
+    inapp_system_announcements = db.Column(db.Boolean, default=True)
+    inapp_security_alerts = db.Column(db.Boolean, default=True)
+    inapp_bookmark_digest = db.Column(db.Boolean, default=True)
+    inapp_reminders = db.Column(db.Boolean, default=True)
+
+    # General preferences
+    frequency_digest = db.Column(db.String(20), default='weekly')  # daily, weekly, monthly
+    timezone = db.Column(db.String(50), default='UTC')
+    language = db.Column(db.String(10), default='en')
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    user = db.relationship('User', back_populates='notification_preferences', uselist=False)
 
 
 class AuditLog(db.Model):
