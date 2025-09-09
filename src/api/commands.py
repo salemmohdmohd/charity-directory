@@ -1,5 +1,7 @@
 
 from api.models import db, User
+import click
+from .seed import seed_all
 
 """
 Usage:
@@ -8,7 +10,12 @@ Usage:
 """
 
 def setup_commands(app):
-    pass
+    @app.cli.command("seed")
+    def seed_command():
+        """Seeds the database with initial data."""
+        seed_all()
+        print("Database seeded.")
+
 def run_insert_test_users(count):
     """
     Create test users in the database.

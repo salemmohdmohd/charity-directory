@@ -1,25 +1,27 @@
 export const initialStore = () => {
   return {
     // UI State
+    loading: false,
     error: null,
     notification: null,
 
     // User State
     user: null,
     isAuthenticated: false,
+    userBookmarks: [],
+    searchHistory: [],
 
-    // Charity Data
-    charities: [],
-    categories: [
-      'Education',
-      'Health',
-      'Environment',
-      'Animals',
-      'Poverty',
-      'Children',
-      'Elderly',
-      'Disaster Relief'
-    ],
+    // Organization Data
+    organizations: [],
+    selectedOrganization: null,
+    categories: [], // Will be fetched from API
+
+    // Notifications
+    notifications: {
+      list: [],
+      unreadCount: 0,
+      preferences: {}
+    },
 
     // Form State
     formErrors: {},
@@ -36,6 +38,11 @@ export const initialStore = () => {
 export default function storeReducer(store, action = {}) {
   switch(action.type){
     // UI Actions
+    case 'SET_LOADING':
+      return {
+        ...store,
+        loading: action.payload
+      };
     case 'SET_ERROR':
       return {
         ...store,
@@ -89,21 +96,69 @@ export default function storeReducer(store, action = {}) {
       return {
         ...store,
         user: null,
-        isAuthenticated: false
+        isAuthenticated: false,
+        userBookmarks: [],
+        searchHistory: []
       };
 
-    // Charity Actions
-    case 'SET_CHARITIES':
+    // Organization Actions
+    case 'SET_ORGANIZATIONS':
       return {
         ...store,
-        charities: action.payload,
+        organizations: action.payload,
         loading: false
       };
 
-    case 'ADD_CHARITY':
+    case 'SET_SELECTED_ORGANIZATION':
       return {
         ...store,
-        charities: [...store.charities, action.payload]
+        selectedOrganization: action.payload,
+        loading: false
+      };
+
+    case 'ADD_ORGANIZATION':
+      return {
+        ...store,
+        organizations: [...store.organizations, action.payload]
+      };
+
+    case 'SET_CATEGORIES':
+      return {
+        ...store,
+        categories: action.payload
+      };
+
+    // User-specific data
+    case 'SET_BOOKMARKS':
+      return {
+        ...store,
+        userBookmarks: action.payload
+      };
+
+    case 'SET_SEARCH_HISTORY':
+      return {
+        ...store,
+        searchHistory: action.payload
+      };
+
+    // Notifications
+    case 'SET_NOTIFICATIONS':
+      return {
+        ...store,
+        notifications: {
+          ...store.notifications,
+          list: action.payload.notifications,
+          unreadCount: action.payload.unreadCount || store.notifications.unreadCount
+        }
+      };
+
+    case 'SET_NOTIFICATION_PREFERENCES':
+      return {
+        ...store,
+        notifications: {
+          ...store.notifications,
+          preferences: action.payload
+        }
       };
 
     default:

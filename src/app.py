@@ -14,6 +14,7 @@ from api.models import db
 from api.routes import api_bp
 from api.admin import setup_admin
 from api.commands import setup_commands
+from api.seed import seed_all
 from dotenv import load_dotenv
 
 
@@ -28,7 +29,7 @@ app.url_map.strict_slashes = False
 # Configure CORS
 CORS(app, resources={
     r"/api/*": {
-        "origins": ["http://localhost:3000", "http://localhost:5173"],
+        "origins": os.getenv('FRONTEND_URL'),
         "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
         "supports_credentials": True  # Enable credentials for sessions
@@ -134,16 +135,27 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER')
-app.config['FRONTEND_URL'] = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+app.config['FRONTEND_URL'] = os.getenv('FRONTEND_URL')
 mail = Mail(app)
 
 load_dotenv()
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")
+if db_url and db_url.startswith("sqlite:///"):
+    # Adjust path for sqlite to be in the project root
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    db_path = os.path.join(project_root, db_url.split("sqlite:///")[1])
+    db_url = f"sqlite:///{db_path}"
+
 if not db_url:
     raise ValueError("DATABASE_URL environment variable is required")
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+
+# Define the upload folder
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True) # Ensure the folder exists
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 MIGRATE = Migrate(app, db, compare_type=True)
@@ -152,7 +164,7 @@ db.init_app(app)
 # add the admin
 setup_admin(app)
 
-# add the admin
+# Setup custom commands
 setup_commands(app)
 
 # Add all endpoints form the API with a "api" prefix
@@ -163,9 +175,12 @@ app.register_blueprint(api_bp, url_prefix='/api')
 def health_check():
     return jsonify({'status': 'healthy', 'message': 'API is running'}), 200
 
+# Serve uploaded files
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 # Handle/serialize errors like a JSON object
-
-
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
     return jsonify(error.to_dict()), error.status_code

@@ -64,6 +64,7 @@ class Organization(db.Model):
     approved_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     approval_date = db.Column(db.DateTime, nullable=True)
     rejection_reason = db.Column(db.Text, nullable=True)
+    is_verified = db.Column(db.Boolean, default=False)
 
     # Relationships
     bookmarks = db.relationship('UserBookmark', back_populates='organization', cascade='all, delete-orphan')
@@ -282,6 +283,55 @@ class Advertisement(db.Model):
 
     # Relationships
     organization = db.relationship('Organization', backref='advertisements')
+
+class ActivityLog(db.Model):
+    __tablename__ = 'activity_log'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    activity_type = db.Column(db.String(50), nullable=False)
+    details = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref=db.backref('activity_logs', cascade='all, delete-orphan'))
+
+class Bookmark(db.Model):
+    __tablename__ = 'bookmarks'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref=db.backref('user_bookmarks', cascade='all, delete-orphan'))
+    organization = db.relationship('Organization', backref=db.backref('organization_bookmarks', cascade='all, delete-orphan'))
+
+class Donation(db.Model):
+    __tablename__ = 'donations'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    currency = db.Column(db.String(10), nullable=False, default='USD')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref=db.backref('donations', cascade='all, delete-orphan'))
+    organization = db.relationship('Organization', backref=db.backref('donations', cascade='all, delete-orphan'))
+
+class Review(db.Model):
+    __tablename__ = 'reviews'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    comment = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User', backref=db.backref('reviews', cascade='all, delete-orphan'))
+    organization = db.relationship('Organization', backref=db.backref('reviews', cascade='all, delete-orphan'))
+
+class UserSettings(db.Model):
+    __tablename__ = 'user_settings'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+    email_notifications = db.Column(db.Boolean, default=True)
+    push_notifications = db.Column(db.Boolean, default=True)
+    theme = db.Column(db.String(20), default='light')
+    user = db.relationship('User', backref=db.backref('settings', uselist=False, cascade='all, delete-orphan'))
 
 # Authentication-related models
 class PasswordReset(db.Model):
