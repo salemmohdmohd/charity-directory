@@ -23,7 +23,7 @@ describe("SearchHistory Component", () => {
     mockDispatch = jest.fn();
     jest.clearAllMocks();
 
-    // Default mock: user logged in
+    // user logged in which is the default
     require("../hooks/useGlobalReducer").default.mockReturnValue({
       store: { user: { id: 1, email: "test@example.com" } },
       dispatch: mockDispatch,
