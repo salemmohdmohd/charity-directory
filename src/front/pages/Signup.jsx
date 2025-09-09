@@ -11,7 +11,12 @@ export const Signup = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    agreeToTerms: false
+    agreeToTerms: false,
+    phone_number: '',
+    address: '',
+    city: '',
+    state: '',
+    zip_code: ''
   });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -180,7 +185,7 @@ export const Signup = () => {
   };
 
   return (
-    <div className="container mt-5">
+    <div className="container mt-5 mb-5">
       <div className="row justify-content-center">
         <div className="col-md-6 col-lg-5">
           <div className="card shadow">
@@ -302,6 +307,61 @@ export const Signup = () => {
                   )}
                 </div>
 
+                <Input
+                  name="phone_number"
+                  type="tel"
+                  label="Phone Number"
+                  value={formData.phone_number}
+                  onChange={handleChange}
+                  error={errors.phone_number}
+                  placeholder="Enter your phone number"
+                />
+
+                <Input
+                  name="address"
+                  type="text"
+                  label="Address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  error={errors.address}
+                  placeholder="Enter your address"
+                />
+
+                <div className="row">
+                  <div className="col-md-6">
+                    <Input
+                      name="city"
+                      type="text"
+                      label="City"
+                      value={formData.city}
+                      onChange={handleChange}
+                      error={errors.city}
+                      placeholder="Enter your city"
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <Input
+                      name="state"
+                      type="text"
+                      label="State"
+                      value={formData.state}
+                      onChange={handleChange}
+                      error={errors.state}
+                      placeholder="Enter your state"
+                    />
+                  </div>
+                </div>
+
+                <Input
+                  name="zip_code"
+                  type="text"
+                  label="Zip Code"
+                  value={formData.zip_code}
+                  onChange={handleChange}
+                  error={errors.zip_code}
+                  placeholder="Enter your zip code"
+                />
+
                 <div className="mb-3">
                   <label className="form-label">
                     Confirm Password <span className="text-danger">*</span>
@@ -394,7 +454,7 @@ export const Signup = () => {
           </div>
 
           {/* Organization Portal Link */}
-          <div className="card mt-4 bg-success text-white">
+          <div className="card mt-4 bg-success text-white m-b-5">
             <div className="card-body text-center p-4">
               <h6 className="card-title mb-2">
                 <i className="fas fa-plus-circle me-2"></i>

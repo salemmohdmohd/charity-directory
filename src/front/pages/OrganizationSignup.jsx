@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { orgSignupService } from '../Services/orgSignupService';
 import useAuth from '../hooks/useAuth';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
@@ -13,8 +14,16 @@ export const OrganizationSignup = () => {
     organization_name: '',
     category_id: '',
     mission: '',
-    description: '',
+    description: '', // Added
     website: '',
+    email: '', // Added
+    donation_link: '', // Added
+    established_year: '', // Added
+    operating_hours: '', // Added
+
+    // Media
+    logo: null,
+    gallery: [],
 
     // Admin contact
     admin_name: '',
@@ -35,6 +44,7 @@ export const OrganizationSignup = () => {
   });
   const [errors, setErrors] = useState({});
   const [categories, setCategories] = useState([]);
+  const [categoryState, setCategoryState] = useState({ loading: true, error: null });
   const [loading, setLoading] = useState(false);
   const { organizationSignup, error, clearError, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -49,12 +59,17 @@ export const OrganizationSignup = () => {
   // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
+      setCategoryState({ loading: true, error: null });
       try {
-        const response = await fetch('/api/categories');
-        const data = await response.json();
-        setCategories(data.categories || []);
+        const data = await orgSignupService.getCategories();
+        console.log('Categories received from API:', data);
+        // The service now directly returns the array
+        setCategories(data || []);
+        setCategoryState({ loading: false, error: null });
       } catch (error) {
         console.error('Failed to fetch categories:', error);
+        setCategoryState({ loading: false, error: 'Could not load categories. Please try again later.' });
+        setCategories([]); // Ensure categories is an array in case of an error
       }
     };
     fetchCategories();
@@ -66,10 +81,10 @@ export const OrganizationSignup = () => {
   }, [clearError]);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type, checked, files } = e.target;
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : type === 'file' ? files : value
     });
 
     // Clear errors when user types
@@ -96,6 +111,45 @@ export const OrganizationSignup = () => {
       newErrors.mission = 'Mission statement is required';
     } else if (formData.mission.length < 50) {
       newErrors.mission = 'Mission statement must be at least 50 characters';
+    }
+
+    if (!formData.description) {
+      newErrors.description = 'A detailed description is required';
+    } else if (formData.description.length < 100) {
+      newErrors.description = 'Description must be at least 100 characters';
+    }
+
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid public email for the organization';
+    }
+
+    if (formData.donation_link && !/^https?:\/\/.+/.test(formData.donation_link)) {
+      newErrors.donation_link = 'Please enter a valid URL for the donation link';
+    }
+
+    if (formData.established_year) {
+      const year = parseInt(formData.established_year);
+      const currentYear = new Date().getFullYear();
+      if (isNaN(year) || year < 1800 || year > currentYear) {
+        newErrors.established_year = `Please enter a valid year between 1800 and ${currentYear}`;
+      }
+    }
+
+    // Media validation
+    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (formData.logo && !allowedImageTypes.includes(formData.logo.type)) {
+      newErrors.logo = 'Invalid file type. Please upload a JPG, PNG, or GIF.';
+    }
+    if (formData.gallery && formData.gallery.length > 5) {
+      newErrors.gallery = 'You can upload a maximum of 5 gallery images.';
+    }
+    if (formData.gallery && formData.gallery.length > 0) {
+      for (let i = 0; i < formData.gallery.length; i++) {
+        if (!allowedImageTypes.includes(formData.gallery[i].type)) {
+          newErrors.gallery = `Invalid file type for file ${i + 1}. Please upload only JPG, PNG, or GIF images.`;
+          break;
+        }
+      }
     }
 
     // Admin contact validation
@@ -152,13 +206,21 @@ export const OrganizationSignup = () => {
     clearError();
 
     try {
-      // Prepare data for the API (exclude confirmPassword and agreements)
-      const { confirmPassword, agreeToTerms, verifyInformation, ...apiData } = formData;
+      const data = new FormData();
 
-      // Convert category_id to integer
-      apiData.category_id = parseInt(apiData.category_id);
+      // Append all form fields to the FormData object
+      for (const key in formData) {
+        if (key === 'gallery') {
+          for (let i = 0; i < formData.gallery.length; i++) {
+            data.append('gallery', formData.gallery[i]);
+          }
+        } else if (formData[key] !== null && formData[key] !== '') {
+          data.append(key, formData[key]);
+        }
+      }
 
-      const response = await organizationSignup(apiData);
+      // The organizationSignup function in useAuth needs to be able to handle FormData
+      const response = await organizationSignup(data);
 
       setLoading(false);
 
@@ -218,21 +280,12 @@ export const OrganizationSignup = () => {
                     label="Category"
                     value={formData.category_id}
                     onChange={handleChange}
-                    error={errors.category_id}
+                    error={errors.category_id || categoryState.error}
                     required
-                  >
-                    <option value="">Select a category</option>
-                    <option value="1">Health</option>
-                    <option value="2">Education</option>
-                    <option value="3">Environment</option>
-                    <option value="4">Community Development</option>
-                    <option value="5">Animals & Wildlife</option>
-                    <option value="6">Disaster Relief</option>
-                    <option value="7">Human Rights</option>
-                    <option value="8">Arts & Culture</option>
-                    <option value="9">Social Services</option>
-                    <option value="10">Other</option>
-                  </Select>
+                    disabled={categoryState.loading}
+                    options={categories.map(category => ({ value: category.id, label: category.name }))}
+                    placeholder={categoryState.loading ? 'Loading categories...' : 'Select a category'}
+                  />
 
                   <TextArea
                     name="mission"
@@ -240,19 +293,105 @@ export const OrganizationSignup = () => {
                     value={formData.mission}
                     onChange={handleChange}
                     error={errors.mission}
-                    placeholder="Describe your organization's mission and goals (minimum 50 characters)"
-                    rows={4}
+                    placeholder="Briefly describe your organization's mission and core purpose (minimum 50 characters)"
+                    rows={3}
                     required
                   />
 
-                  <Input
-                    name="website"
-                    type="url"
-                    label="Website (Optional)"
-                    value={formData.website}
+                  <TextArea
+                    name="description"
+                    label="Detailed Description"
+                    value={formData.description}
                     onChange={handleChange}
-                    error={errors.website}
-                    placeholder="https://yourorganization.org"
+                    error={errors.description}
+                    placeholder="Provide a detailed description of your organization's activities, history, and impact (minimum 100 characters)"
+                    rows={5}
+                    required
+                  />
+
+                  <div className="row">
+                    <div className="col-md-6">
+                      <Input
+                        name="website"
+                        type="url"
+                        label="Website (Optional)"
+                        value={formData.website}
+                        onChange={handleChange}
+                        error={errors.website}
+                        placeholder="https://yourorganization.org"
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <Input
+                        name="email"
+                        type="email"
+                        label="Public Email (Optional)"
+                        value={formData.email}
+                        onChange={handleChange}
+                        error={errors.email}
+                        placeholder="contact@yourorganization.org"
+                      />
+                    </div>
+                  </div>
+
+                  <Input
+                    name="donation_link"
+                    type="url"
+                    label="Donation Link (Optional)"
+                    value={formData.donation_link}
+                    onChange={handleChange}
+                    error={errors.donation_link}
+                    placeholder="https://yourorganization.org/donate"
+                  />
+
+                  <div className="row">
+                    <div className="col-md-6">
+                      <Input
+                        name="established_year"
+                        type="number"
+                        label="Year Established (Optional)"
+                        value={formData.established_year}
+                        onChange={handleChange}
+                        error={errors.established_year}
+                        placeholder="e.g., 1995"
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <Input
+                        name="operating_hours"
+                        type="text"
+                        label="Operating Hours (Optional)"
+                        value={formData.operating_hours}
+                        onChange={handleChange}
+                        error={errors.operating_hours}
+                        placeholder="e.g., Mon-Fri, 9am-5pm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Media Uploads */}
+                <div className="mb-4">
+                  <h5 className="text-primary mb-3">
+                    <i className="fas fa-camera-retro me-2"></i>
+                    Media Uploads
+                  </h5>
+                  <Input
+                    name="logo"
+                    type="file"
+                    label="Organization Logo (Optional)"
+                    onChange={handleChange}
+                    error={errors.logo}
+                    helpText="Upload your organization's logo (JPG, PNG, GIF)."
+                  />
+                  <Input
+                    name="gallery"
+                    type="file"
+                    label="Photo Gallery (Optional, up to 5 images)"
+                    onChange={handleChange}
+                    error={errors.gallery}
+                    multiple
+                    helpText="Upload images that showcase your organization's work."
                   />
                 </div>
 

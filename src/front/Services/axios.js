@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-// Use environment-based API URL or default to localhost
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api'
+// Use proxy-relative API path
+const baseURL = '/api'
 
 // Create axios instance with enhanced configuration
 export const api = axios.create({
@@ -226,30 +226,41 @@ export const authService = {
 
 // Category service methods
 export const categoryService = {
-  // Get all categories
-  getCategories: async () => {
-    const response = await api.get('/categories')
-    return response.data
+  // Get all categories, optionally including organizations and photos
+  getCategories: async (includeOrgs = false) => {
+    const params = new URLSearchParams();
+    if (includeOrgs) {
+      params.append('include_organizations', 'true');
+      params.append('per_page', '3'); // Limit to 3 orgs per category
+    }
+    const response = await api.get(`/categories?${params}`);
+    return response.data;
   },
 
   // Get organizations by category
   getOrganizationsByCategory: async (categoryId, params = {}) => {
-    const searchParams = new URLSearchParams({
-      per_page: '3',
-      ...params
-    })
-    const response = await api.get(`/categories/${categoryId}/organizations?${searchParams}`)
-    return response.data
-  }
-}
+    const response = await api.get(`/categories/${categoryId}/organizations`, { params });
+    return response.data;
+  },
 
-// Organization service methods
+  // Get a single category by its slug, with optional params for pagination
+  getCategoryBySlug: async (slug, params = {}) => {
+    const response = await api.get(`/categories/slug/${slug}`, { params });
+    return response.data;
+  },
+};
+
 export const organizationService = {
   // Get all organizations
   getOrganizations: async (params = {}) => {
     const searchParams = new URLSearchParams(params)
     const response = await api.get(`/organizations?${searchParams}`)
     return response.data
+  },
+
+  // Search organizations (for suggestions)
+    searchOrganizations: (query, limit = 10) => {
+    return api.get(`/search/organizations?q=${query}&per_page=${limit}`);
   },
 
   // Get single organization
@@ -268,8 +279,132 @@ export const organizationService = {
   contactOrganization: async (orgId, contactData) => {
     const response = await api.post(`/organizations/${orgId}/contact`, contactData)
     return response.data
-  }
+  },
+
+  // Advanced search for organizations
+  advancedSearch: (params) => {
+    const searchParams = new URLSearchParams(params);
+    return api.get(`/search/organizations/advanced?${searchParams}`);
+  },
+
+  // Get location suggestions for search
+  getLocationSuggestions: (query) => {
+    return api.get(`/search/locations?q=${query}`);
+  },
 }
+
+// User service methods
+export const userService = {
+  // Get user profile
+  getProfile: async () => {
+    const response = await api.get('/users/profile');
+    return response.data;
+  },
+
+  // Update user profile
+  updateProfile: async (profileData) => {
+    const response = await api.put('/users/profile', profileData);
+    return response.data;
+  },
+
+  // Get user bookmarks
+  getBookmarks: async () => {
+    const response = await api.get('/users/bookmarks');
+    return response.data.bookmarks || [];
+  },
+
+  // Add a bookmark
+  addBookmark: async (organizationId) => {
+    const response = await api.post('/users/bookmarks', { organization_id: organizationId });
+    return response.data;
+  },
+
+  // Remove a bookmark
+  removeBookmark: async (bookmarkId) => {
+    const response = await api.delete(`/users/bookmarks/${bookmarkId}`);
+    return response.data;
+  },
+};
+
+// Notification service methods
+export const notificationService = {
+  // Get notification preferences
+  getPreferences: async () => {
+    const response = await api.get('/notifications/preferences');
+    return response.data;
+  },
+
+  // Update notification preferences
+  updatePreferences: async (preferences) => {
+    const response = await api.put('/notifications/preferences', preferences);
+    return response.data;
+  },
+
+  // Get notifications with pagination
+  getNotifications: async (page = 1, perPage = 20) => {
+    const response = await api.get('/notifications', { params: { page, per_page: perPage } });
+    return response.data;
+  },
+
+  // Get unread notification count
+  getUnreadCount: async () => {
+    const response = await api.get('/notifications/unread-count');
+    return response.data;
+  },
+
+  // Mark a notification as read
+  markAsRead: async (notificationId) => {
+    const response = await api.put(`/notifications/${notificationId}/read`);
+    return response.data;
+  },
+
+  // Mark all notifications as read
+  markAllAsRead: async () => {
+    const response = await api.put('/notifications/mark-all-read');
+    return response.data;
+  },
+};
+
+// Advertisement service methods
+export const advertisementService = {
+  // Get advertisements by placement
+  getAdvertisements: async (placement) => {
+    const response = await api.get('/advertisements', { params: { placement } });
+    return response.data.advertisements || [];
+  },
+};
+
+// Search service methods
+export const searchService = {
+  // Get search suggestions
+  getSuggestions: async (query) => {
+    const response = await api.get('/search/suggestions', { params: { q: query } });
+    return response.data.suggestions || [];
+  },
+
+  // Get popular searches
+  getPopularSearches: async () => {
+    const response = await api.get('/search/popular');
+    return response.data.popular_searches || [];
+  },
+};
+
+// File Upload service methods
+export const fileUploadService = {
+  // Upload a file
+  uploadFile: async (file, onUploadProgress) => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await api.post('/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress,
+    });
+    return response.data;
+  },
+};
 
 // Export the configured axios instance as default
 export default api

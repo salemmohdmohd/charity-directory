@@ -7,9 +7,9 @@
 	"description": "A comprehensive charity directory platform for discovering and managing non-profit organizations",
 	"main": "index.js",
 	"scripts": {
-		"dev": "vite",
-		"start": "vite",
-		"build": "vite build",
+		"dev": "echo \"Starting backend (Flask) and frontend (Vite) servers...\" && concurrently \"pipenv run flask run --host=0.0.0.0 --port=5000\" \"sleep 5 && vite --config vite.config.js\"",
+		"start": "vite --config vite.config.js",
+		"build": "vite build --config vite.config.js",
 		"lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
 		"preview": "vite preview"
 	},
@@ -41,6 +41,7 @@
 		"@types/react": "^18.2.18",
 		"@types/react-dom": "^18.2.7",
 		"@vitejs/plugin-react": "^4.0.4",
+		"concurrently": "^9.2.1",
 		"eslint": "^8.46.0",
 		"eslint-plugin-react": "^7.33.1",
 		"eslint-plugin-react-hooks": "^4.6.0",
@@ -64,6 +65,7 @@
 	},
 	"dependencies": {
 		"axios": "^1.11.0",
+		"cors": "^2.8.5",
 		"prop-types": "^15.8.1",
 		"react": "^18.2.0",
 		"react-dom": "^18.2.0",

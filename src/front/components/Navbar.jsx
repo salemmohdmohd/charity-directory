@@ -2,43 +2,28 @@ import React from 'react';
 import { Link, useLocation } from "react-router-dom";
 import useAuth from '../hooks/useAuth';
 import NotificationIndicator from './NotificationIndicator';
+import SearchBar from './SearchBar';
 
 export const Navbar = () => {
 	const location = useLocation();
 	const { user, isAuthenticated, logout } = useAuth();
 
-	// Check if current path matches the link
-	const isActive = (path) => {
-		return location.pathname === path;
-	};
+	const isActive = (path) => location.pathname === path;
 
 	return (
-		<nav
-			className="navbar navbar-expand-lg navbar-dark bg-totoro shadow-sm nav-ghibli"
-		>
+		<nav className="navbar navbar-expand-lg navbar-dark bg-totoro shadow-sm nav-ghibli">
 			<div className="container">
 				{/* Brand */}
-				<Link
-					to="/"
-					className="navbar-brand fw-bold fs-3 d-flex align-items-center"
-				>
-					<img
-						src="/Logo.png"
-						alt="Unseen Logo"
-						height="32"
-						className="me-2"
-					/>
-					Unseen
+				<Link to="/" className="navbar-brand fw-bold fs-3 d-flex align-items-center">
+					<img src="/Logo.png" alt="Unseen Logo" height="32" className="me-2" style={{ objectFit: 'contain' }} />
+					<span className="align-self-center">Unseen</span>
 				</Link>
-				<div className="d-flex align-items-center d-lg-none">
-					<Link
-						to="/list-your-charity"
-						className="btn calcifer-button me-2 float-magic btn-sm"
-						role="button"
-					>
+
+				{/* Mobile: List Your Charity - moved for better layout */}
+				<div className="d-flex align-items-center d-lg-none ms-auto">
+					<Link to="/list-your-charity" className="btn calcifer-button float-magic btn-sm" role="button">
 						<i className="fas fa-plus me-1" aria-hidden="true"></i>
-						<span className="d-none d-sm-inline">List Your Charity</span>
-						<span className="d-sm-none">List</span>
+						<span>List</span>
 					</Link>
 				</div>
 
@@ -57,122 +42,99 @@ export const Navbar = () => {
 
 				{/* Navigation links */}
 				<div className="collapse navbar-collapse" id="navbarNav">
-					<ul className="navbar-nav ms-auto">
+					{/* Left-aligned nav items */}
+					<ul className="navbar-nav me-auto">
+						<li className="nav-item">
+							<Link to="/categories" className={`nav-link ${isActive('/categories') ? 'active' : ''}`}>
+								<span>Categories</span>
+							</Link>
+						</li>
+						<li className="nav-item">
+							<Link to="/about-us" className={`nav-link ${isActive('/about-us') ? 'active' : ''}`}>
+								<span>About</span>
+							</Link>
+						</li>
+						<li className="nav-item">
+							<Link to="/advertise" className={`nav-link ${isActive('/advertise') ? 'active' : ''}`}>
+								<span>Advertise</span>
+							</Link>
+						</li>
+					</ul>
 
-						<li className="nav-item">
-							<Link
-								to="/categories"
-								className={`nav-link ${isActive('/categories') ? 'active' : ''}`}
-								aria-current={isActive('/categories') ? 'page' : undefined}
-							>
-								<i className="fas fa-th-large me-1" aria-hidden="true"></i>
-								Categories
-							</Link>
-						</li>
-						<li className="nav-item">
-							<Link
-								to="/about-us"
-								className={`nav-link ${isActive('/about-us') ? 'active' : ''}`}
-								aria-current={isActive('/about-us') ? 'page' : undefined}
-							>
-								<i className="fas fa-info-circle me-1" aria-hidden="true"></i>
-								About Us
-							</Link>
-						</li>
-						<li className="nav-item">
-							<Link
-								to="/advertise"
-								className={`nav-link ${isActive('/advertise') ? 'active' : ''}`}
-								aria-current={isActive('/advertise') ? 'page' : undefined}
-							>
-								<i className="fas fa-bullhorn me-1" aria-hidden="true"></i>
-								Advertise
-							</Link>
-						</li>
+					{/* Search Bar in the middle */}
+					<div className="d-flex align-items-center mx-auto" style={{ minWidth: '500px', maxWidth: '800px' }}>
+						<SearchBar />
+					</div>
 
-						{/* Authentication Section */}
+					{/* Right-aligned nav items */}
+					<ul className="navbar-nav ms-auto align-items-center">
 						{isAuthenticated ? (
 							// User is logged in
 							<>
-								{/* Notification Indicator */}
 								<li className="nav-item d-flex align-items-center me-3">
 									<NotificationIndicator />
 								</li>
-
 								<li className="nav-item dropdown">
 									<a
-										className="nav-link dropdown-toggle"
+										className="nav-link dropdown-toggle d-flex align-items-center"
 										href="#"
 										id="navbarDropdown"
 										role="button"
 										data-bs-toggle="dropdown"
 										aria-expanded="false"
 									>
-										<i className="fas fa-user me-1" aria-hidden="true"></i>
-										{user?.name || user?.email || 'User'}
+										<i className="fas fa-user-circle me-2 fs-5" aria-hidden="true"></i>
+										<span className="d-none d-md-inline">{user?.name || user?.email || 'User'}</span>
 									</a>
-									<ul className="dropdown-menu" aria-labelledby="navbarDropdown">
+									<ul className="dropdown-menu dropdown-menu-end bg-cream border-forest" aria-labelledby="navbarDropdown">
 										<li>
 											{user?.role === 'org_admin' ? (
-												<Link className="dropdown-item" to="/org-dashboard">
-													<i className="fas fa-building me-2"></i>
-													Organization Dashboard
+												<Link className="dropdown-item text-forest" to="/org-dashboard">
+													<i className="fas fa-building me-2 text-totoro"></i>
+													<span>Organization Dashboard</span>
 												</Link>
 											) : (
-												<Link className="dropdown-item" to="/dashboard">
-													<i className="fas fa-tachometer-alt me-2"></i>
-													Dashboard
+												<Link className="dropdown-item text-forest" to="/dashboard">
+													<i className="fas fa-tachometer-alt me-2 text-totoro"></i>
+													<span>Dashboard</span>
 												</Link>
 											)}
 										</li>
 										<li>
-											<Link className="dropdown-item" to="/profile">
-												<i className="fas fa-user-edit me-2"></i>
-												Profile
+											<Link className="dropdown-item text-forest" to="/profile">
+												<i className="fas fa-user-edit me-2 text-totoro"></i>
+												<span>Profile</span>
 											</Link>
 										</li>
 										<li>
-											<Link className="dropdown-item" to="/search-history">
-												<i className="fas fa-history me-2"></i>
-												Search History
+											<Link className="dropdown-item text-forest" to="/notifications">
+												<i className="fas fa-bell me-2 text-totoro"></i>
+												<span>Notifications</span>
 											</Link>
 										</li>
 										<li>
-											<Link className="dropdown-item" to="/notifications">
-												<i className="fas fa-bell me-2"></i>
-												Notifications
+											<Link className="dropdown-item text-forest" to="/notification-settings">
+												<i className="fas fa-cog me-2 text-totoro"></i>
+												<span>Notification Settings</span>
 											</Link>
 										</li>
-										<li>
-											<Link className="dropdown-item" to="/notification-settings">
-												<i className="fas fa-cog me-2"></i>
-												Notification Settings
-											</Link>
-										</li>
-										<li><hr className="dropdown-divider" /></li>
+										<li><hr className="dropdown-divider border-meadow" /></li>
 										<li>
 											<button
-												className="dropdown-item"
+												className="dropdown-item text-forest"
 												onClick={logout}
 												style={{ border: 'none', background: 'none', width: '100%', textAlign: 'left' }}
 											>
-												<i className="fas fa-sign-out-alt me-2"></i>
-												Logout
+												<i className="fas fa-sign-out-alt me-2 text-calcifer"></i>
+												<span>Logout</span>
 											</button>
 										</li>
 									</ul>
 								</li>
-
-								{/* List Your Charity Button - Desktop Only */}
-								<li className="nav-item d-none d-lg-block">
-									<Link
-										to="/list-your-charity"
-										className="btn calcifer-button ms-2 float-magic"
-										role="button"
-										style={{ marginTop: '10px' }}
-									>
-										<i className="fas fa-plus me-1" aria-hidden="true"></i>
-										List Your Charity
+								<li className="nav-item d-none d-lg-block ms-3">
+									<Link to="/list-your-charity" className="btn calcifer-button float-magic" role="button">
+										<i className="fas fa-plus me-2" aria-hidden="true"></i>
+										<span>List Your Charity</span>
 									</Link>
 								</li>
 							</>
@@ -180,36 +142,21 @@ export const Navbar = () => {
 							// User is not logged in
 							<>
 								<li className="nav-item">
-									<Link
-										to="/login"
-										className={`nav-link ${isActive('/login') ? 'active' : ''}`}
-										aria-current={isActive('/login') ? 'page' : undefined}
-									>
-										<i className="fas fa-sign-in-alt me-1" aria-hidden="true"></i>
-										Login
+									<Link to="/login" className="nav-link">
+										<i className="fas fa-sign-in-alt me-2" aria-hidden="true"></i>
+										<span>Login</span>
 									</Link>
 								</li>
 								<li className="nav-item">
-									<Link
-										to="/signup"
-										className={`nav-link ${isActive('/signup') ? 'active' : ''}`}
-										aria-current={isActive('/signup') ? 'page' : undefined}
-									>
-										<i className="fas fa-user-plus me-1" aria-hidden="true"></i>
-										Sign Up
+									<Link to="/signup" className="btn btn-sm btn-outline-light ms-2">
+										<i className="fas fa-user-plus me-2" aria-hidden="true"></i>
+										<span>Sign Up</span>
 									</Link>
 								</li>
-
-								{/* List Your Charity Button - Desktop Only */}
-								<li className="nav-item d-none d-lg-block">
-									<Link
-										to="/list-your-charity"
-										className="btn calcifer-button ms-2 float-magic"
-										role="button"
-										style={{ marginTop: '10px' }}
-									>
-										<i className="fas fa-plus me-1" aria-hidden="true"></i>
-										List Your Charity
+                                <li className="nav-item d-none d-lg-block ms-3">
+									<Link to="/list-your-charity" className="btn calcifer-button float-magic" role="button">
+										<i className="fas fa-plus me-2" aria-hidden="true"></i>
+										<span>List Your Charity</span>
 									</Link>
 								</li>
 							</>

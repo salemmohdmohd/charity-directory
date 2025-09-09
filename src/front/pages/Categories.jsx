@@ -28,43 +28,13 @@ const Categories = () => {
       setLoading(true);
       setError(null);
 
-      const data = await categoryService.getCategories();
-      setCategories(data.categories || []);
+      // Fetch categories and their organizations in a single, optimized call
+      const data = await categoryService.getCategories(true); // true to include organizations
 
-      // Fetch organizations for each category (limit 3 per category)
-      const categoriesWithOrganizations = await Promise.all(
-        (data.categories || []).map(async (category) => {
-          try {
-            const orgData = await categoryService.getOrganizationsByCategory(category.id, { per_page: 3 });
-            const organizations = orgData.organizations || [];
+      setCategories(data); // The API now returns the full nested structure
+      setCategoriesWithOrgs(data);
 
-            // Load photos for each organization
-            const organizationsWithPhotos = await Promise.all(
-              organizations.map(async (org) => {
-                try {
-                  const photos = await organizationService.getOrganizationPhotos(org.id);
-                  return { ...org, photos };
-                } catch (photoError) {
-                  console.error(`Error loading photos for organization ${org.id}:`, photoError);
-                  return { ...org, photos: [] };
-                }
-              })
-            );
-
-            return {
-              ...category,
-              organizations: organizationsWithPhotos
-            };
-          } catch (error) {
-            console.error(`Error fetching organizations for category ${category.name}:`, error);
-            return { ...category, organizations: [] };
-          }
-        })
-      );
-
-      setCategoriesWithOrgs(categoriesWithOrganizations);
-
-      console.log('Categories with organizations loaded:', categoriesWithOrganizations);
+      console.log('Categories with organizations loaded:', data);
 
     } catch (error) {
       console.error('Error fetching categories:', error);

@@ -4,10 +4,13 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from sqlalchemy import func
 
-from .models import db, User
-from .notification_service import notification_service, NotificationType, NotificationPriority
-from .routes import api, notification_ns
-from .utils import check_admin_role
+from ..models import db, User
+from ..core import api
+from ..notification_service import notification_service, NotificationType, NotificationPriority
+from ..utils import check_admin_role
+
+bulk_ns = api.namespace('bulk-notifications', description='Bulk Notification Operations')
+
 
 
 # Bulk notification models
@@ -65,12 +68,12 @@ bulk_notification_response_model = api.model('BulkNotificationResponse', {
 })
 
 
-@notification_ns.route('/bulk')
+@bulk_ns.route('/')
 class BulkNotificationBroadcast(Resource):
     @jwt_required()
-    @notification_ns.expect(bulk_notification_parser)
-    @notification_ns.marshal_with(bulk_notification_response_model)
-    @notification_ns.doc(responses={
+    @bulk_ns.expect(bulk_notification_parser)
+    @bulk_ns.marshal_with(bulk_notification_response_model)
+    @bulk_ns.doc(responses={
         200: 'Bulk notification sent successfully',
         400: 'Invalid notification data',
         403: 'Admin access required',
@@ -168,12 +171,12 @@ preview_response_model = api.model('BulkNotificationPreview', {
     'active_users': fields.Integer(description='Active users in last 30 days')
 })
 
-@notification_ns.route('/bulk/preview')
+@bulk_ns.route('/preview')
 class BulkNotificationPreview(Resource):
     @jwt_required()
-    @notification_ns.expect(preview_parser)
-    @notification_ns.marshal_with(preview_response_model)
-    @notification_ns.doc(responses={
+    @bulk_ns.expect(preview_parser)
+    @bulk_ns.marshal_with(preview_response_model)
+    @bulk_ns.doc(responses={
         200: 'Preview generated successfully',
         400: 'Invalid filter parameters',
         403: 'Admin access required',
@@ -265,11 +268,11 @@ scheduled_notification_model = api.model('ScheduledNotification', {
     'created_at': fields.DateTime(description='Created timestamp')
 })
 
-@notification_ns.route('/bulk/scheduled')
+@bulk_ns.route('/scheduled')
 class ScheduledBulkNotifications(Resource):
     @jwt_required()
-    @notification_ns.marshal_list_with(scheduled_notification_model)
-    @notification_ns.doc(responses={
+    @bulk_ns.marshal_list_with(scheduled_notification_model)
+    @bulk_ns.doc(responses={
         200: 'Scheduled notifications retrieved successfully',
         403: 'Admin access required',
         500: 'Failed to retrieve scheduled notifications'
@@ -299,11 +302,11 @@ notification_stats_model = api.model('NotificationStats', {
     'average_response_rate': fields.Float(description='Average notification response rate')
 })
 
-@notification_ns.route('/stats')
+@bulk_ns.route('/stats')
 class NotificationStatistics(Resource):
     @jwt_required()
-    @notification_ns.marshal_with(notification_stats_model)
-    @notification_ns.doc(responses={
+    @bulk_ns.marshal_with(notification_stats_model)
+    @bulk_ns.doc(responses={
         200: 'Statistics retrieved successfully',
         403: 'Admin access required',
         500: 'Failed to retrieve statistics'
