@@ -1,0 +1,12 @@
+[
+  { "id": 1, "title": "Charity Water", "category": "Health" },
+  { "id": 2, "title": "Food Bank Network", "category": "Hunger Relief" },
+  { "id": 3, "title": "Youth Empowerment Center", "category": "Education" },
+  { "id": 4, "title": "Habitat for Humanity", "category": "Housing" },
+  { "id": 5, "title": "Save the Children", "category": "Education" },
+  { "id": 6, "title": "Red Cross", "category": "Disaster Relief" },
+  { "id": 7, "title": "Animal Rescue League", "category": "Animals" },
+  { "id": 8, "title": "Doctors Without Borders", "category": "Health" },
+  { "id": 9, "title": "Environmental Action Group", "category": "Environment" },
+  { "id": 10, "title": "Local Community Shelter", "category": "Housing" }
+]
