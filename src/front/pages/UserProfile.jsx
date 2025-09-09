@@ -17,7 +17,7 @@ const UserProfile = () => {
 		donationPreferences: {
 			frequency: "monthly",
 			amount: "",
-			categories: []
+			categories: [],
 		}
 	});
 

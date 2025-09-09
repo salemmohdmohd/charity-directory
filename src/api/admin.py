@@ -7,7 +7,8 @@ from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.form import Select2Widget
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from wtforms import SelectField
+from wtforms import SelectField, PasswordField, StringField
+from wtforms.validators import Optional
 from .models import (db, User, Organization, Category, Location, UserBookmark, SearchHistory, OrganizationPhoto, OrganizationSocialLink, ContactMessage, Notification, AuditLog, Advertisement)
 
 
@@ -24,7 +25,7 @@ class SecureModelView(ModelView):
 
 class UserAdminView(SecureModelView):
     """Admin view for User model"""
-    column_list = ['id', 'name', 'email', 'role', 'is_verified', 'created_at', 'last_login']
+    column_list = ['id', 'name', 'email', 'role', 'is_verified', 'password_hash', 'created_at', 'last_login']
     column_searchable_list = ['name', 'email']
     column_filters = ['role', 'is_verified', 'created_at']
     column_editable_list = ['role', 'is_verified']
@@ -37,9 +38,31 @@ class UserAdminView(SecureModelView):
         ]
     }
 
-    # Hide sensitive fields
-    form_excluded_columns = ['password_hash', 'google_id']
-    column_exclude_list = ['password_hash']
+    # Custom column formatters
+    column_formatters = {
+        'password_hash': lambda v, c, m, p: '***HASHED***' if m.password_hash else 'No Password (OAuth)'
+    }
+
+    # Hide sensitive fields from form editing (but show in list)
+    form_excluded_columns = ['google_id', 'password_hash']
+
+    # Add custom form fields
+    form_extra_fields = {
+        'password': PasswordField('Password', [Optional()],
+                                description='Leave empty to keep current password (for existing users) or to create OAuth-only user')
+    }
+
+    def on_model_change(self, form, model, is_created):
+        """Handle password hashing when creating or updating users"""
+        # If a password was provided, hash it
+        if form.password.data:
+            model.set_password(form.password.data)
+        elif is_created and not form.password.data:
+            # If creating a new user without password, set password_hash to None (OAuth user)
+            model.password_hash = None
+
+        # Call parent method
+        super(UserAdminView, self).on_model_change(form, model, is_created)
 
 
 class OrganizationAdminView(SecureModelView):
@@ -67,16 +90,36 @@ class OrganizationAdminView(SecureModelView):
     @expose('/approve/<int:id>')
     def approve_organization(self, id):
         org = Organization.query.get_or_404(id)
+        old_status = org.status
         org.status = 'approved'
         db.session.commit()
+
+        # Send approval notification
+        if old_status != 'approved':
+            try:
+                from .notification_service import notification_service
+                notification_service.send_organization_approval_notification(id, True)
+            except Exception as e:
+                print(f"Failed to send approval notification: {e}")
+
         flash(f'Organization "{org.name}" has been approved.', 'success')
         return redirect(url_for('.index_view'))
 
     @expose('/reject/<int:id>')
     def reject_organization(self, id):
         org = Organization.query.get_or_404(id)
+        old_status = org.status
         org.status = 'rejected'
         db.session.commit()
+
+        # Send rejection notification
+        if old_status != 'rejected':
+            try:
+                from .notification_service import notification_service
+                notification_service.send_organization_approval_notification(id, False)
+            except Exception as e:
+                print(f"Failed to send rejection notification: {e}")
+
         flash(f'Organization "{org.name}" has been rejected.', 'warning')
         return redirect(url_for('.index_view'))
 

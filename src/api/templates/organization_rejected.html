@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject }}</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            background-color: #f8f9fa;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+            color: #212529;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .content {
+            padding: 40px 30px;
+        }
+
+        .content h1 {
+            color: #dc3545;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .content p {
+            margin-bottom: 16px;
+            color: #555;
+        }
+
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white !important;
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+            margin: 20px 0;
+            transition: transform 0.2s ease;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .requirements-box {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .footer p {
+            margin-bottom: 8px;
+            color: #6c757d;
+            font-size: 13px;
+        }
+
+        .footer a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 0 10px;
+            }
+
+            .header,
+            .content,
+            .footer {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="logo">Charity Directory</div>
+            <div class="tagline">Connecting Communities with Charitable Organizations</div>
+        </div>
+
+        <div class="content">
+            <h1>📋 Application Update Required</h1>
+
+            <p>Thank you for your interest in listing <strong>{{ organization_name }}</strong> on Charity Directory.</p>
+
+            <p>After reviewing your application, we've identified some areas that need attention before we can approve your organization for listing on our platform.</p>
+
+            <div class="warning-box">
+                <strong>⚠️ Action Required</strong><br>
+                Your application is currently on hold pending the completion of the requirements listed below.
+            </div>
+
+            <div class="requirements-box">
+                <h3>What needs to be addressed:</h3>
+                <ul>
+                    <li><strong>Documentation:</strong> Please provide complete organizational documentation</li>
+                    <li> <strong>Profile Information:</strong> Ensure all required fields are completed accurately</li>
+                    <li> <strong>Visual Content:</strong> Add high-quality photos and logos</li>
+                    <li> <strong>Contact Details:</strong> Verify and update contact information</li>
+                    <li> <strong>Legal Status:</strong> Confirm your organization's legal charitable status</li>
+                    <li> <strong>Mission Statement:</strong> Provide a clear, detailed mission and program description</li>
+                </ul>
+            </div>
+
+            <p><strong>Next steps:</strong></p>
+            <ol>
+                <li>Log into your dashboard to review specific feedback</li>
+                <li>Update your organization's profile with the required information</li>
+                <li>Submit your application for re-review</li>
+                <li>Our team will review your updated application within 3-5 business days</li>
+            </ol>
+
+            <div style="text-align: center;">
+                <a href="{{ dashboard_url }}" class="button">Update Your Application</a>
+            </div>
+
+            <p><strong>Common requirements for approval:</strong></p>
+            <ul>
+                <li>Valid 501(c)(3) or equivalent charitable status</li>
+                <li>Complete organization profile with mission, programs, and contact information</li>
+                <li>Professional photos and branding materials</li>
+                <li>Accurate and up-to-date contact details</li>
+                <li>Clear description of services and target beneficiaries</li>
+            </ul>
+
+            <p><strong>Need help?</strong><br>
+            Our support team is available to assist you with your application. We want to see your organization succeed and are here to help you through the process.</p>
+
+            <p>We appreciate your dedication to making a positive impact and look forward to welcoming {{ organization_name }} to our platform once the requirements are met.</p>
+
+            <p>Best regards,<br>
+            <strong>The Charity Directory Review Team</strong></p>
+        </div>
+
+        <div class="footer">
+            <p><strong>Charity Directory</strong></p>
+            <p>Connecting communities with charitable organizations worldwide</p>
+            <p>© {{ year }} Charity Directory. All rights reserved.</p>
+
+            <p style="margin-top: 20px;">
+                <a href="{{ frontend_url }}/contact">Contact Support</a> •
+                <a href="{{ frontend_url }}/help">Help Center</a> •
+                <a href="{{ frontend_url }}/requirements">Application Requirements</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

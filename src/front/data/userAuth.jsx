@@ -1,63 +1,75 @@
-const BASE_URL = '/api'
+// Enhanced userAuth using axios with automatic token refresh
+import { authService } from '../Services/axios'
 
-const authHeader = () => {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+// Re-export all auth service methods for compatibility
+export const login = authService.login
+export const signup = authService.signup
+export const getCurrentUserData = async () => {
+  const userData = await authService.getCurrentUser()
+  return { user: userData } // Maintain compatibility with existing components
+}
+export const logout = authService.logout
+export const isAuthenticated = authService.isAuthenticated
+export const forgotPassword = authService.forgotPassword
+export const resetPassword = authService.resetPassword
+export const changePassword = authService.changePassword
+export const updateProfile = authService.updateProfile
+export const linkGoogleAccount = authService.linkGoogleAccount
+export const unlinkGoogleAccount = authService.unlinkGoogleAccount
+export const debugToken = authService.debugToken
 
-export const login = async (email, password) => {
-  try {
-    const response = await fetch(`${BASE_URL}/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.message || 'Login failed');
-    }
-    if (data.access_token) {
-      saveToken(data.access_token);
-    }
-    return data;
-  } catch (error) {
-    console.error('Login error:', error);
-    throw error;
+// Token management (maintained for backward compatibility)
+export const getToken = () => localStorage.getItem('access_token')
+export const saveToken = (token) => localStorage.setItem('access_token', token)
+export const removeToken = () => {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('refresh_token')
+}
+
+// Enhanced token management for refresh tokens
+export const getRefreshToken = () => localStorage.getItem('refresh_token')
+export const saveTokens = (accessToken, refreshToken) => {
+  localStorage.setItem('access_token', accessToken)
+  if (refreshToken) {
+    localStorage.setItem('refresh_token', refreshToken)
   }
-};
+}
 
-export const signup = async (name, email, password) => {
+// Get current user from token (enhanced)
+export const getCurrentUser = () => {
+  const token = getToken()
+  if (!token) return null
+
   try {
-    const response = await fetch(`${BASE_URL}/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ name, email, password }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Signup failed');
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    return {
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      is_verified: payload.is_verified
     }
-
-    if (data.access_token) {
-      saveToken(data.access_token);
-    }
-
-    return data;
   } catch (error) {
-    console.error('Signup error:', error);
-    throw error;
+    console.error('Token validation error:', error)
+    removeToken()
+    return null
   }
-};
+}
 
+// OAuth handling (enhanced for refresh tokens)
+export const handleOAuthCallback = (urlParams) => {
+  const token = urlParams.get('token')
+  const refreshToken = urlParams.get('refresh_token')
+  const userId = urlParams.get('user_id')
 
+  if (token) {
+    saveTokens(token, refreshToken)
+    return { token, refreshToken, userId }
+  }
 
-export const logout = async () => {
-  removeToken();
-  return { message: 'Logged out' };
-};
+  throw new Error('No authentication tokens received')
+}
+
+// Google OAuth initiation
+export const initiateGoogleOAuth = () => {
+  authService.initiateGoogleOAuth()
+}

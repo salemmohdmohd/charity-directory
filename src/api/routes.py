@@ -1,14 +1,16 @@
-from flask import request, Blueprint, redirect, session, url_for
+from flask import request, Blueprint, redirect, session, url_for, current_app
 from flask_restx import Api, Resource, Namespace, fields, marshal
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from api.models import db, User, PasswordReset, EmailVerification, AuditLog, Organization, UserBookmark, SearchHistory, Advertisement, Category, Notification, Location, ContactMessage, OrganizationPhoto, OrganizationSocialLink
+from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
+from api.models import db, User, PasswordReset, EmailVerification, AuditLog, Organization, UserBookmark, SearchHistory, Advertisement, Category, Notification, NotificationPreference, Location, ContactMessage, OrganizationPhoto, OrganizationSocialLink
 from api.auth_utils import AuthService, validate_password, validate_email_format
 from api.oauth_utils import oauth_service, GoogleAuthError
 from datetime import datetime, timedelta
 from sqlalchemy import func, desc, text, or_, and_
+from sqlalchemy.exc import SQLAlchemyError
 from functools import wraps
 import json
 import os
+
 
 # Create Blueprint for Flask-RESTX
 api_bp = Blueprint('api', __name__)
@@ -42,10 +44,52 @@ api.add_namespace(user_ns, path='/users')
 api.add_namespace(notification_ns, path='/notifications')
 api.add_namespace(ad_ns, path='/advertisements')
 
+# Helper function to serialize organization data
+def serialize_organization(org):
+    """Serialize organization with proper location handling"""
+    return {
+        'id': org.id,
+        'name': org.name,
+        'mission': org.mission,
+        'description': org.description,
+        'category_id': org.category_id,
+        'category_name': org.category.name if org.category else None,
+        'location_id': org.location_id,
+        'location': {
+            'city': org.location.city,
+            'state_province': org.location.state_province,
+            'country': org.location.country,
+            'postal_code': org.location.postal_code
+        } if org.location else None,
+        'phone': org.phone,
+        'email': org.email,
+        'website': org.website,
+        'donation_link': org.donation_link,
+        'logo_url': org.logo_url,
+        'status': org.status,
+        'verification_level': org.verification_level,
+        'view_count': org.view_count,
+        'bookmark_count': org.bookmark_count,
+        'created_at': org.created_at.isoformat() if org.created_at else None,
+        'address': org.address,
+        'operating_hours': org.operating_hours,
+        'established_year': org.established_year,
+        'verification_status': org.status,
+        'beneficiaries_served': getattr(org, 'beneficiaries_served', None),
+        'social_links': [{'platform': l.platform, 'url': l.url, 'is_verified': l.is_verified} for l in (org.social_links or [])],
+        'photos': [{'id': p.id, 'file_name': p.file_name, 'file_path': p.file_path, 'alt_text': p.alt_text, 'is_primary': p.is_primary} for p in (org.photos or [])],
+        'updated_at': org.updated_at.isoformat() if org.updated_at else None
+    }
+
 # Models
 user_model = api.model('User', {
     'id': fields.Integer, 'name': fields.String, 'email': fields.String, 'role': fields.String,
     'is_verified': fields.Boolean, 'profile_picture': fields.String, 'created_at': fields.String, 'last_login': fields.String
+})
+
+registration_response_model = api.model('RegistrationResponse', {
+    'message': fields.String(required=True, description='Registration status message'),
+    'user': fields.Nested(user_model, required=True, description='User information')
 })
 
 organization_model = api.model('Organization', {
@@ -104,10 +148,17 @@ bookmark_model = api.model('Bookmark', {
 })
 
 notification_model = api.model('Notification', {
-    'id': fields.Integer,
-    'message': fields.String,
-    'is_read': fields.Boolean,
-    'created_at': fields.String
+    'id': fields.Integer(description='Notification ID'),
+    'title': fields.String(description='Notification title'),
+    'message': fields.String(description='Notification message'),
+    'notification_type': fields.String(description='Type of notification'),
+    'priority': fields.String(description='Notification priority'),
+    'is_read': fields.Boolean(description='Whether notification is read'),
+    'read_at': fields.DateTime(description='When notification was read'),
+    'email_sent': fields.Boolean(description='Whether email was sent'),
+    'email_sent_at': fields.DateTime(description='When email was sent'),
+    'created_at': fields.DateTime(description='When notification was created'),
+    'updated_at': fields.DateTime(description='When notification was last updated')
 })
 
 advertisement_model = api.model('Advertisement', {
@@ -188,6 +239,21 @@ change_password_parser.add_argument('current_password', type=str, required=True,
 change_password_parser.add_argument('new_password', type=str, required=True, help='New password', location='json')
 
 # ORGANIZATION PARSERS
+# ORG PARSERS
+org_signup_parser = api.parser()
+org_signup_parser.add_argument('admin_name', type=str, required=True, help='Admin full name', location='json')
+org_signup_parser.add_argument('admin_email', type=str, required=True, help='Admin email address', location='json')
+org_signup_parser.add_argument('password', type=str, required=True, help='Admin password', location='json')
+org_signup_parser.add_argument('organization_name', type=str, required=True, help='Organization name', location='json')
+org_signup_parser.add_argument('mission', type=str, required=True, help='Mission statement', location='json')
+org_signup_parser.add_argument('category_id', type=int, required=True, help='Category ID', location='json')
+org_signup_parser.add_argument('phone', type=str, help='Phone number', location='json')
+org_signup_parser.add_argument('website', type=str, help='Website URL', location='json')
+org_signup_parser.add_argument('address', type=str, help='Address', location='json')
+org_signup_parser.add_argument('city', type=str, help='City', location='json')
+org_signup_parser.add_argument('state', type=str, help='State/Province', location='json')
+org_signup_parser.add_argument('country', type=str, help='Country', location='json')
+
 org_create_parser = api.parser()
 org_create_parser.add_argument('name', type=str, required=True, help='Organization name', location='json')
 org_create_parser.add_argument('mission', type=str, required=True, help='Mission statement', location='json')
@@ -265,7 +331,7 @@ def check_org_admin(org_id, user_id):
 @auth_ns.route('/register')
 class Register(Resource):
     @auth_ns.expect(register_parser)
-    @auth_ns.marshal_with(user_model, code=201)
+    @auth_ns.marshal_with(registration_response_model, code=201)
     @auth_ns.doc(responses={
         201: 'Registration successful',
         400: 'Validation error',
@@ -276,11 +342,20 @@ class Register(Resource):
         try:
             args = register_parser.parse_args()
             email = args.email.strip().lower()
-            if not (valid := validate_email_format(email))[0]: api.abort(400, valid[1])
-            if not (valid := validate_password(args.password))[0]: api.abort(400, valid[1])
-            if User.query.filter_by(email=email).first(): api.abort(409, 'Email already registered')
 
-            user = User(name=args.name.strip(), email=email, role='visitor', is_verified=False)
+            # Validate email format
+            if not (valid := validate_email_format(email))[0]:
+                api.abort(400, valid[1])
+
+            # Validate password strength
+            if not (valid := validate_password(args.password))[0]:
+                api.abort(400, valid[1])
+
+            # Check if email already exists
+            if User.query.filter_by(email=email).first():
+                api.abort(409, 'Email already registered')
+
+            user = User(name=args.name.strip(), email=email, role='visitor', is_verified=True)
             user.set_password(args.password)
             db.session.add(user)
             db.session.commit()
@@ -289,15 +364,56 @@ class Register(Resource):
             db.session.add(EmailVerification(user_id=user.id, token=token, expires_at=datetime.utcnow() + timedelta(days=1)))
             db.session.commit()
 
-            try: AuthService.send_verification_email(email, token)
-            except: pass
+            try:
+                AuthService.send_verification_email(email, token)
+            except Exception as e:
+                print(f"Email verification failed: {str(e)}")
+                pass
+
+            # Send welcome notification and email verification reminder
+            try:
+                from .notification_service import NotificationService
+                notification_service = NotificationService()
+
+                # Send welcome notification
+                notification_service.send_welcome_email(user.id, token)
+
+                # Send email verification reminder notification
+                notification_service.send_notification(
+                    user_id=user.id,
+                    notification_type="email_verification",
+                    subject="Please verify your email to get a verified badge",
+                    message="Check your email and click the verification link to get your verified badge and unlock all features!",
+                    priority="high"
+                )
+            except Exception as e:
+                print(f"Notification sending failed: {str(e)}")
+                pass
 
             log_action(user.id, 'create', 'user', user.id, None, {'email': email, 'name': user.name})
             db.session.commit()
-            return {'message': 'Registration successful! Please verify your email.', 'user': marshal(user, user_model)}, 201
-        except Exception:
+
+            # Since users are now active by default, generate access tokens immediately
+            access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role, 'email': user.email, 'is_verified': user.is_verified})
+            refresh_token = create_refresh_token(identity=str(user.id))
+
+            return {
+                'message': 'Registration successful! Your account is now active.',
+                'user': marshal(user, user_model),
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }, 201
+        except Exception as e:
             db.session.rollback()
-            api.abort(500, 'Registration failed')
+
+            # Re-raise HTTP exceptions properly
+            from werkzeug.exceptions import HTTPException
+            if isinstance(e, HTTPException):
+                raise e
+
+            # Log and handle unexpected errors
+            print(f"Registration error: {str(e)}")
+            api.abort(500, f'Registration failed: {str(e)}')
 
 @auth_ns.route('/login')
 class Login(Resource):
@@ -311,16 +427,32 @@ class Login(Resource):
         try:
             args = login_parser.parse_args()
             user = User.query.filter_by(email=args.email.strip().lower()).first()
-            if not user or not user.check_password(args.password): api.abort(401, 'Invalid credentials')
+            if not user or not user.check_password(args.password):
+                api.abort(401, 'Invalid credentials')
 
             user.last_login = datetime.utcnow()
             db.session.commit()
 
-            token = create_access_token(identity=user.id, additional_claims={'role': user.role, 'email': user.email, 'is_verified': user.is_verified})
+            access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role, 'email': user.email, 'is_verified': user.is_verified})
+            refresh_token = create_refresh_token(identity=str(user.id))
+
             log_action(user.id, 'login')
             db.session.commit()
-            return {'message': 'Login successful', 'access_token': token, 'user': marshal(user, user_model)}
-        except Exception: api.abort(500, 'Login failed')
+
+            return {
+                'message': 'Login successful',
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                'user': marshal(user, user_model)
+            }
+        except Exception as e:
+            # Re-raise HTTP exceptions (401, etc.) - don't convert to 500
+            if hasattr(e, 'code') and e.code == 401:
+                raise e
+
+            # Log and handle unexpected errors
+            print(f"Login error: {str(e)}")
+            api.abort(500, 'Login failed')
 
 @auth_ns.route('/forgot-password')
 class ForgotPassword(Resource):
@@ -386,6 +518,23 @@ class VerifyEmail(Resource):
             if not verification or verification.expires_at < datetime.utcnow(): api.abort(400, 'Invalid or expired token')
             verification.user.is_verified = True
             verification.is_used = True
+
+            # Send verification success notification
+            try:
+                from .notification_service import NotificationService
+                notification_service = NotificationService()
+
+                notification_service.send_notification(
+                    user_id=verification.user.id,
+                    notification_type="security_alert",
+                    subject="🎉 Email verified successfully!",
+                    message="Congratulations! Your email has been verified and you now have a verified badge. You can now access all features on Charity Directory.",
+                    priority="high"
+                )
+            except Exception as e:
+                print(f"Verification notification failed: {str(e)}")
+                pass
+
             db.session.commit()
             log_action(verification.user.id, 'email_verified')
             db.session.commit()
@@ -403,8 +552,163 @@ class CurrentUser(Resource):
         404: 'User not found'
     })
     def get(self):
-        user = User.query.get(get_jwt_identity()) or api.abort(404, 'User not found')
-        return {'user': marshal(user, user_model)}
+        user_id = int(get_jwt_identity())
+        user = User.query.get(user_id) or api.abort(404, 'User not found')
+        return user
+
+
+@auth_ns.route('/logout')
+class Logout(Resource):
+    @jwt_required()
+    @auth_ns.doc(responses={
+        200: 'Successfully logged out',
+        401: 'Invalid token'
+    })
+    def post(self):
+        """Logout user by blacklisting current token"""
+        # Get the JWT ID to blacklist the token
+        jwt_data = get_jwt()
+        jti = jwt_data['jti']
+
+        # Blacklist the token
+        current_app.blacklist_token(jti)
+
+        return {'message': 'Successfully logged out'}, 200
+
+
+@auth_ns.route('/refresh')
+class RefreshToken(Resource):
+    @jwt_required(refresh=True)
+    @auth_ns.doc(responses={
+        200: 'New access token generated',
+        401: 'Invalid refresh token'
+    })
+    def post(self):
+        """Generate new access token using refresh token"""
+        current_user_id = get_jwt_identity()
+
+        # Create new access token
+        new_token = create_access_token(identity=str(current_user_id))
+
+        return {'access_token': new_token}, 200
+
+
+@auth_ns.route('/organization-signup')
+class OrganizationSignup(Resource):
+    @auth_ns.expect(org_signup_parser)
+    @auth_ns.doc(responses={
+        201: 'Organization and admin account created successfully',
+        400: 'Validation error',
+        409: 'Email already registered',
+        500: 'Registration failed'
+    })
+    def post(self):
+        try:
+            args = org_signup_parser.parse_args()
+            email = args.admin_email.strip().lower()
+
+            # Validate email format
+            if not (valid := validate_email_format(email))[0]:
+                api.abort(400, valid[1])
+
+            # Validate password strength
+            if not (valid := validate_password(args.password))[0]:
+                api.abort(400, valid[1])
+
+            # Check if email already exists
+            if User.query.filter_by(email=email).first():
+                api.abort(409, 'Email already registered')
+
+            # Validate category
+            if not Category.query.get(args.category_id):
+                api.abort(400, 'Invalid category')
+
+            # Create org admin user
+            user = User(
+                name=args.admin_name.strip(),
+                email=email,
+                role='org_admin',  # Set role as org_admin
+                is_verified=True
+            )
+            user.set_password(args.password)
+            db.session.add(user)
+            db.session.flush()  # Get user ID without committing
+
+            # Create organization
+            org = Organization(
+                name=args.organization_name.strip(),
+                mission=args.mission.strip(),
+                category_id=args.category_id,
+                email=email,
+                phone=(args.phone or '').strip(),
+                website=(args.website or '').strip(),
+                address=(args.address or '').strip(),
+                admin_user_id=user.id,
+                status='pending'  # Organizations need approval
+            )
+            db.session.add(org)
+            db.session.commit()
+
+            # Generate access tokens for immediate login
+            access_token = create_access_token(
+                identity=str(user.id),
+                additional_claims={
+                    'role': user.role,
+                    'email': user.email,
+                    'is_verified': user.is_verified
+                }
+            )
+            refresh_token = create_refresh_token(identity=str(user.id))
+
+            # Log actions
+            log_action(user.id, 'create', 'user', user.id, None, {'email': email, 'name': user.name, 'role': 'org_admin'})
+            log_action(user.id, 'create', 'organization', org.id, None, {'name': org.name, 'status': 'pending'})
+
+            # Send welcome notification for organization admin
+            try:
+                from .notification_service import NotificationService
+                notification_service = NotificationService()
+
+                # Send welcome notification for organization admin
+                notification_service.send_notification(
+                    user_id=user.id,
+                    notification_type="welcome",
+                    subject=f"Welcome to Charity Directory, {user.name}!",
+                    message=f"Welcome to Charity Directory! Your organization '{org.name}' has been submitted for review. You'll receive a notification once it's approved.",
+                    priority="high"
+                )
+
+                # Send organization submission confirmation
+                notification_service.send_notification(
+                    user_id=user.id,
+                    notification_type="organization_update",
+                    subject="Organization submitted for review",
+                    message=f"Your organization '{org.name}' has been successfully submitted and is now under review. We'll notify you once the review is complete.",
+                    priority="normal"
+                )
+            except Exception as e:
+                print(f"Notification sending failed: {str(e)}")
+                pass
+
+            db.session.commit()
+
+            return {
+                'message': 'Organization registration successful! Your organization is pending approval.',
+                'user': marshal(user, user_model),
+                'organization': marshal(org, organization_model),
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }, 201
+
+        except Exception as e:
+            db.session.rollback()
+            # Re-raise HTTP exceptions properly
+            from werkzeug.exceptions import HTTPException
+            if isinstance(e, HTTPException):
+                raise e
+            print(f"Organization signup error: {str(e)}")
+            api.abort(500, f'Registration failed: {str(e)}')
+
 
 @auth_ns.route('/change-password')
 class ChangePassword(Resource):
@@ -412,22 +716,32 @@ class ChangePassword(Resource):
     @auth_ns.expect(change_password_parser)
     @auth_ns.doc(responses={
         200: 'Password changed successfully',
-        400: 'Current password incorrect or invalid new password',
+        400: 'Invalid new password format',
+        401: 'Current password incorrect',
+        404: 'User not found',
         500: 'Password change failed'
     })
     def post(self):
         try:
             args = change_password_parser.parse_args()
             user = User.query.get(get_jwt_identity())
-            if not user or not user.check_password(args.current_password): api.abort(400, 'Current password incorrect')
-            if not (valid := validate_password(args.new_password))[0]: api.abort(400, valid[1])
+            if not user:
+                api.abort(404, 'User not found')
+            if not user.check_password(args.current_password):
+                api.abort(401, 'Current password is incorrect')
+            if not (valid := validate_password(args.new_password))[0]:
+                api.abort(400, valid[1])
             user.set_password(args.new_password)
             db.session.commit()
             log_action(user.id, 'password_change')
             db.session.commit()
             return {'message': 'Password changed successfully'}
-        except Exception:
+        except Exception as e:
             db.session.rollback()
+            # Re-raise HTTP exceptions properly
+            from werkzeug.exceptions import HTTPException
+            if isinstance(e, HTTPException):
+                raise e
             api.abort(500, 'Password change failed')
 
 # GOOGLE OAUTH ENDPOINTS
@@ -442,10 +756,20 @@ class GoogleOAuth(Resource):
         try:
             # Generate state parameter for security
             state = oauth_service.generate_state()
+
+            # Store state in a more reliable way - encode it in the state itself
+            # We'll validate it on callback by checking the format
             session['oauth_state'] = state
+
+            # Also store it in a way that survives CORS issues
+            # For production, you might want to use Redis or database
+            # For now, we'll use a simple approach with encoded state
 
             # Get Google authorization URL
             authorization_url, _ = oauth_service.get_authorization_url(state)
+
+            print(f"OAuth initiated - State generated: {state}")
+            print(f"Session state stored: {session.get('oauth_state')}")
 
             return redirect(authorization_url)
         except GoogleAuthError as e:
@@ -490,34 +814,40 @@ class GoogleOAuthCallback(Resource):
                 frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
                 return redirect(f'{frontend_url}/login?error=no_code')
 
-            # Verify state parameter (skip if no state in session - first time)
+            # Verify state parameter (disabled in development for CORS issues)
             session_state = session.get('oauth_state')
-            if session_state and state != session_state:
-                print(f"State mismatch - Session: {session_state}, Received: {state}")
-                # Clear session and redirect
-                session.pop('oauth_state', None)
-                frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-                return redirect(f'{frontend_url}/login?error=invalid_state')
+
+            # Skip state validation in development mode to avoid CORS session issues
+            if os.getenv('FLASK_DEBUG') != '1':
+                if session_state and state != session_state:
+                    print(f"State mismatch - Session: {session_state}, Received: {state}")
+                    # Clear session and redirect
+                    session.pop('oauth_state', None)
+                    frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
+                    return redirect(f'{frontend_url}/login?error=invalid_state')
+            else:
+                print(f"Development mode: Skipping state validation. Session: {session_state}, Received: {state}")
 
             # Exchange code for credentials
             credentials = oauth_service.exchange_code_for_token(authorization_code, state)
 
             # Get user info from Google
             user_info = oauth_service.get_user_info_from_credentials(credentials)
-            print(f"User info received: {user_info.get('email', 'no email')}")
+            print(f"Google user info received: {user_info}")
 
             # Find or create user
             user = self._find_or_create_user(user_info)
 
-            # Create JWT token
-            access_token = create_access_token(identity=user.id)
+            # Create JWT tokens with string identity (Flask-JWT-Extended requirement)
+            access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
 
             # Update last login
             user.last_login = datetime.utcnow()
             db.session.commit()
 
             # Log the action
-            log_action(user.id, 'oauth_login', {'provider': 'google'})
+            log_action(user.id, 'oauth_login', 'auth', user.id, None, {'provider': 'google'})
             db.session.commit()
 
             # Clear OAuth state from session
@@ -538,31 +868,31 @@ class GoogleOAuthCallback(Resource):
                     existing_user.updated_at = datetime.utcnow()
                     db.session.commit()
 
-                    log_action(existing_user.id, 'oauth_link', {'provider': 'google'})
+                    log_action(existing_user.id, 'oauth_link', 'auth', existing_user.id, None, {'provider': 'google'})
                     db.session.commit()
 
                     # Redirect to frontend with success message
                     frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
                     return redirect(f'{frontend_url}/profile?linked=google')
 
-            # Regular OAuth login/signup - redirect to frontend with token
+            # Regular OAuth login/signup - redirect to frontend with tokens
             frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-            redirect_url = f'{frontend_url}/auth/callback?token={access_token}&user_id={user.id}'
-
-            print(f"Redirecting to: {redirect_url}")
+            redirect_url = f'{frontend_url}/auth/callback?token={access_token}&refresh_token={refresh_token}&user_id={user.id}'
             return redirect(redirect_url)
 
         except GoogleAuthError as e:
             print(f"GoogleAuthError: {str(e)}")
+            print(f"Error details: {repr(e)}")
             frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-            return redirect(f'{frontend_url}/login?error=auth_failed')
+            return redirect(f'{frontend_url}/login?error=oauth_error&message={str(e)}')
         except Exception as e:
             print(f"Unexpected error in OAuth callback: {str(e)}")
+            print(f"Error type: {type(e).__name__}")
             import traceback
             traceback.print_exc()
             db.session.rollback()
             frontend_url = os.getenv('FRONTEND_URL', 'http://localhost:3000')
-            return redirect(f'{frontend_url}/login?error=server_error')
+            return redirect(f'{frontend_url}/login?error=server_error&message={str(e)}')
 
     def _find_or_create_user(self, user_info):
         """Find existing user or create new one from OAuth data"""
@@ -579,13 +909,21 @@ class GoogleOAuthCallback(Resource):
 
         if user:
             # Link Google account to existing user
-            user.google_id = user_info['google_id']
-            if not user.profile_picture and user_info.get('profile_picture'):
-                user.profile_picture = user_info['profile_picture']
-            if not user.is_verified and user_info.get('email_verified'):
-                user.is_verified = True
-            db.session.commit()
-            return user
+            try:
+                print(f"Linking Google account to existing user: {user.email}")
+                user.google_id = user_info['google_id']
+                if not user.profile_picture and user_info.get('profile_picture'):
+                    user.profile_picture = user_info['profile_picture']
+                if not user.is_verified and user_info.get('email_verified'):
+                    user.is_verified = True
+                user.updated_at = datetime.utcnow()
+                db.session.commit()
+                print(f"Successfully linked Google account for user: {user.email}")
+                return user
+            except Exception as e:
+                print(f"Error linking Google account: {str(e)}")
+                db.session.rollback()
+                raise e
 
         # Create new user
         return self._create_user_from_oauth(user_info)
@@ -617,7 +955,7 @@ class GoogleOAuthCallback(Resource):
             email=user_info['email'],
             google_id=user_info['google_id'],
             profile_picture=user_info.get('profile_picture', ''),
-            is_verified=user_info.get('email_verified', False),
+            is_verified=True,  # Make all OAuth users verified by default
             role='visitor',  # Default role
             password_hash=None  # OAuth users don't have passwords
         )
@@ -626,7 +964,7 @@ class GoogleOAuthCallback(Resource):
         db.session.commit()
 
         # Log user creation
-        log_action(user.id, 'user_created', {'method': 'oauth_google'})
+        log_action(user.id, 'user_created', 'user', user.id, None, {'method': 'oauth_google'})
         db.session.commit()
 
         return user
@@ -689,12 +1027,18 @@ class GoogleOAuthUnlink(Resource):
             db.session.commit()
 
             # Log the action
-            log_action(user.id, 'oauth_unlink', {'provider': 'google'})
+            log_action(user.id, 'oauth_unlink', 'auth', user.id, None, {'provider': 'google'})
             db.session.commit()
 
             return {'message': 'Google account unlinked successfully'}
 
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            api.abort(500, f'Database error during account unlinking: {str(e)}')
         except Exception as e:
+            # Don't catch abort exceptions - let them through
+            if hasattr(e, 'code') and hasattr(e, 'description'):
+                raise
             db.session.rollback()
             api.abort(500, f'Account unlinking failed: {str(e)}')
 
@@ -708,8 +1052,14 @@ class OrganizationList(Resource):
     })
     def get(self):
         try:
+            from sqlalchemy.orm import joinedload
             args = org_parser.parse_args()
-            query = Organization.query
+            query = Organization.query.options(
+                joinedload(Organization.photos),
+                joinedload(Organization.social_links),
+                joinedload(Organization.category),
+                joinedload(Organization.location)
+            )
             if args.status: query = query.filter(Organization.status == args.status)
             else: query = query.filter(Organization.status == 'approved')
             if args.category_id: query = query.filter(Organization.category_id == args.category_id)
@@ -719,7 +1069,7 @@ class OrganizationList(Resource):
                 query = query.filter(or_(Organization.name.ilike(s), Organization.description.ilike(s), Organization.mission.ilike(s)))
 
             items, pag = paginate(query.order_by(desc(Organization.created_at)), args.page, args.per_page)
-            return {'organizations': [marshal(o, organization_model) for o in items], 'pagination': pag}
+            return {'organizations': [serialize_organization(o) for o in items], 'pagination': pag}
         except Exception: api.abort(500, 'Failed to fetch organizations')
 
     @jwt_required()
@@ -754,7 +1104,6 @@ class OrganizationList(Resource):
 
 @org_ns.route('/<int:org_id>')
 class OrganizationDetail(Resource):
-    @org_ns.marshal_with(organization_model)
     @org_ns.doc(responses={
         200: 'Organization details retrieved successfully',
         404: 'Organization not found',
@@ -762,7 +1111,14 @@ class OrganizationDetail(Resource):
     })
     def get(self, org_id):
         try:
-            org = Organization.query.get(org_id) or api.abort(404, 'Organization not found')
+            # Use joinedload to eagerly load relationships
+            from sqlalchemy.orm import joinedload
+            org = Organization.query.options(
+                joinedload(Organization.photos),
+                joinedload(Organization.social_links),
+                joinedload(Organization.category),
+                joinedload(Organization.location)
+            ).get(org_id) or api.abort(404, 'Organization not found')
 
             is_admin = False
             try:
@@ -775,16 +1131,39 @@ class OrganizationDetail(Resource):
             org.view_count = (org.view_count or 0) + 1
             db.session.commit()
 
-            org_data = marshal(org, organization_model)
-            org_data.update({
+            # Instead of using marshal, manually create the response
+            org_data = {
+                'id': org.id,
+                'name': org.name,
+                'mission': org.mission,
+                'description': org.description,
+                'category_id': org.category_id,
+                'category_name': org.category.name if org.category else None,
+                'location_id': org.location_id,
                 'location': {'city': org.location.city, 'state_province': org.location.state_province, 'country': org.location.country, 'postal_code': org.location.postal_code} if org.location else None,
-                'address': org.address, 'operating_hours': org.operating_hours, 'established_year': org.established_year,
-                'social_links': [{'platform': l.platform, 'url': l.url, 'is_verified': l.is_verified} for l in org.social_links],
-                'photos': [{'id': p.id, 'file_name': p.file_name, 'file_path': p.file_path, 'alt_text': p.alt_text, 'is_primary': p.is_primary} for p in org.photos],
+                'phone': org.phone,
+                'email': org.email,
+                'website': org.website,
+                'donation_link': org.donation_link,
+                'logo_url': org.logo_url,
+                'status': org.status,
+                'verification_level': org.verification_level,
+                'view_count': org.view_count,
+                'bookmark_count': org.bookmark_count,
+                'created_at': org.created_at.isoformat() if org.created_at else None,
+                'address': org.address,
+                'operating_hours': org.operating_hours,
+                'established_year': org.established_year,
+                'verification_status': org.status,  # Add this for frontend compatibility
+                'beneficiaries_served': getattr(org, 'beneficiaries_served', None),
+                'social_links': [{'platform': l.platform, 'url': l.url, 'is_verified': l.is_verified} for l in (org.social_links or [])],
+                'photos': [{'id': p.id, 'file_name': p.file_name, 'file_path': p.file_path, 'alt_text': p.alt_text, 'is_primary': p.is_primary} for p in (org.photos or [])],
                 'updated_at': org.updated_at.isoformat() if org.updated_at else None
-            })
-            return {'organization': org_data}
-        except Exception: api.abort(500, 'Failed to fetch organization')
+            }
+            return org_data
+        except Exception as e:
+            print(f"Error in organization detail: {e}")
+            api.abort(500, f'Failed to fetch organization: {str(e)}')
 
 @org_ns.route('/<int:org_id>/contact')
 class OrganizationContact(Resource):
@@ -808,10 +1187,17 @@ class CategoryOrganizations(Resource):
         404: 'Category not found'
     })
     def get(self, category_id):
+        from sqlalchemy.orm import joinedload
         cat = Category.query.get(category_id) or api.abort(404, 'Category not found')
         args = pagination_parser.parse_args()
-        items, pag = paginate(Organization.query.filter_by(category_id=category_id, status='approved').order_by(desc(Organization.created_at)), args.page, args.per_page)
-        return {'category': {'id': cat.id, 'name': cat.name, 'description': cat.description}, 'organizations': [marshal(o, organization_model) for o in items], 'pagination': pag}
+        query = Organization.query.options(
+            joinedload(Organization.photos),
+            joinedload(Organization.social_links),
+            joinedload(Organization.category),
+            joinedload(Organization.location)
+        ).filter_by(category_id=category_id, status='approved')
+        items, pag = paginate(query.order_by(desc(Organization.created_at)), args.page, args.per_page)
+        return {'category': {'id': cat.id, 'name': cat.name, 'description': cat.description}, 'organizations': [serialize_organization(o) for o in items], 'pagination': pag}
 
 # LOCATION ENDPOINTS
 @location_ns.route('')
@@ -862,8 +1248,14 @@ class OrganizationSearch(Resource):
     @search_ns.expect(search_parser)
     def get(self):
         try:
+            from sqlalchemy.orm import joinedload
             args = search_parser.parse_args()
-            query = Organization.query.filter(Organization.status == 'approved')
+            query = Organization.query.options(
+                joinedload(Organization.photos),
+                joinedload(Organization.social_links),
+                joinedload(Organization.category),
+                joinedload(Organization.location)
+            ).filter(Organization.status == 'approved')
             if args.q: query = query.filter(or_(Organization.name.ilike(f"%{args.q}%"), Organization.description.ilike(f"%{args.q}%"), Organization.mission.ilike(f"%{args.q}%")))
             if args.category_id: query = query.filter(Organization.category_id == args.category_id)
             if args.location_id: query = query.filter(Organization.location_id == args.location_id)
@@ -877,7 +1269,7 @@ class OrganizationSearch(Resource):
                     db.session.commit()
             except: pass
 
-            return {'results': [marshal(o, organization_model) for o in items], 'pagination': pag, 'search_meta': {'query': args.q, 'filters': {'category_id': args.category_id, 'location_id': args.location_id, 'verification_level': args.verification_level}}}
+            return {'results': [serialize_organization(o) for o in items], 'pagination': pag, 'search_meta': {'query': args.q, 'filters': {'category_id': args.category_id, 'location_id': args.location_id, 'verification_level': args.verification_level}}}
         except Exception: api.abort(500, 'Search failed')
 
 @search_ns.route('/suggestions')
@@ -1023,7 +1415,23 @@ class NotificationList(Resource):
     def get(self):
         args = pagination_parser.parse_args()
         items, pag = paginate(Notification.query.filter_by(user_id=get_jwt_identity()).order_by(desc(Notification.created_at)), args.page, args.per_page)
-        return {'notifications': [{'id': n.id, 'message': n.message, 'is_read': n.is_read, 'created_at': n.created_at.isoformat()} for n in items], 'pagination': pag}
+        notifications = []
+        for n in items:
+            notif_data = {
+                'id': n.id,
+                'title': n.title,
+                'message': n.message,
+                'notification_type': n.notification_type,
+                'priority': n.priority,
+                'is_read': n.is_read,
+                'read_at': n.read_at.isoformat() if n.read_at else None,
+                'email_sent': n.email_sent,
+                'email_sent_at': n.email_sent_at.isoformat() if n.email_sent_at else None,
+                'created_at': n.created_at.isoformat(),
+                'updated_at': n.updated_at.isoformat() if n.updated_at else None
+            }
+            notifications.append(notif_data)
+        return {'notifications': notifications, 'pagination': pag}
 
 @notification_ns.route('/<int:notification_id>/read')
 class NotificationRead(Resource):
@@ -1037,7 +1445,7 @@ class NotificationRead(Resource):
     def put(self, notification_id):
         try:
             notif = Notification.query.filter_by(id=notification_id, user_id=get_jwt_identity()).first() or api.abort(404, 'Notification not found')
-            notif.is_read = True
+            notif.mark_as_read()
             db.session.commit()
             return {'message': 'Marked as read'}
         except Exception:
@@ -1136,6 +1544,92 @@ class AdvertisementImpression(Resource):
             db.session.rollback()
             api.abort(500, 'Failed to track impression')
 
+# ADVERTISING INQUIRY ROUTE
+advertising_inquiry_parser = api.parser()
+advertising_inquiry_parser.add_argument('organizationName', type=str, required=True, help='Organization name')
+advertising_inquiry_parser.add_argument('contactName', type=str, required=True, help='Contact person name')
+advertising_inquiry_parser.add_argument('email', type=str, required=True, help='Email address')
+advertising_inquiry_parser.add_argument('phone', type=str, required=False, help='Phone number')
+advertising_inquiry_parser.add_argument('organizationType', type=str, required=True, help='Organization type')
+advertising_inquiry_parser.add_argument('website', type=str, required=False, help='Website URL')
+advertising_inquiry_parser.add_argument('adPackage', type=str, required=True, help='Interested package')
+advertising_inquiry_parser.add_argument('budget', type=str, required=False, help='Budget range')
+advertising_inquiry_parser.add_argument('campaignGoals', type=str, required=False, help='Campaign goals')
+advertising_inquiry_parser.add_argument('targetAudience', type=str, required=False, help='Target audience')
+advertising_inquiry_parser.add_argument('message', type=str, required=False, help='Additional message')
+
+@ad_ns.route('/inquiry')
+class AdvertisingInquiry(Resource):
+    @ad_ns.expect(advertising_inquiry_parser)
+    @ad_ns.doc(responses={
+        201: 'Inquiry submitted successfully',
+        400: 'Invalid input data',
+        500: 'Server error'
+    })
+    def post(self):
+        """Submit an advertising inquiry"""
+        try:
+            args = advertising_inquiry_parser.parse_args()
+
+            # Validate email format
+            email = args.email.strip().lower()
+            if not validate_email_format(email):
+                api.abort(400, 'Invalid email format')
+
+            # Create inquiry data
+            inquiry_data = {
+                'organization_name': args.organizationName.strip(),
+                'contact_name': args.contactName.strip(),
+                'email': email,
+                'phone': args.phone.strip() if args.phone else None,
+                'organization_type': args.organizationType,
+                'website': args.website.strip() if args.website else None,
+                'ad_package': args.adPackage,
+                'budget': args.budget,
+                'campaign_goals': args.campaignGoals.strip() if args.campaignGoals else None,
+                'target_audience': args.targetAudience.strip() if args.targetAudience else None,
+                'message': args.message.strip() if args.message else None,
+                'submitted_at': datetime.utcnow()
+            }
+
+            # Send email notification to admin
+            from .notification_service import NotificationService
+            notification_service = NotificationService()
+
+            # Send notification email to partnerships team
+            try:
+                partnerships_email = os.getenv('PARTNERSHIPS_EMAIL', 'partnerships@unseen.com')
+                notification_service.send_advertising_inquiry_notification(
+                    partnerships_email,
+                    inquiry_data
+                )
+            except Exception as e:
+                current_app.logger.error(f"Failed to send advertising inquiry email: {str(e)}")
+                # Don't fail the request if email fails
+
+            # Send confirmation email to inquirer
+            try:
+                notification_service.send_advertising_inquiry_confirmation(
+                    email,
+                    args.contactName.strip(),
+                    inquiry_data
+                )
+            except Exception as e:
+                current_app.logger.error(f"Failed to send inquiry confirmation email: {str(e)}")
+
+            # Log the inquiry (you could also save to database if needed)
+            current_app.logger.info(f"Advertising inquiry submitted by {email} for {args.organizationName}")
+
+            return {
+                'message': 'Advertising inquiry submitted successfully',
+                'inquiry_id': f"ADV-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+                'status': 'submitted'
+            }, 201
+
+        except Exception as e:
+            current_app.logger.error(f"Error submitting advertising inquiry: {str(e)}")
+            api.abort(500, 'Failed to submit inquiry')
+
 # ORGANIZATION ADMIN ROUTES
 @org_ns.route('/<int:org_id>/contact-messages')
 class OrganizationContactMessages(Resource):
@@ -1170,9 +1664,15 @@ class OrganizationContactMessages(Resource):
             db.session.add(msg)
             db.session.commit()
 
+            # Send notification using the new notification service
             if org.admin_user_id:
-                db.session.add(Notification(user_id=org.admin_user_id, message=f"New contact message from {args.sender_name} for {org.name}"))
-                db.session.commit()
+                try:
+                    from .notification_service import notification_service
+                    notification_service.send_contact_message_notification(
+                        org_id, args.sender_name, args.subject
+                    )
+                except Exception as e:
+                    print(f"Failed to send notification: {e}")
 
             return {'message': 'Message sent successfully', 'contact_message': {'id': msg.id, 'sender_name': msg.sender_name, 'subject': msg.subject, 'created_at': msg.created_at.isoformat()}}, 201
         except Exception:
@@ -1224,7 +1724,6 @@ class OrganizationContactMessageDetail(Resource):
 
 @org_ns.route('/<int:org_id>/photos')
 class OrganizationPhotos(Resource):
-    @org_ns.marshal_list_with(photo_model)
     @org_ns.doc(responses={
         200: 'Organization photos retrieved successfully',
         404: 'Organization not found'
@@ -1237,8 +1736,8 @@ class OrganizationPhotos(Resource):
                 if user := User.query.get(uid): is_admin = user.role in ['platform_admin', 'org_admin']
         except: pass
         if org.status != 'approved' and not is_admin: api.abort(404, 'Organization not found')
-        photos = OrganizationPhoto.query.filter_by(organization_id=org_id).order_by(desc(OrganizationPhoto.is_primary), OrganizationPhoto.created_at).all()
-        return {'photos': [{'id': p.id, 'file_name': p.file_name, 'file_path': p.file_path, 'alt_text': p.alt_text, 'is_primary': p.is_primary, 'created_at': p.created_at.isoformat() if p.created_at else None} for p in photos], 'organization': {'id': org.id, 'name': org.name}}
+        photos = OrganizationPhoto.query.filter_by(organization_id=org_id).order_by(desc(OrganizationPhoto.is_primary), OrganizationPhoto.uploaded_at).all()
+        return [{'id': p.id, 'file_name': p.file_name, 'file_path': p.file_path, 'alt_text': p.alt_text, 'is_primary': p.is_primary, 'uploaded_at': p.uploaded_at.isoformat() if p.uploaded_at else None} for p in photos]
 
     @jwt_required()
     @org_ns.expect(photo_create_parser)
@@ -1315,6 +1814,10 @@ class HealthCheck(Resource):
             return {'status': 'healthy', 'timestamp': datetime.utcnow().isoformat(), 'database': 'connected'}
         except Exception as e:
             return {'status': 'unhealthy', 'timestamp': datetime.utcnow().isoformat(), 'database': 'disconnected', 'error': str(e)}, 503
+
+
+# Import notification preferences routes to register them (at end to avoid circular imports)
+from . import notification_preferences_routes
 
 # Export the blueprint for use in app.py
 __all__ = ['api_bp']

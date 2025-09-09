@@ -59,7 +59,7 @@
 }
 
 .btn-primary:hover {
-  background: var(--ghibli-forest-gradient) !important;
+  background: var(--ghibli-totoro-green) !important;
   border-color: var(--ghibli-forest-deep) !important;
 }
 
@@ -88,17 +88,17 @@
 
 /* Nature-themed section backgrounds */
 .forest-section {
-  background: linear-gradient(45deg, var(--ghibli-forest-deep) 0%, var(--ghibli-totoro-green) 100%);
+  background: var(--ghibli-forest-deep);
   color: var(--ghibli-cream);
 }
 
 .meadow-section {
-  background: linear-gradient(45deg, var(--ghibli-meadow) 0%, var(--ghibli-cream) 100%);
-  color: var(--ghibli-castle-stone);
+  background: var(--ghibli-sunset);
+  color: var(--ghibli-forest-deep);
 }
 
 .sky-section {
-  background: linear-gradient(45deg, var(--ghibli-sky-blue) 0%, var(--ghibli-cream) 100%);
+  background: var(--ghibli-sky-blue);
   color: var(--ghibli-castle-stone);
 }
 
@@ -111,7 +111,7 @@
 }
 
 .calcifer-button {
-  background: var(--ghibli-sunset-gradient) !important;
+  background: var(--ghibli-calcifer-flame) !important;
   border: none !important;
   color: white !important;
   border-radius: 2rem !important;
@@ -187,17 +187,17 @@
 /* Ghibli-themed alert states */
 .error-state {
   border-left: 4px solid var(--ghibli-calcifer-flame) !important;
-  background: linear-gradient(45deg, rgba(255, 99, 71, 0.1), rgba(244, 164, 96, 0.1)) !important;
+  background: rgba(255, 99, 71, 0.1) !important;
 }
 
 .success-state {
   border-left: 4px solid var(--ghibli-forest-deep) !important;
-  background: linear-gradient(45deg, rgba(45, 80, 22, 0.1), rgba(144, 238, 144, 0.1)) !important;
+  background: rgba(45, 80, 22, 0.1) !important;
 }
 
 .info-state {
   border-left: 4px solid var(--ghibli-sky-blue) !important;
-  background: linear-gradient(45deg, rgba(135, 206, 235, 0.1), rgba(221, 160, 221, 0.1)) !important;
+  background: rgba(135, 206, 235, 0.1) !important;
 }
 
 /* Modal enhancements with Ghibli magic */
@@ -299,7 +299,7 @@
 
 .nav-ghibli .nav-link:hover::after,
 .nav-ghibli .nav-link.active::after {
-  width: 100%;
+  width: 50%;
 }
 
 .nav-ghibli .nav-link:hover {
@@ -410,7 +410,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(74, 124, 89, 0.3) 0%, rgba(45, 80, 22, 0.5) 50%, rgba(74, 124, 89, 0.3) 100%);
+  background: rgba(74, 124, 89, 0.4);
   z-index: 1;
 }
 
@@ -514,7 +514,7 @@
 
 /* Enhanced Footer Styling with Studio Ghibli Magic */
 .footer-ghibli {
-  background: linear-gradient(135deg, var(--ghibli-totoro-green) 0%, var(--ghibli-forest-deep) 100%);
+  background: var(--ghibli-totoro-green);
   position: relative;
   overflow: hidden;
 }
@@ -541,6 +541,14 @@
 
 .text-ghibli-light {
   color: rgba(245, 245, 220, 0.85) !important;
+}
+
+.text-ghibli-green {
+  color: var(--ghibli-totoro-green) !important;
+}
+
+.bg-ghibli-green {
+  background-color: var(--ghibli-totoro-green) !important;
 }
 
 .border-ghibli-cream {
