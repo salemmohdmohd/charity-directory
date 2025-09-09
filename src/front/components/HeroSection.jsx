@@ -7,7 +7,7 @@ export const HeroSection = () => {
     <header
     className='bg-primary text-white text-center py-5 d-flex align-items-center hero-ghibli'
     style={{
-        backgroundImage: 'url(/Hero.png)',
+        backgroundImage: 'url(Hero.png)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',

@@ -1,75 +1,96 @@
-// Enhanced userAuth using axios with automatic token refresh
-import { authService } from '../Services/axios'
+// src/front/data/userAuth.jsx
 
-// Re-export all auth service methods for compatibility
-export const login = authService.login
-export const signup = authService.signup
+import { authService, userService } from '../Services/axios';
+
+// --- Re-exporting authService methods for backward compatibility ---
+export const login = authService.login;
+export const signup = authService.signup;
+export const organizationSignup = authService.organizationSignup;
+export const logout = authService.logout;
+export const isAuthenticated = authService.isAuthenticated;
+export const forgotPassword = authService.forgotPassword;
+export const resetPassword = authService.resetPassword;
+export const changePassword = authService.changePassword;
+export const initiateGoogleOAuth = authService.initiateGoogleOAuth;
+export const linkGoogleAccount = authService.linkGoogleAccount;
+export const unlinkGoogleAccount = authService.unlinkGoogleAccount;
+export const debugToken = authService.debugToken;
+
+// --- Re-exporting userService methods ---
+export const updateProfile = userService.updateProfile;
+export const getProfile = userService.getProfile;
+export const getBookmarks = userService.getBookmarks;
+export const addBookmark = userService.addBookmark;
+export const removeBookmark = userService.removeBookmark;
+
+// --- Enhanced/Compatibility Functions ---
+
+/**
+ * Fetches current user data and maintains compatibility with components
+ * expecting a { user: ... } structure.
+ */
 export const getCurrentUserData = async () => {
-  const userData = await authService.getCurrentUser()
-  return { user: userData } // Maintain compatibility with existing components
-}
-export const logout = authService.logout
-export const isAuthenticated = authService.isAuthenticated
-export const forgotPassword = authService.forgotPassword
-export const resetPassword = authService.resetPassword
-export const changePassword = authService.changePassword
-export const updateProfile = authService.updateProfile
-export const linkGoogleAccount = authService.linkGoogleAccount
-export const unlinkGoogleAccount = authService.unlinkGoogleAccount
-export const debugToken = authService.debugToken
+  const userData = await authService.getCurrentUser();
+  return { user: userData }; // Maintain compatibility
+};
 
-// Token management (maintained for backward compatibility)
-export const getToken = () => localStorage.getItem('access_token')
-export const saveToken = (token) => localStorage.setItem('access_token', token)
-export const removeToken = () => {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-}
+/**
+ * Handles OAuth callback by extracting tokens from URL and saving them.
+ * @param {URLSearchParams} urlParams - The URL search parameters.
+ * @returns {Object} The tokens and user ID.
+ */
+export const handleOAuthCallback = (urlParams) => {
+  const token = urlParams.get('token');
+  const refreshToken = urlParams.get('refresh_token');
+  const userId = urlParams.get('user_id');
 
-// Enhanced token management for refresh tokens
-export const getRefreshToken = () => localStorage.getItem('refresh_token')
-export const saveTokens = (accessToken, refreshToken) => {
-  localStorage.setItem('access_token', accessToken)
-  if (refreshToken) {
-    localStorage.setItem('refresh_token', refreshToken)
+  if (token) {
+    authService.handleOAuthCallback(token, refreshToken, userId);
+    return { token, refreshToken, userId };
   }
-}
 
-// Get current user from token (enhanced)
+  throw new Error('No authentication tokens received');
+};
+
+/**
+ * Decodes the JWT to get user information without a server request.
+ * @returns {Object|null} The user object or null if token is invalid.
+ */
 export const getCurrentUser = () => {
-  const token = getToken()
-  if (!token) return null
+  const token = localStorage.getItem('access_token');
+  if (!token) return null;
 
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]))
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // Ensure token is not expired
+    if (payload.exp * 1000 < Date.now()) {
+      authService.logout(); // Use the service to clear tokens
+      return null;
+    }
     return {
       id: payload.sub,
       email: payload.email,
       role: payload.role,
-      is_verified: payload.is_verified
-    }
+      is_verified: payload.is_verified,
+    };
   } catch (error) {
-    console.error('Token validation error:', error)
-    removeToken()
-    return null
+    console.error('Token validation error:', error);
+    authService.logout(); // Use the service to clear tokens
+    return null;
   }
-}
+};
 
-// OAuth handling (enhanced for refresh tokens)
-export const handleOAuthCallback = (urlParams) => {
-  const token = urlParams.get('token')
-  const refreshToken = urlParams.get('refresh_token')
-  const userId = urlParams.get('user_id')
+// --- Deprecated Token Functions (kept for reference, but service should be used) ---
 
-  if (token) {
-    saveTokens(token, refreshToken)
-    return { token, refreshToken, userId }
-  }
+export const getToken = () => localStorage.getItem('access_token');
 
-  throw new Error('No authentication tokens received')
-}
+export const saveToken = (token) => {
+  console.warn("`saveToken` is deprecated. Use `authService.login` or other service methods.");
+  localStorage.setItem('access_token', token);
+};
 
-// Google OAuth initiation
-export const initiateGoogleOAuth = () => {
-  authService.initiateGoogleOAuth()
-}
+export const removeToken = () => {
+  console.warn("`removeToken` is deprecated. Use `authService.logout`.");
+  authService.logout();
+};
+

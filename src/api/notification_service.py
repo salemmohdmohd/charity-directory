@@ -230,6 +230,11 @@ class NotificationService:
         if not mail:
             return False
 
+        frontend_url = current_app.config.get('FRONTEND_URL')
+        if not frontend_url:
+            current_app.logger.error("FRONTEND_URL is not configured. Cannot send email with links.")
+            return False
+
         try:
             # Load template
             template = self._load_template(notification_type.value)
@@ -239,8 +244,8 @@ class NotificationService:
                 'subject': subject,
                 'content': content,
                 'year': datetime.now().year,
-                'frontend_url': current_app.config.get('FRONTEND_URL', 'http://localhost:3000'),
-                'unsubscribe_url': f"{current_app.config.get('FRONTEND_URL', 'http://localhost:3000')}/unsubscribe"
+                'frontend_url': frontend_url,
+                'unsubscribe_url': f"{frontend_url}/unsubscribe"
             })
 
             # Render template
@@ -326,9 +331,14 @@ class NotificationService:
         if not user:
             return False
 
+        frontend_url = current_app.config.get('FRONTEND_URL')
+        if not frontend_url:
+            current_app.logger.error("FRONTEND_URL is not configured. Cannot send welcome email.")
+            return False
+
         template_vars = {
             'user_name': user.name,
-            'verification_url': f"{current_app.config.get('FRONTEND_URL')}/verify-email?token={verification_token}" if verification_token else None
+            'verification_url': f"{frontend_url}/verify-email?token={verification_token}" if verification_token else None
         }
 
         return self.send_notification(
@@ -355,9 +365,14 @@ class NotificationService:
             message = f"We regret to inform you that {org.name} application needs revision. Please check your dashboard for details."
             notification_type = NotificationType.ORGANIZATION_REJECTED
 
+        frontend_url = current_app.config.get('FRONTEND_URL')
+        if not frontend_url:
+            current_app.logger.error("FRONTEND_URL is not configured. Cannot send organization approval notification.")
+            return False
+
         template_vars = {
             'organization_name': org.name,
-            'dashboard_url': f"{current_app.config.get('FRONTEND_URL')}/org-dashboard"
+            'dashboard_url': f"{frontend_url}/org-dashboard"
         }
 
         return self.send_notification(
@@ -377,11 +392,16 @@ class NotificationService:
 
         message = f"New contact message from {sender_name} for {org.name}: {subject}"
 
+        frontend_url = current_app.config.get('FRONTEND_URL')
+        if not frontend_url:
+            current_app.logger.error("FRONTEND_URL is not configured. Cannot send contact message notification.")
+            return False
+
         template_vars = {
             'organization_name': org.name,
             'sender_name': sender_name,
             'message_subject': subject,
-            'dashboard_url': f"{current_app.config.get('FRONTEND_URL')}/org-dashboard"
+            'dashboard_url': f"{frontend_url}/org-dashboard"
         }
 
         return self.send_notification(
@@ -399,7 +419,12 @@ class NotificationService:
         if not user:
             return False
 
-        reset_url = f"{current_app.config.get('FRONTEND_URL')}/reset-password?token={reset_token}"
+        frontend_url = current_app.config.get('FRONTEND_URL')
+        if not frontend_url:
+            current_app.logger.error("FRONTEND_URL is not configured. Cannot send password reset notification.")
+            return False
+
+        reset_url = f"{frontend_url}/reset-password?token={reset_token}"
 
         template_vars = {
             'user_name': user.name,
@@ -422,7 +447,12 @@ class NotificationService:
         if not user:
             return False
 
-        verify_url = f"{current_app.config.get('FRONTEND_URL')}/verify-email?token={verification_token}"
+        frontend_url = current_app.config.get('FRONTEND_URL')
+        if not frontend_url:
+            current_app.logger.error("FRONTEND_URL is not configured. Cannot send email verification.")
+            return False
+
+        verify_url = f"{frontend_url}/verify-email?token={verification_token}"
 
         template_vars = {
             'user_name': user.name,
@@ -478,12 +508,18 @@ class NotificationService:
 
             # Load template and render
             template = self._load_template('general')
+
+            frontend_url = current_app.config.get('FRONTEND_URL')
+            if not frontend_url:
+                current_app.logger.error("FRONTEND_URL is not configured. Cannot send advertising inquiry notification.")
+                return False
+
             template_vars = {
                 'subject': f"New Advertising Inquiry from {inquiry_data['organization_name']}",
                 'content': content,
                 'year': datetime.now().year,
-                'frontend_url': current_app.config.get('FRONTEND_URL', 'http://localhost:3000'),
-                'unsubscribe_url': f"{current_app.config.get('FRONTEND_URL', 'http://localhost:3000')}/unsubscribe"
+                'frontend_url': frontend_url,
+                'unsubscribe_url': f"{frontend_url}/unsubscribe"
             }
 
             html_content = render_template_string(template, **template_vars)
@@ -550,12 +586,18 @@ class NotificationService:
 
             # Load template and render
             template = self._load_template('general')
+
+            frontend_url = current_app.config.get('FRONTEND_URL')
+            if not frontend_url:
+                current_app.logger.error("FRONTEND_URL is not configured. Cannot send advertising inquiry confirmation.")
+                return False
+
             template_vars = {
                 'subject': "Your Advertising Inquiry - Confirmation Received",
                 'content': content,
                 'year': datetime.now().year,
-                'frontend_url': current_app.config.get('FRONTEND_URL', 'http://localhost:3000'),
-                'unsubscribe_url': f"{current_app.config.get('FRONTEND_URL', 'http://localhost:3000')}/unsubscribe"
+                'frontend_url': frontend_url,
+                'unsubscribe_url': f"{frontend_url}/unsubscribe"
             }
 
             html_content = render_template_string(template, **template_vars)
