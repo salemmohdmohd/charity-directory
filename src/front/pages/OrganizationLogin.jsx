@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import useGlobalReducer from '../hooks/useGlobalReducer';
+import { useAuth } from '../hooks/useAuth';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
 
 export const OrganizationLogin = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
+  const { login } = useAuth();
   const { dispatch } = useGlobalReducer();
   const navigate = useNavigate();
 
@@ -39,24 +41,30 @@ export const OrganizationLogin = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-    const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!validateForm()) return;
 
     try {
-      // Simulate API call for organization login
-      setTimeout(() => {
-        dispatch({ type: 'SET_USER', payload: {
-          ...formData,
-          role: 'organization',
-          name: 'Admin'
-        }});
+      const { user } = await login(formData.email, formData.password);
+
+      // After successful login, the useAuth hook updates the global state.
+      // We can now check the user's role and navigate accordingly.
+
+      if (user && user.role === 'org_admin') {
         dispatch({ type: 'SET_NOTIFICATION', payload: 'Welcome to your organization dashboard!' });
         navigate('/organization-dashboard');
-      }, 1500);
+      } else {
+        // Optional: handle cases where an organization admin might have a different role
+        // or for general users trying to log in here.
+        dispatch({ type: 'SET_ERROR', payload: 'Access denied. Please use the correct login page.' });
+        navigate('/login');
+      }
     } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: 'Login failed. Please try again.' });
+      // The useAuth hook will dispatch the error, but you can add component-specific error handling here if needed.
+      console.error("Organization login failed:", error);
+      // The error is already set in the global state by the hook, so no need to dispatch here unless you want to override it.
     }
   };
 
@@ -65,7 +73,7 @@ export const OrganizationLogin = () => {
   };
 
   return (
-    <div className="container mt-5">
+    <div className="container mt-5 mb-5">
       <div className="row justify-content-center">
         <div className="col-md-6 col-lg-5">
           <div className="card shadow border-primary">

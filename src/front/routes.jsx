@@ -4,6 +4,8 @@ import {
     createRoutesFromElements,
     Route,
 } from "react-router-dom";
+
+// Import Layout and Page Components
 import { Layout } from "./pages/Layout";
 import { Home } from "./pages/Home";
 import { Login } from "./pages/Login";
@@ -20,11 +22,16 @@ import OrganizationDetail from "./pages/OrganizationDetail";
 import AboutUs from "./pages/AboutUs";
 import Advertise from "./pages/Advertise";
 import ListYourCharity from "./pages/ListYourCharity";
+import Contact from "./pages/Contact";
 import UserDashboard from "./pages/UserDashboard";
 import UserProfile from "./pages/UserProfile";
 import SearchHistory from "./pages/SearchHistory";
+import Bookmarks from "./pages/Bookmarks";
 import OAuthCallback from "./pages/OAuthCallback";
 import OrgDashboard from "./pages/OrgDashboard";
+import Search from "./pages/Search";
+
+// Import Higher-Order Components
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter(
@@ -38,23 +45,33 @@ export const router = createBrowserRouter(
       // Root Route: All navigation will start from here.
       <Route path="/" element={<Layout />} errorElement={<h1>Not found!</h1>} >
 
-        {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
+        {/* Public Routes */}
         <Route path= "/" element={<Home />} />
         <Route path="/categories" element={<Categories />} />
         <Route path="/categories/:categorySlug" element={<CategoryDetail />} />
+        <Route path="/organizations" element={<Search />} />
         <Route path="/organizations/:organizationId" element={<OrganizationDetail />} />
         <Route path="/about-us" element={<AboutUs />} />
         <Route path="/advertise" element={<Advertise />} />
         <Route path="/list-your-charity" element={<ListYourCharity />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/search" element={<Search />} />
 
+        {/* Authentication Routes */}
+        <Route path="/login" element={<Login/>}/>
+        <Route path="/signup" element={<Signup/>}/>
+        <Route path="/forgot-password" element={<ForgotPassword/>}/>
+        <Route path="/reset-password" element={<ResetPassword/>}/>
+        <Route path="/auth/callback" element={<OAuthCallback/>}/>
+
+        {/* Organization Auth Routes */}
+        <Route path="/organization-login" element={<OrganizationLogin/>}/>
+        <Route path="/organization-signup" element={<OrganizationSignup/>}/>
+
+        {/* Protected User Routes */}
         <Route path="/dashboard" element={
           <ProtectedRoute allowedRoles={['visitor', 'platform_admin']}>
             <UserDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/org-dashboard" element={
-          <ProtectedRoute allowedRoles={['org_admin']}>
-            <OrgDashboard />
           </ProtectedRoute>
         } />
         <Route path="/profile" element={
@@ -65,6 +82,11 @@ export const router = createBrowserRouter(
         <Route path="/search-history" element={
           <ProtectedRoute>
             <SearchHistory />
+          </ProtectedRoute>
+        } />
+        <Route path="/bookmarks" element={
+          <ProtectedRoute>
+            <Bookmarks />
           </ProtectedRoute>
         } />
         <Route path="/notification-settings" element={
@@ -78,16 +100,13 @@ export const router = createBrowserRouter(
           </ProtectedRoute>
         } />
 
-        {/* Authentication Routes */}
-        <Route path="/login" element={<Login/>}/>
-        <Route path="/signup" element={<Signup/>}/>
-        <Route path="/forgot-password" element={<ForgotPassword/>}/>
-        <Route path="/reset-password" element={<ResetPassword/>}/>
-        <Route path="/auth/callback" element={<OAuthCallback/>}/>
+        {/* Organization Dashboard Route */}
+        <Route path="/organization-dashboard" element={
+          <ProtectedRoute allowedRoles={['org_admin']}>
+            <OrgDashboard />
+          </ProtectedRoute>
+        } />
 
-        {/* Organization Routes */}
-        <Route path="/organization-login" element={<OrganizationLogin/>}/>
-        <Route path="/organization-signup" element={<OrganizationSignup/>}/>
       </Route>
     )
 );

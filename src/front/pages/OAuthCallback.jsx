@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import useGlobalReducer from '../hooks/useGlobalReducer';
-import { saveTokens, getCurrentUserData, removeToken } from '../data/userAuth';
+import { handleOAuthCallback } from '../data/userAuth';
 
 export const OAuthCallback = () => {
   const navigate = useNavigate();
@@ -39,10 +39,10 @@ export const OAuthCallback = () => {
           throw new Error('Authentication data not received');
         }
 
-        // Store both access and refresh tokens
-        saveTokens(token, refreshToken);
+        // Store tokens and get user data
+        handleOAuthCallback(searchParams);
 
-        // Initialize auth state using the useAuth hook (this will call getCurrentUserData internally)
+        // Initialize auth state using the useAuth hook
         await initializeAuth();
 
         dispatch({

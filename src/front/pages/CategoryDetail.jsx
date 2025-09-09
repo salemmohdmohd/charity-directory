@@ -27,59 +27,34 @@ const CategoryDetail = () => {
         setLoading(true);
         setError(null);
 
-        // First get all categories to find the one with matching slug
-        const categoriesData = await categoryService.getCategories();
-        const foundCategory = categoriesData.categories?.find(cat =>
-          cat.name.toLowerCase().replace(/\s+/g, '-') === categorySlug
-        );
+        // Fetch category and organizations in one go
+        const categoryData = await categoryService.getCategoryBySlug(categorySlug, {
+          page: currentPage,
+          per_page: perPage,
+          include_organizations: true, // Ask backend to include organizations
+        });
 
-        if (!foundCategory) {
+        if (!categoryData || !categoryData.category) {
           setError('Category not found');
           setLoading(false);
           return;
         }
 
-        setCategory(foundCategory);
-
-        // Then fetch organizations for this category
-        const orgData = await categoryService.getOrganizationsByCategory(
-          foundCategory.id,
-          {
-            page: currentPage,
-            per_page: perPage
-          }
-        );
-
-        const organizations = orgData.organizations || [];
-
-        // Load photos for each organization
-        const organizationsWithPhotos = await Promise.all(
-          organizations.map(async (org) => {
-            try {
-              const photos = await organizationService.getOrganizationPhotos(org.id);
-              return { ...org, photos };
-            } catch (photoError) {
-              console.error(`Error loading photos for organization ${org.id}:`, photoError);
-              return { ...org, photos: [] };
-            }
-          })
-        );
-
-        setOrganizations(organizationsWithPhotos);
-        setTotalPages(orgData.total_pages || 1);
-        setTotalCount(orgData.total_count || 0);
+        setCategory(categoryData.category);
+        setOrganizations(categoryData.organizations || []);
+        setTotalPages(categoryData.total_pages || 1);
+        setTotalCount(categoryData.total_count || 0);
 
         dispatch({
           type: 'SET_NOTIFICATION',
-          payload: null
+          payload: null,
         });
-
       } catch (error) {
         console.error('Error fetching category data:', error);
         setError('Failed to load category information. Please try again.');
         dispatch({
           type: 'SET_ERROR',
-          payload: 'Failed to load category information.'
+          payload: 'Failed to load category information.',
         });
       } finally {
         setLoading(false);

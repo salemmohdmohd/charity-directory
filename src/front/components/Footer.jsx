@@ -2,15 +2,15 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 export const Footer = () => (
-	<footer className="bg-totoro text-light mt-5 py-5 footer-ghibli d-none d-md-block" style={{ marginTop: '4rem' }}>
-\
+	<footer className="bg-totoro text-light  py-5 footer-ghibli d-none d-md-block" >
+
 		<div className="container">
 			<div className="row g-4">
 				{/* Brand Section */}
 				<div className="col-lg-4 col-md-6">
 					<div className="d-flex align-items-center mb-3">
 						<img
-							src="/Logo.png"
+							src="Logo.png"
 							alt="Unseen Logo"
 							height="40"
 							className="me-3"
