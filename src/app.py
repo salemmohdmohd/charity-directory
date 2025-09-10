@@ -180,6 +180,14 @@ def health_check():
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+# Also handle /api/uploads/ for frontend compatibility
+@app.route('/api/uploads/<path:filename>')
+def api_uploaded_file(filename):
+    # If the path already has /uploads/ in it, we need to extract just the filename
+    if filename.startswith('uploads/'):
+        filename = filename.replace('uploads/', '')
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):

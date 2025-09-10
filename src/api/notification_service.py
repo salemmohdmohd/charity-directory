@@ -372,7 +372,7 @@ class NotificationService:
 
         template_vars = {
             'organization_name': org.name,
-            'dashboard_url': f"{frontend_url}/org-dashboard"
+            'dashboard_url': f"{frontend_url}/organization-dashboard"
         }
 
         return self.send_notification(

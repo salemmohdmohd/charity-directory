@@ -80,22 +80,51 @@ const Advertise = () => {
 
     return (
         <div>
-            {/* Hero Section */}
-            <section className="bg-totoro text-white py-5">
+            {/* Enhanced Hero Section */}
+            <header
+                className="bg-primary text-white text-center py-5 d-flex align-items-center hero-ghibli"
+                style={{
+                    background: 'linear-gradient(135deg, #3a6b47 0%, #4a7c59 50%, #7cb87c 100%)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
+                    minHeight: '400px',
+                    textShadow: '2px 2px 8px rgba(0, 0, 0, 0.7), 1px 1px 4px rgba(0, 0, 0, 0.5)'
+                }}
+            >
                 <div className="container">
-                    <div className="row">
-                        <div className="col-12 text-center">
-                            <h1 className="display-4 fw-bold mb-3 magical-title">
+                    <div className="row justify-content-center">
+                        <div className="col-lg-8">
+                            <div className="mb-4">
+                                <span className="badge bg-white text-ghibli-green px-3 py-2 mb-3 fw-bold">
+                                    <i className="fas fa-star me-1"></i> PROMOTIONAL OPPORTUNITY
+                                </span>
+                            </div>
+                            <h1 className="display-3 fw-bold mb-3 magical-title" style={{textShadow: '3px 3px 10px rgba(0, 0, 0, 0.8), 2px 2px 6px rgba(74, 124, 89, 0.4)'}}>
                                 <i className="fas fa-bullhorn me-3"></i>
                                 Advertise With Us
                             </h1>
-                            <p className="lead enchanted-text">
-                                Reach thousands of people who care about making a difference
+                            <p className="lead fw-bold mb-4 enchanted-text fs-4" style={{textShadow: '2px 2px 6px rgba(0, 0, 0, 0.7), 1px 1px 3px rgba(74, 124, 89, 0.3)'}}>
+                                Reach thousands of people who care about making a difference and connect with a highly engaged, purpose-driven audience
                             </p>
+                            <div className="row justify-content-center mt-4">
+                                <div className="col-md-4 col-6 mb-3">
+                                    <div className="bg-white bg-opacity-25 rounded-4 p-3">
+                                        <h3 className="fw-bold text-ghibli-cream mb-0">10K+</h3>
+                                        <p className="mb-0">Monthly Visitors</p>
+                                    </div>
+                                </div>
+                                <div className="col-md-4 col-6 mb-3">
+                                    <div className="bg-white bg-opacity-25 rounded-4 p-3">
+                                        <h3 className="fw-bold text-ghibli-cream mb-0">4.8<small>/5</small></h3>
+                                        <p className="mb-0">Advertiser Rating</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </section>
+            </header>
 
             {/* Simple Benefits */}
             <section className="py-5 sky-section">

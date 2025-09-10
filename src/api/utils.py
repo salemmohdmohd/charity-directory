@@ -52,16 +52,23 @@ def check_admin_role(user_id):
 
 def serialize_user(user):
     if not user: return None
+
+    # Check if user administers any organizations and get the first one's ID
+    organization_id = None
+    if hasattr(user, 'administered_orgs') and user.administered_orgs:
+        organization_id = user.administered_orgs[0].id if user.administered_orgs else None
+
     return {
         'id': user.id,
         'email': user.email,
         'role': user.role,
-        'full_name': user.name,
+        'name': user.name,
         'profile_picture': user.profile_picture,
         'is_verified': user.is_verified,
         'created_at': user.created_at.isoformat(),
         'updated_at': user.updated_at.isoformat() if user.updated_at else None,
-        'last_login': user.last_login.isoformat() if user.last_login else None
+        'last_login': user.last_login.isoformat() if user.last_login else None,
+        'organization_id': organization_id  # Add organization_id for frontend
     }
 
 def serialize_activity(activity):
@@ -146,11 +153,23 @@ def serialize_organization(org, include_details=False):
     if org.photos:
         primary_photo = next((p for p in org.photos if p.is_primary), None)
         if primary_photo:
-            primary_photo_url = primary_photo.file_path if primary_photo.file_path else url_for('uploaded_file', filename=primary_photo.file_name, _external=True)
+            if primary_photo.file_path:
+                primary_photo_url = primary_photo.file_path
+            else:
+                try:
+                    primary_photo_url = url_for('uploaded_file', filename=primary_photo.file_name, _external=False)
+                except:
+                    primary_photo_url = f"/uploads/{primary_photo.file_name}"
         elif org.photos:
             # Fallback to the first photo if no primary is set
             first_photo = org.photos[0]
-            primary_photo_url = first_photo.file_path if first_photo.file_path else url_for('uploaded_file', filename=first_photo.file_name, _external=True)
+            if first_photo.file_path:
+                primary_photo_url = first_photo.file_path
+            else:
+                try:
+                    primary_photo_url = url_for('uploaded_file', filename=first_photo.file_name, _external=False)
+                except:
+                    primary_photo_url = f"/uploads/{first_photo.file_name}"
 
     logo_full_url = None
     if org.logo_url:
@@ -158,18 +177,22 @@ def serialize_organization(org, include_details=False):
         if org.logo_url.startswith('http://') or org.logo_url.startswith('https://'):
             logo_full_url = org.logo_url
         else:
-            # If it's just a filename, build the full URL
-            logo_full_url = url_for('uploaded_file', filename=org.logo_url, _external=True)
+            # Just return the filename - frontend will handle the path
+            logo_full_url = org.logo_url
 
     data = {
         'id': org.id,
         'name': org.name,
         'mission': org.mission,
         'description': org.description,
-        'category': org.category.name if org.category else None,
+        'category_name': org.category.name if org.category else None,
+        'category_id': org.category.id if org.category else None,
         'location': serialize_location(org.location),
         'logo_url': logo_full_url,
         'primary_photo_url': primary_photo_url,
+        'email': org.email,
+        'phone': org.phone,
+        'address': org.address,
         'website': org.website,
         'donation_link': org.donation_link,
         'status': org.status,
@@ -201,11 +224,18 @@ def serialize_organization(org, include_details=False):
         data['bookmark_id'] = None
 
     if include_details:
-        data['photos'] = [{'id': p.id, 'url': p.file_path if p.file_path else url_for('uploaded_file', filename=p.file_name, _external=True), 'alt_text': p.alt_text} for p in org.photos]
+        photos = []
+        for p in org.photos:
+            url = p.file_path
+            if not url:
+                try:
+                    url = url_for('uploaded_file', filename=p.file_name, _external=False)
+                except:
+                    url = f"/uploads/{p.file_name}"
+            photos.append({'id': p.id, 'url': url, 'alt_text': p.alt_text})
+
+        data['photos'] = photos
         data['social_links'] = [{'platform': s.platform, 'url': s.url} for s in org.social_links]
-        data['address'] = org.address
-        data['phone'] = org.phone
-        data['email'] = org.email
         data['operating_hours'] = org.operating_hours
 
     return data

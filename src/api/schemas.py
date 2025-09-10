@@ -1,4 +1,5 @@
-from flask_restx import fields
+from flask_restx import fields, reqparse, inputs
+from werkzeug.datastructures import FileStorage
 from .core import api
 
 # =====================================================================================
@@ -166,18 +167,31 @@ change_password_parser.add_argument('new_password', type=str, required=True, hel
 
 # ORGANIZATION PARSERS
 org_signup_parser = api.parser()
-org_signup_parser.add_argument('admin_name', type=str, required=True, help='Admin full name', location='json')
-org_signup_parser.add_argument('admin_email', type=str, required=True, help='Admin email address', location='json')
-org_signup_parser.add_argument('password', type=str, required=True, help='Admin password', location='json')
-org_signup_parser.add_argument('organization_name', type=str, required=True, help='Organization name', location='json')
-org_signup_parser.add_argument('mission', type=str, required=True, help='Mission statement', location='json')
-org_signup_parser.add_argument('category_id', type=int, required=True, help='Category ID', location='json')
-org_signup_parser.add_argument('phone', type=str, help='Phone number', location='json')
-org_signup_parser.add_argument('website', type=str, help='Website URL', location='json')
-org_signup_parser.add_argument('address', type=str, help='Address', location='json')
-org_signup_parser.add_argument('city', type=str, help='City', location='json')
-org_signup_parser.add_argument('state', type=str, help='State/Province', location='json')
-org_signup_parser.add_argument('country', type=str, help='Country', location='json')
+org_signup_parser.add_argument('admin_name', type=str, required=True, help='Admin full name', location='form')
+org_signup_parser.add_argument('admin_email', type=str, required=True, help='Admin email address', location='form')
+org_signup_parser.add_argument('password', type=str, required=True, help='Admin password', location='form')
+org_signup_parser.add_argument('organization_name', type=str, required=True, help='Organization name', location='form')
+org_signup_parser.add_argument('mission', type=str, required=True, help='Mission statement', location='form')
+org_signup_parser.add_argument('category_id', type=int, required=True, help='Category ID', location='form')
+org_signup_parser.add_argument('phone', type=str, help='Phone number', location='form')
+org_signup_parser.add_argument('website', type=str, help='Website URL', location='form')
+org_signup_parser.add_argument('address', type=str, help='Address', location='form')
+org_signup_parser.add_argument('city', type=str, help='City', location='form')
+org_signup_parser.add_argument('state', type=str, help='State/Province', location='form')
+org_signup_parser.add_argument('country', type=str, help='Country', location='form')
+# Enhanced fields
+org_signup_parser.add_argument('description', type=str, help='Organization description', location='form')
+org_signup_parser.add_argument('email', type=str, help='Organization email', location='form')
+org_signup_parser.add_argument('donation_link', type=str, help='Donation link', location='form')
+org_signup_parser.add_argument('established_year', type=int, help='Year established', location='form')
+org_signup_parser.add_argument('operating_hours', type=str, help='Operating hours', location='form')
+# File uploads
+org_signup_parser.add_argument('logo', location='files', type=FileStorage, help='Organization logo')
+org_signup_parser.add_argument('gallery', location='files', action='append', type=FileStorage, help='Gallery images')
+# Agreements
+org_signup_parser.add_argument('agreeToTerms', type=inputs.boolean, required=True, help='You must agree to the terms and conditions', location='form')
+org_signup_parser.add_argument('verifyInformation', type=inputs.boolean, required=True, help='You must verify that the information is accurate', location='form')
+
 
 org_create_parser = api.parser()
 org_create_parser.add_argument('name', type=str, required=True, help='Organization name', location='json')

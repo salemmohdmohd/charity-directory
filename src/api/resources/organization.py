@@ -1,4 +1,4 @@
-from flask_restx import Resource, marshal
+from flask_restx import Resource, marshal, Namespace
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..core import api
 from ..schemas import org_parser, org_create_parser, organization_model
@@ -7,7 +7,7 @@ from sqlalchemy import or_, desc
 from sqlalchemy.orm import joinedload
 from ..utils import paginate, serialize_organization, log_action
 
-org_ns = api.namespace('organizations', description='Organization operations')
+org_ns = Namespace('organizations', description='Organization operations')
 
 @org_ns.route('')
 class OrganizationList(Resource):
@@ -68,6 +68,7 @@ class OrganizationList(Resource):
             org_ns.abort(500, 'Failed to create organization')
 
 @org_ns.route('/<int:org_id>')
+@org_ns.param('org_id', 'The organization identifier')
 class OrganizationDetail(Resource):
     @org_ns.doc(responses={
         200: 'Organization details retrieved successfully',
@@ -75,6 +76,7 @@ class OrganizationDetail(Resource):
         500: 'Failed to fetch organization'
     })
     def get(self, org_id):
+        """Get organization details."""
         try:
             org = Organization.query.options(
                 joinedload(Organization.photos),
@@ -84,17 +86,29 @@ class OrganizationDetail(Resource):
             ).get(org_id) or org_ns.abort(404, 'Organization not found')
 
             is_admin = False
+            current_user_id = None
+
+            # Check if user is authenticated and has admin privileges
             try:
-                uid = get_jwt_identity()
-                if uid:
-                    user = User.query.get(uid)
-                    if user: is_admin = user.role in ['platform_admin', 'org_admin']
-            except Exception: pass
+                current_user_id = get_jwt_identity()
+                if current_user_id:
+                    user = User.query.get(current_user_id)
+                    if user:
+                        is_admin = user.role == 'platform_admin'
+                        # Check if the user is an admin of this organization
+                        if user.role == 'org_admin' and org.admin_user_id == user.id:
+                            is_admin = True
+            except Exception:
+                pass
 
-            if org.status != 'approved' and not is_admin: org_ns.abort(404, 'Organization not found')
+            # Public users can only see approved organizations
+            if org.status != 'approved' and not is_admin:
+                org_ns.abort(404, 'Organization not found')
 
-            org.view_count = (org.view_count or 0) + 1
-            db.session.commit()
+            # Increment view count for public views
+            if not is_admin:
+                org.view_count = (org.view_count or 0) + 1
+                db.session.commit()
 
             return serialize_organization(org)
         except Exception as e:
@@ -110,11 +124,12 @@ class OrganizationContact(Resource):
 from flask import url_for
 from flask_restx import Resource, marshal
 from flask_jwt_extended import jwt_required, get_jwt_identity
-# ... existing code ...
 @org_ns.route('/<int:org_id>/photos')
 class OrganizationPhotos(Resource):
     @org_ns.doc(responses={
-# ... existing code ...
+        200: 'Photos retrieved successfully',
+        404: 'Organization not found',
+        500: 'Failed to fetch photos'
     })
     def get(self, org_id):
         try:
@@ -123,7 +138,14 @@ class OrganizationPhotos(Resource):
             serialized_photos = []
             for p in org.photos:
                 # Prioritize external file_path, fall back to local file_name
-                photo_url = p.file_path if p.file_path else url_for('uploaded_file', filename=p.file_name, _external=True)
+                if p.file_path:
+                    photo_url = p.file_path
+                else:
+                    try:
+                        photo_url = url_for('uploaded_file', filename=p.file_name, _external=False)
+                    except:
+                        photo_url = f"/uploads/{p.file_name}"
+
                 serialized_photos.append({
                     'id': p.id,
                     'url': photo_url,

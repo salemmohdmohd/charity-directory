@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import useGlobalReducer from '../hooks/useGlobalReducer';
 import { useAuth } from '../hooks/useAuth';
 import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
@@ -8,15 +7,25 @@ import Input from '../components/forms/Input';
 export const OrganizationLogin = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
-  const { login } = useAuth();
-  const { dispatch } = useGlobalReducer();
+  const { login, isAuthenticated, user, error } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if user is already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (user?.role === 'org_admin') {
+        navigate('/organization-dashboard');
+      } else {
+        // If a regular user lands here, send them to their dashboard
+        navigate('/dashboard');
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-
-    // Clear errors when user types
+    // Clear specific error when user types
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -24,52 +33,41 @@ export const OrganizationLogin = () => {
 
   const validateForm = () => {
     const newErrors = {};
-
     if (!formData.email) {
       newErrors.email = 'Organization email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Please enter a valid organization email';
     }
-
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters for organizations';
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     try {
-      const { user } = await login(formData.email, formData.password);
-
-      // After successful login, the useAuth hook updates the global state.
-      // We can now check the user's role and navigate accordingly.
-
-      if (user && user.role === 'org_admin') {
-        dispatch({ type: 'SET_NOTIFICATION', payload: 'Welcome to your organization dashboard!' });
-        navigate('/organization-dashboard');
-      } else {
-        // Optional: handle cases where an organization admin might have a different role
-        // or for general users trying to log in here.
-        dispatch({ type: 'SET_ERROR', payload: 'Access denied. Please use the correct login page.' });
-        navigate('/login');
+      const loggedInUser = await login(formData.email, formData.password);
+      // The useAuth hook handles setting the user state.
+      // The useEffect hook will then handle redirection on the next render.
+      if (loggedInUser?.role !== 'org_admin') {
+        // This case is for when a non-org user successfully logs in via this form.
+        // We can rely on the useEffect to redirect, or do it manually.
+        // The useAuth hook should set an error if the login is invalid.
       }
-    } catch (error) {
-      // The useAuth hook will dispatch the error, but you can add component-specific error handling here if needed.
-      console.error("Organization login failed:", error);
-      // The error is already set in the global state by the hook, so no need to dispatch here unless you want to override it.
+    } catch (err) {
+      // Error is handled globally by the useAuth hook.
+      // No specific action needed here unless you want custom component-level feedback.
+      console.error("Organization login failed:", err);
     }
   };
 
   const handleGoogleLogin = () => {
-    dispatch({ type: 'SET_NOTIFICATION', payload: 'Google OAuth for organizations coming soon!' });
+    // Placeholder for future implementation
+    alert('Google OAuth for organizations coming soon!');
   };
 
   return (
@@ -85,6 +83,9 @@ export const OrganizationLogin = () => {
                 <h2 className="h3 mb-3">Organization Portal</h2>
                 <p className="text-muted">Login to manage your charity organization</p>
               </div>
+
+              {/* Display global error from useAuth hook */}
+              {error && <div className="alert alert-danger">{error}</div>}
 
               <form onSubmit={handleSubmit}>
                 <Input
@@ -135,8 +136,6 @@ export const OrganizationLogin = () => {
                     Need to register your organization? <Link to="/organization-signup" className="text-decoration-none">Register here</Link>
                   </small>
                 </div>
-
-
 
                 <div className="text-center mt-3">
                   <Link to="/forgot-password" className="text-decoration-none small">

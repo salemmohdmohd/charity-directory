@@ -45,6 +45,8 @@ const OrganizationDetail = () => {
   const [loading, setLoading] = useState(true);
   const [organization, setOrganization] = useState(null);
   const [error, setError] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const [loadingPhotos, setLoadingPhotos] = useState(false);
   const [contactForm, setContactForm] = useState({
     name: '',
     email: '',
@@ -82,6 +84,52 @@ const OrganizationDetail = () => {
 
         // Backend returns organization directly, not wrapped in an object
         setOrganization(orgData);
+
+        // Fetch organization photos
+        setLoadingPhotos(true);
+        try {
+          const photosData = await organizationService.getOrganizationPhotos(orgId);
+          console.log('OrganizationDetail: received photos data:', photosData);
+
+          // Detailed debugging for photo data
+          if (photosData && Array.isArray(photosData)) {
+            console.log(`Found ${photosData.length} photos for organization ${orgId}`);
+            photosData.forEach((photo, index) => {
+              console.log(`Photo ${index}:`, photo);
+            });
+
+            // Inspect the first photo to determine field structure
+            if (photosData.length > 0) {
+              const firstPhoto = photosData[0];
+              const possibleFileFields = ['file_name', 'fileName', 'file_path', 'filePath', 'path', 'url', 'src'];
+              console.log('Checking possible file name fields in photo object:');
+              possibleFileFields.forEach(field => {
+                console.log(`- ${field}: ${firstPhoto[field]}`);
+              });
+            }
+          } else {
+            console.log('No valid photos array received from API');
+          }
+
+          // Use any available file identifier field
+          const validPhotos = Array.isArray(photosData)
+            ? photosData.map(photo => {
+                // Try to determine the file identifier, using the first available field
+                const fileId = photo.file_name || photo.fileName || photo.file_path ||
+                               photo.filePath || photo.path || photo.url || photo.id;
+                return { ...photo, fileIdentifier: fileId };
+              }).filter(photo => photo.fileIdentifier)
+            : [];
+
+          console.log(`${validPhotos.length} valid photos with file identifiers after processing`);
+          setPhotos(validPhotos);
+        } catch (photoError) {
+          console.error('Error fetching organization photos:', photoError);
+          // Don't show an error for photos, just set empty array
+          setPhotos([]);
+        } finally {
+          setLoadingPhotos(false);
+        }
 
         dispatch({
           type: 'SET_NOTIFICATION',
@@ -237,7 +285,7 @@ const OrganizationDetail = () => {
                 <div className="me-3">
                   {organization.logo_url ? (
                     <img
-                      src={organization.logo_url}
+                      src={`/api/uploads/${organization.logo_url}`}
                       alt={`${organization.name} logo`}
                       className="rounded border"
                       style={{ width: '80px', height: '80px', objectFit: 'cover' }}
@@ -346,6 +394,61 @@ const OrganizationDetail = () => {
               </div>
             </section>
 
+            {/* Photo Gallery Section */}
+            <section className="mb-5">
+              <h2 className="h4 mb-3">Photo Gallery</h2>
+              <div className="card">
+                <div className="card-body">
+                  {loadingPhotos ? (
+                    <div className="text-center py-4">
+                      <div className="spinner-border spinner-border-sm text-primary" role="status">
+                        <span className="visually-hidden">Loading photos...</span>
+                      </div>
+                      <p className="mt-2 text-muted">Loading photo gallery...</p>
+                    </div>
+                  ) : photos && photos.length > 0 ? (
+                    <>
+                      <div className="row g-3">
+                        {photos.map((photo, index) => (
+                          <div className="col-md-4 col-6 mb-3" key={index}>
+                            <div className="position-relative">
+                              <img
+                                src={photo.fileIdentifier ? `/api/uploads/${photo.fileIdentifier}` : '/placeholder-image.png'}
+                                alt={photo.caption || `${organization.name} photo ${index + 1}`}
+                                className="img-fluid rounded shadow-sm"
+                                style={{
+                                  width: '100%',
+                                  height: '180px',
+                                  objectFit: 'cover'
+                                }}
+                                onError={(e) => {
+                                  console.log(`Image error for photo ${index}:`, photo);
+                                  e.target.onerror = null;
+                                  e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
+                                }}
+                              />
+                              {photo.caption && (
+                                <div className="bg-dark bg-opacity-50 text-white p-1 position-absolute bottom-0 w-100 small">
+                                  {photo.caption}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      {photos.length > 6 && (
+                        <div className="text-center mt-3">
+                          <button className="btn btn-outline-primary">View All Photos</button>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-center text-muted py-4">No photos available for this organization.</p>
+                  )}
+                </div>
+              </div>
+            </section>
+
             {/* Impact Section */}
             {(organization.impact_statistics || organization.beneficiaries_served || organization.years_active || organization.view_count || organization.bookmark_count) && (
               <section className="mb-5">
@@ -384,7 +487,7 @@ const OrganizationDetail = () => {
                     </div>
                   )}
 
-                  {organization.bookmark_count && (
+                  {organization.bookmark_count !== undefined && organization.bookmark_count !== null && (
                     <div className="col-md-4 mb-3">
                       <div className="card text-center h-100">
                         <div className="card-body">

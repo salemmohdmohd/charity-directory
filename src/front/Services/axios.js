@@ -123,15 +123,19 @@ export const authService = {
 
   // Organization signup - creates both admin user and organization
   organizationSignup: async (organizationData) => {
-    const response = await api.post('/auth/organization-signup', organizationData)
-    const { access_token, refresh_token, user, organization, message } = response.data
+    const response = await api.post('/org-signup', organizationData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    const { access_token, refresh_token, user, organization, message } = response.data;
 
     // Save tokens since user is now immediately active
     if (access_token && refresh_token) {
-      saveTokens(access_token, refresh_token)
+      saveTokens(access_token, refresh_token);
     }
 
-    return { user, organization, accessToken: access_token, refreshToken: refresh_token, message }
+    return { user, organization, accessToken: access_token, refreshToken: refresh_token, message };
   },
 
   // Get current user

@@ -2,16 +2,17 @@ from flask import request
 from flask_restx import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..core import api
+from sqlalchemy.orm import joinedload
 from ..schemas import (
     user_profile_model, user_activity_model, user_bookmarks_model,
     user_donations_model, user_reviews_model, user_notifications_model,
-    user_settings_model
+    user_settings_model, organization_model
 )
-from ..models import db, User, ActivityLog, Bookmark, Donation, Review, Notification, UserSettings
+from ..models import db, User, ActivityLog, Bookmark, Donation, Review, Notification, UserSettings, Organization
 from ..utils import (
     serialize_user, serialize_activity, serialize_bookmark,
     serialize_donation, serialize_review, serialize_notification,
-    serialize_user_settings
+    serialize_user_settings, serialize_organization
 )
 
 users_ns = api.namespace('users', description='User operations')
@@ -97,3 +98,76 @@ class UserSettingsResource(Resource):
                 setattr(settings, key, value)
         db.session.commit()
         return serialize_user_settings(settings)
+
+@users_ns.route('/organization')
+class UserOrganization(Resource):
+    @jwt_required()
+    @users_ns.doc(responses={
+        200: 'Organization details retrieved successfully',
+        404: 'No organization found for the current user',
+        500: 'Failed to fetch organization'
+    })
+    def get(self):
+        """Get the organization associated with the current user."""
+        try:
+            user_id = get_jwt_identity()
+            user = User.query.get(user_id)
+
+            if not user:
+                users_ns.abort(404, 'User not found')
+
+            # Check if the user is an organization admin
+            if user.role != 'org_admin' and user.role != 'platform_admin':
+                users_ns.abort(403, 'User is not an organization administrator')
+
+            # Get the organization administered by this user
+            organization = Organization.query.options(
+                joinedload(Organization.photos),
+                joinedload(Organization.social_links),
+                joinedload(Organization.category),
+                joinedload(Organization.location)
+            ).filter_by(admin_user_id=user_id).first()
+
+            if not organization:
+                users_ns.abort(404, 'No organization found for this user')
+
+            return serialize_organization(organization)
+        except Exception as e:
+            users_ns.abort(500, f'Failed to fetch organization: {str(e)}')
+
+@users_ns.route('/me/organizations')
+class UserOrganizations(Resource):
+    @jwt_required()
+    @users_ns.doc(responses={
+        200: 'Organizations retrieved successfully',
+        404: 'No organizations found for the current user',
+        500: 'Failed to fetch organizations'
+    })
+    def get(self):
+        """Get organizations associated with the current user (for frontend compatibility)."""
+        try:
+            user_id = get_jwt_identity()
+            user = User.query.get(user_id)
+
+            if not user:
+                users_ns.abort(404, 'User not found')
+
+            # Check if the user is an organization admin
+            if user.role != 'org_admin' and user.role != 'platform_admin':
+                # Return empty list for non-admin users instead of error
+                return []
+
+            # Get the organizations administered by this user
+            organizations = Organization.query.options(
+                joinedload(Organization.photos),
+                joinedload(Organization.social_links),
+                joinedload(Organization.category),
+                joinedload(Organization.location)
+            ).filter_by(admin_user_id=user_id).all()
+
+            # Return as an object with organizations array to match frontend expectations
+            return {
+                "organizations": [serialize_organization(org) for org in organizations]
+            }
+        except Exception as e:
+            users_ns.abort(500, f'Failed to fetch organizations: {str(e)}')
