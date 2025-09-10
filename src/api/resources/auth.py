@@ -224,8 +224,10 @@ class CurrentUser(Resource):
         404: 'User not found'
     })
     def get(self):
+        from sqlalchemy.orm import joinedload
         user_id = int(get_jwt_identity())
-        user = User.query.get(user_id) or auth_ns.abort(404, 'User not found')
+        # Eager load administered_orgs relationship to make it available for serialization
+        user = User.query.options(joinedload(User.administered_orgs)).get(user_id) or auth_ns.abort(404, 'User not found')
         return user
 
 @auth_ns.route('/logout')
@@ -253,136 +255,6 @@ class RefreshToken(Resource):
         new_token = create_access_token(identity=str(current_user_id))
         return {'access_token': new_token}, 200
 
-@auth_ns.route('/organization-signup')
-class OrganizationSignup(Resource):
-    @auth_ns.expect(org_signup_parser)
-    @auth_ns.doc(responses={
-        201: 'Organization and admin account created successfully',
-        400: 'Validation error',
-        409: 'Email already registered',
-        500: 'Registration failed'
-    })
-    def post(self):
-        try:
-            args = org_signup_parser.parse_args()
-            email = args.admin_email.strip().lower()
-
-            if not (valid := validate_email_format(email))[0]:
-                auth_ns.abort(400, valid[1])
-
-            if not (valid := validate_password(args.password))[0]:
-                auth_ns.abort(400, valid[1])
-
-            if User.query.filter_by(email=email).first():
-                auth_ns.abort(409, 'Email already registered')
-
-            from ..models import Category, Organization, OrganizationPhoto
-            if not Category.query.get(args.category_id):
-                auth_ns.abort(400, 'Invalid category')
-
-            user = User(
-                name=args.admin_name.strip(),
-                email=email,
-                role='org_admin',
-                is_verified=True
-            )
-            user.set_password(args.password)
-            db.session.add(user)
-            db.session.flush()
-
-            # Handle file uploads
-            logo_filename = None
-            if 'logo' in request.files:
-                logo_file = request.files['logo']
-                if logo_file:
-                    logo_filename = secure_filename(f"{uuid.uuid4()}_{logo_file.filename}")
-                    logo_file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], logo_filename))
-
-            org = Organization(
-                name=args.organization_name.strip(),
-                mission=args.mission.strip(),
-                description=args.get('description', '').strip(),
-                category_id=args.category_id,
-                email=args.get('email', '').strip() or email,
-                phone=(args.phone or '').strip(),
-                website=(args.website or '').strip(),
-                address=(args.address or '').strip(),
-                donation_link=args.get('donation_link', '').strip(),
-                established_year=args.get('established_year'),
-                operating_hours=args.get('operating_hours', '').strip(),
-                admin_user_id=user.id,
-                status='pending',
-                logo_url=logo_filename
-            )
-            db.session.add(org)
-            db.session.flush() # Flush to get org.id for photos
-
-            if 'gallery' in request.files:
-                gallery_files = request.files.getlist('gallery')
-                for gallery_file in gallery_files:
-                    if gallery_file:
-                        gallery_filename = secure_filename(f"{uuid.uuid4()}_{gallery_file.filename}")
-                        gallery_file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], gallery_filename))
-                        photo = OrganizationPhoto(
-                            org_id=org.id,
-                            file_name=gallery_filename,
-                            alt_text=f"Gallery image for {org.name}"
-                        )
-                        db.session.add(photo)
-
-            db.session.commit()
-
-            access_token = create_access_token(
-                identity=str(user.id),
-                additional_claims={
-                    'role': user.role,
-                    'email': user.email,
-                    'is_verified': user.is_verified
-                }
-            )
-            refresh_token = create_refresh_token(identity=str(user.id))
-
-            log_action(user.id, 'create', 'user', user.id, None, {'email': email, 'name': user.name, 'role': 'org_admin'})
-            log_action(user.id, 'create', 'organization', org.id, None, {'name': org.name, 'status': 'pending'})
-
-            try:
-                from ..notification_service import NotificationService
-                notification_service = NotificationService()
-                notification_service.send_notification(
-                    user_id=user.id,
-                    notification_type="welcome",
-                    subject=f"Welcome to Charity Directory, {user.name}!",
-                    message=f"Welcome to Charity Directory! Your organization '{org.name}' has been submitted for review. You'll receive a notification once it's approved.",
-                    priority="high"
-                )
-                notification_service.send_notification(
-                    user_id=user.id,
-                    notification_type="organization_update",
-                    subject="Organization submitted for review",
-                    message=f"Your organization '{org.name}' has been successfully submitted and is now under review. We'll notify you once the review is complete.",
-                    priority="normal"
-                )
-            except Exception as e:
-                print(f"Notification sending failed: {str(e)}")
-                pass
-
-            db.session.commit()
-
-            return {
-                'message': 'Organization registration successful! Your organization is pending approval.',
-                'user': marshal(user, user_model),
-                'organization': marshal(org, organization_model),
-                'access_token': access_token,
-                'refresh_token': refresh_token
-            }, 201
-
-        except Exception as e:
-            db.session.rollback()
-            from werkzeug.exceptions import HTTPException
-            if isinstance(e, HTTPException):
-                raise e
-            print(f"Organization signup error: {str(e)}")
-            auth_ns.abort(500, f'Registration failed: {str(e)}')
 
 @auth_ns.route('/change-password')
 class ChangePassword(Resource):

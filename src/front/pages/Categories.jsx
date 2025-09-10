@@ -128,18 +128,32 @@ const Categories = () => {
       </Helmet>
 
       <div className="min-vh-100 bg-light">
-        {/* Header Section */}
-        <header className="bg-totoro py-5">
+        {/* Enhanced Header Section */}
+        <header
+          className="bg-primary text-white text-center py-5 d-flex align-items-center hero-ghibli"
+          style={{
+            backgroundImage: 'url(/Category-Hero.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            minHeight: '400px',
+            textShadow: '2px 2px 8px rgba(0, 0, 0, 0.7), 1px 1px 4px rgba(0, 0, 0, 0.5)'
+          }}
+        >
           <div className="container">
-            <div className="row">
-              <div className="col-12 text-center">
-                <h1 className="magical-title display-4 fw-bold text-cream mb-3 float-magic">
-                  Charity Categories
-                </h1>
-                <p className="enchanted-text lead text-cream fs-5">
-                  Explore causes and discover organizations making a difference
-                </p>
-              </div>
+            <h1 className="display-3 fw-bold mb-3 magical-title" style={{textShadow: '3px 3px 10px rgba(0, 0, 0, 0.8), 2px 2px 6px rgba(74, 124, 89, 0.4)'}}>
+              Discover Causes That Matter
+            </h1>
+            <p className="lead fw-bold mb-4 enchanted-text" style={{textShadow: '2px 2px 6px rgba(0, 0, 0, 0.7), 1px 1px 3px rgba(74, 124, 89, 0.3)'}}>
+              Explore charity categories and find organizations making real-world impact in areas you care about
+            </p>
+            <div className="d-flex justify-content-center gap-3">
+              <Link to="/search" className="btn calcifer-button btn-lg float-magic px-4 py-2">
+                <i className="fas fa-search me-2"></i> Search Charities
+              </Link>
+              <Link to="/list-your-charity" className="btn btn-outline-light btn-lg px-4 py-2">
+                <i className="fas fa-plus-circle me-2"></i> Add Your Organization
+              </Link>
             </div>
           </div>
         </header>
@@ -147,10 +161,36 @@ const Categories = () => {
         {/* Categories and Organizations Section */}
         <main className="py-5">
           <div className="container">
+            {/* Introduction */}
+            <div className="row mb-5">
+              <div className="col-12 text-center">
+                <h2 className="h3 text-forest mb-3">Browse Charitable Categories</h2>
+                <p className="text-muted mb-4">Each category represents a unique cause where organizations are making a difference</p>
+                <div className="d-flex justify-content-center flex-wrap gap-2">
+                  {categoriesWithOrgs.map(category => (
+                    <Link
+                      key={category.id}
+                      to={`/categories/${createCategorySlug(category.name)}`}
+                      className="badge text-decoration-none px-3 py-2 m-1"
+                      style={{
+                        backgroundColor: `${category.color_code || '#28a745'}22`,
+                        color: category.color_code || '#28a745',
+                        border: `1px solid ${category.color_code || '#28a745'}`,
+                        fontSize: '0.9rem',
+                        transition: 'all 0.3s ease'
+                      }}
+                    >
+                      {category.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {categoriesWithOrgs.length === 0 ? (
               <div className="row justify-content-center">
                 <div className="col-lg-6 text-center">
-                  <div className="totoro-card p-5">
+                  <div className="totoro-card p-5 shadow-sm">
                     <i className="fas fa-info-circle text-muted mb-3" style={{ fontSize: '2rem' }}></i>
                     <h2 className="h5 text-muted">No categories available</h2>
                     <p className="text-muted">Categories will appear here once they're added</p>
@@ -170,38 +210,58 @@ const Categories = () => {
                   {/* Category Header */}
                   <header className="row mb-4">
                     <div className="col-12">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <div className="d-flex align-items-center">
-                          <div
-                            className="rounded-circle me-3"
+                      <div
+                        className="p-4 rounded-4 shadow-sm"
+                        style={{
+                          background: `linear-gradient(135deg, white, ${category.color_code}15)`,
+                          borderLeft: `5px solid ${category.color_code || '#28a745'}`
+                        }}
+                      >
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <div className="d-flex align-items-center">
+                            <div
+                              className="rounded-circle me-3 p-2 shadow-sm d-flex align-items-center justify-content-center"
+                              style={{
+                                width: '48px',
+                                height: '48px',
+                                backgroundColor: category.color_code || '#28a745',
+                                flexShrink: 0
+                              }}
+                            >
+                              <i className="fas fa-hands-helping text-white" style={{ fontSize: '1.5rem' }}></i>
+                            </div>
+                            <div>
+                              <h2 className="magical-title text-forest mb-0" style={{ fontSize: '2.2rem', fontWeight: 'bold' }}>
+                                {category.name}
+                              </h2>
+                              <span className="badge rounded-pill" style={{
+                                backgroundColor: `${category.color_code || '#28a745'}22`,
+                                color: category.color_code || '#28a745',
+                                border: `1px solid ${category.color_code || '#28a745'}22`,
+                                fontSize: '0.9rem'
+                              }}>
+                                {category.organization_count || 0} Organizations
+                              </span>
+                            </div>
+                          </div>
+                          <Link
+                            to={`/categories/${createCategorySlug(category.name)}`}
+                            className="btn btn-outline-primary"
                             style={{
-                              width: '20px',
-                              height: '20px',
-                              backgroundColor: category.color_code || '#28a745',
-                              flexShrink: 0
+                              borderColor: category.color_code,
+                              color: category.color_code
                             }}
-                          ></div>
-                          <h2 className="magical-title text-forest mb-0" style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
-                            {category.name} ({category.organization_count || 0})
-                          </h2>
+                          >
+                            View All
+                            <i className="fas fa-arrow-right ms-2"></i>
+                          </Link>
                         </div>
-                        <Link
-                          to={`/categories/${createCategorySlug(category.name)}`}
-                          className="btn btn-outline-primary"
-                          style={{
-                            borderColor: category.color_code,
-                            color: category.color_code
-                          }}
-                        >
-                          View All
-                          <i className="fas fa-arrow-right ms-2"></i>
-                        </Link>
+                        {category.description && (
+                          <p className="text-muted fs-5 mt-3 mb-0">
+                            {category.description}
+                          </p>
+                        )}
                       </div>
-                      {category.description && (
-                        <p className="text-muted lead fs-5 ms-5">
-                          {category.description}
-                        </p>
-                      )}
                     </div>
                   </header>
 
@@ -244,11 +304,19 @@ const Categories = () => {
 
                   {/* Divider between categories (except last one) */}
                   {categoryIndex < categoriesWithOrgs.length - 1 && (
-                    <hr className="my-5" style={{
-                      height: '2px',
-                      background: `linear-gradient(90deg, transparent, ${category.color_code || '#28a745'}, transparent)`,
-                      border: 'none'
-                    }} />
+                    <div className="position-relative my-5">
+                      <hr style={{
+                        height: '2px',
+                        background: `linear-gradient(90deg, transparent, ${category.color_code || '#28a745'}, transparent)`,
+                        border: 'none'
+                      }} />
+                      <div className="position-absolute top-50 start-50 translate-middle bg-white px-4">
+                        <i className="fas fa-seedling" style={{
+                          color: category.color_code || '#28a745',
+                          fontSize: '1.2rem'
+                        }}></i>
+                      </div>
+                    </div>
                   )}
                 </section>
               ))

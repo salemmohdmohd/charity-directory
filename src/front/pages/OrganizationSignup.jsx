@@ -52,11 +52,9 @@ export const OrganizationSignup = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate('/organization-dashboard');
     }
-  }, [isAuthenticated, navigate]);
-
-  // Fetch categories
+  }, [isAuthenticated, navigate]);  // Fetch categories
   useEffect(() => {
     const fetchCategories = async () => {
       setCategoryState({ loading: true, error: null });
@@ -82,12 +80,44 @@ export const OrganizationSignup = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked, files } = e.target;
+
+    let newValue;
+    if (type === 'checkbox') {
+      newValue = checked;
+    } else if (type === 'file') {
+      if (name === 'logo') {
+        newValue = files[0] || null;
+        // Debug logging for logo
+        if (files[0]) {
+          console.log('Logo file selected:', {
+            name: files[0].name,
+            type: files[0].type,
+            size: files[0].size
+          });
+        }
+      } else if (name === 'gallery') {
+        newValue = Array.from(files);
+        // Debug logging for gallery
+        if (files.length > 0) {
+          console.log('Gallery files selected:', Array.from(files).map(f => ({
+            name: f.name,
+            type: f.type,
+            size: f.size
+          })));
+        }
+      } else {
+        newValue = files;
+      }
+    } else {
+      newValue = value;
+    }
+
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : type === 'file' ? files : value
+      [name]: newValue
     });
 
-    // Clear errors when user types
+    // Clear errors when user types/selects files
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -135,18 +165,42 @@ export const OrganizationSignup = () => {
       }
     }
 
-    // Media validation
-    const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    if (formData.logo && !allowedImageTypes.includes(formData.logo.type)) {
-      newErrors.logo = 'Invalid file type. Please upload a JPG, PNG, or GIF.';
+    // Media validation - made more flexible
+    const allowedImageTypes = [
+      'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+      'image/webp', 'image/bmp', 'image/tiff'
+    ];
+
+    // Also check file extensions as fallback
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff'];
+
+    const isValidImageFile = (file) => {
+      if (!file) return true; // Optional files are valid if not provided
+
+      // Check MIME type first
+      if (allowedImageTypes.includes(file.type.toLowerCase())) {
+        return true;
+      }
+
+      // Fallback to file extension check
+      const fileName = file.name.toLowerCase();
+      return allowedExtensions.some(ext => fileName.endsWith(ext));
+    };
+
+    if (formData.logo && !isValidImageFile(formData.logo)) {
+      console.log('Logo file type:', formData.logo.type, 'File name:', formData.logo.name);
+      newErrors.logo = 'Invalid file type. Please upload a valid image file (JPG, PNG, GIF, WebP, BMP, TIFF).';
     }
+
     if (formData.gallery && formData.gallery.length > 5) {
       newErrors.gallery = 'You can upload a maximum of 5 gallery images.';
     }
+
     if (formData.gallery && formData.gallery.length > 0) {
       for (let i = 0; i < formData.gallery.length; i++) {
-        if (!allowedImageTypes.includes(formData.gallery[i].type)) {
-          newErrors.gallery = `Invalid file type for file ${i + 1}. Please upload only JPG, PNG, or GIF images.`;
+        if (!isValidImageFile(formData.gallery[i])) {
+          console.log(`Gallery file ${i + 1} type:`, formData.gallery[i].type, 'File name:', formData.gallery[i].name);
+          newErrors.gallery = `Invalid file type for file ${i + 1}. Please upload only valid image files (JPG, PNG, GIF, WebP, BMP, TIFF).`;
           break;
         }
       }
@@ -224,9 +278,9 @@ export const OrganizationSignup = () => {
 
       setLoading(false);
 
-      // Redirect to login page with success message after a short delay
+      // Redirect to dashboard page with success message after a short delay
       setTimeout(() => {
-        navigate('/organization-login?message=registration-success');
+        navigate('/organization-dashboard');
       }, 2000);
     } catch (error) {
       setLoading(false);
@@ -382,7 +436,7 @@ export const OrganizationSignup = () => {
                     label="Organization Logo (Optional)"
                     onChange={handleChange}
                     error={errors.logo}
-                    helpText="Upload your organization's logo (JPG, PNG, GIF)."
+                    helpText="Upload your organization's logo. Supports JPG, PNG, GIF, WebP, BMP, and TIFF formats."
                   />
                   <Input
                     name="gallery"
@@ -391,7 +445,7 @@ export const OrganizationSignup = () => {
                     onChange={handleChange}
                     error={errors.gallery}
                     multiple
-                    helpText="Upload images that showcase your organization's work."
+                    helpText="Upload images that showcase your organization's work. Supports common image formats."
                   />
                 </div>
 

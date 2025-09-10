@@ -1,387 +1,293 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import useAuth from '../hooks/useAuth';
+import { api } from '../Services/axios';
 
 const UserProfile = () => {
-	const { store, dispatch } = useGlobalReducer();
-	const navigate = useNavigate();
-	const [isEditing, setIsEditing] = useState(false);
-	const [profileData, setProfileData] = useState({
-		name: "",
-		email: "",
-		phone: "",
-		address: "",
-		city: "",
-		state: "",
-		zipCode: "",
-		donationPreferences: {
-			frequency: "monthly",
-			amount: "",
-			categories: [],
-		}
-	});
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [profileData, setProfileData] = useState(null);
+  const [organizations, setOrganizations] = useState([]);
+  const [bookmarks, setBookmarks] = useState([]);
+  const [error, setError] = useState(null);
 
-	// Check if user is logged in, redirect if not
-	useEffect(() => {
-		if (!store.user) {
-			navigate('/login');
-			return;
-		}
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-		// Load user profile data from store
-		setProfileData({
-			name: store.user.name || "",
-			email: store.user.email || "",
-			phone: store.user.phone || "",
-			address: store.user.address || "",
-			city: store.user.city || "",
-			state: store.user.state || "",
-			zipCode: store.user.zipCode || "",
-			donationPreferences: store.user.donationPreferences || {
-				frequency: "monthly",
-				amount: "",
-				categories: []
-			}
-		});
-	}, [store.user, navigate]);
+      try {
+        setLoading(true);
 
-	const handleInputChange = (e) => {
-		const { name, value } = e.target;
-		setProfileData(prev => ({
-			...prev,
-			[name]: value
-		}));
-	};
+        // Use the currently authenticated user data from the hook
+        // This avoids making an unnecessary API call if we already have the data
+        setProfileData(user);
+        console.log('Using user data from auth context:', user);
 
-	const handlePreferenceChange = (field, value) => {
-		setProfileData(prev => ({
-			...prev,
-			donationPreferences: {
-				...prev.donationPreferences,
-				[field]: value
-			}
-		}));
-	};
+        // Try to get user's organizations if any
+        try {
+          const orgsResponse = await api.get('/users/me/organizations');
+          console.log('Organizations data:', orgsResponse.data);
+          if (orgsResponse.data && orgsResponse.data.organizations) {
+            setOrganizations(orgsResponse.data.organizations);
+          }
+        } catch (orgError) {
+          console.error('Error fetching organizations:', orgError);
+          setOrganizations([]);
+        }
 
-	const handleSave = async () => {
-		try {
-			// Update the global state with new profile data
-			dispatch({
-				type: 'UPDATE_USER',
-				payload: {
-					...store.user,
-					...profileData
-				}
-			});
-			setIsEditing(false);
-			// In a real app, you'd make an API call here
-		} catch (error) {
-			dispatch({ type: 'SET_ERROR', payload: 'Failed to update profile' });
-		}
-	};
+        // Try to get user's bookmarks if they're not included in the user data
+        if (!user.bookmarked_organizations) {
+          try {
+            console.log('Fetching user bookmarks...');
+            const bookmarksResponse = await api.get('/users/me/bookmarks');
+            console.log('Bookmarks data:', bookmarksResponse.data);
+            if (bookmarksResponse.data && Array.isArray(bookmarksResponse.data)) {
+              setBookmarks(bookmarksResponse.data);
+            } else if (bookmarksResponse.data && Array.isArray(bookmarksResponse.data.bookmarks)) {
+              setBookmarks(bookmarksResponse.data.bookmarks);
+            }
+          } catch (bookmarkError) {
+            console.error('Error fetching bookmarks:', bookmarkError);
+            setBookmarks([]);
+          }
+        } else {
+          console.log('Using bookmarks from user data:', user.bookmarked_organizations);
+          setBookmarks(user.bookmarked_organizations);
+        }
 
-	const handleCancel = () => {
-		// Reset form to original data
-		setProfileData({
-			name: store.user.name || "",
-			email: store.user.email || "",
-			phone: store.user.phone || "",
-			address: store.user.address || "",
-			city: store.user.city || "",
-			state: store.user.state || "",
-			zipCode: store.user.zipCode || "",
-			donationPreferences: store.user.donationPreferences || {
-				frequency: "monthly",
-				amount: "",
-				categories: []
-			}
-		});
-		setIsEditing(false);
-	};
+        setError(null);
+      } catch (err) {
+        console.error('Error setting up user profile data:', err);
+        setError('Failed to load user profile data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-	// Show loading if no user data
-	if (!store.user) {
-		return (
-			<div className="d-flex justify-content-center align-items-center" style={{ minHeight: "400px" }}>
-				<div className="spinner-border text-primary" role="status">
-					<span className="visually-hidden">Loading...</span>
-				</div>
-			</div>
-		);
-	}
+    fetchUserData();
+  }, [user]);
 
-	return (
-		<div className="container-fluid py-4">
-			{/* Profile Header */}
-			<div className="row mb-4">
-				<div className="col-12">
-					<div className="d-flex justify-content-between align-items-center">
-						<div>
-							<h1 className="h2 mb-1">User Profile</h1>
-							<p className="text-muted mb-0">Manage your account information and preferences</p>
-						</div>
-						<div>
-							<button 
-								className="btn btn-outline-secondary me-2"
-								onClick={() => navigate('/dashboard')}
-							>
-								<i className="bi bi-arrow-left me-2"></i>
-								Back to Dashboard
-							</button>
-							{!isEditing ? (
-								<button 
-									className="btn btn-primary"
-									onClick={() => setIsEditing(true)}
-								>
-									<i className="bi bi-pencil me-2"></i>
-									Edit Profile
-								</button>
-							) : (
-								<div>
-									<button 
-										className="btn btn-success me-2"
-										onClick={handleSave}
-									>
-										<i className="bi bi-check me-2"></i>
-										Save Changes
-									</button>
-									<button 
-										className="btn btn-secondary"
-										onClick={handleCancel}
-									>
-										Cancel
-									</button>
-								</div>
-							)}
-						</div>
-					</div>
-				</div>
-			</div>
+  if (loading) {
+    return (
+      <div className="container py-5 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p className="mt-2">Loading your profile...</p>
+      </div>
+    );
+  }
 
-			<div className="row">
-				{/* Profile Information */}
-				<div className="col-lg-8">
-					<div className="card mb-4">
-						<div className="card-header">
-							<h5 className="mb-0">Personal Information</h5>
-						</div>
-						<div className="card-body">
-							<div className="row">
-								<div className="col-md-6 mb-3">
-									<label className="form-label">Full Name</label>
-									{isEditing ? (
-										<input
-											type="text"
-											className="form-control"
-											name="name"
-											value={profileData.name}
-											onChange={handleInputChange}
-										/>
-									) : (
-										<p className="form-control-plaintext">{profileData.name || 'Not provided'}</p>
-									)}
-								</div>
-								<div className="col-md-6 mb-3">
-									<label className="form-label">Email Address</label>
-									{isEditing ? (
-										<input
-											type="email"
-											className="form-control"
-											name="email"
-											value={profileData.email}
-											onChange={handleInputChange}
-										/>
-									) : (
-										<p className="form-control-plaintext">{profileData.email || 'Not provided'}</p>
-									)}
-								</div>
-								<div className="col-md-6 mb-3">
-									<label className="form-label">Phone Number</label>
-									{isEditing ? (
-										<input
-											type="tel"
-											className="form-control"
-											name="phone"
-											value={profileData.phone}
-											onChange={handleInputChange}
-										/>
-									) : (
-										<p className="form-control-plaintext">{profileData.phone || 'Not provided'}</p>
-									)}
-								</div>
-								<div className="col-md-6 mb-3">
-									<label className="form-label">Address</label>
-									{isEditing ? (
-										<input
-											type="text"
-											className="form-control"
-											name="address"
-											value={profileData.address}
-											onChange={handleInputChange}
-										/>
-									) : (
-										<p className="form-control-plaintext">{profileData.address || 'Not provided'}</p>
-									)}
-								</div>
-								<div className="col-md-4 mb-3">
-									<label className="form-label">City</label>
-									{isEditing ? (
-										<input
-											type="text"
-											className="form-control"
-											name="city"
-											value={profileData.city}
-											onChange={handleInputChange}
-										/>
-									) : (
-										<p className="form-control-plaintext">{profileData.city || 'Not provided'}</p>
-									)}
-								</div>
-								<div className="col-md-4 mb-3">
-									<label className="form-label">State</label>
-									{isEditing ? (
-										<input
-											type="text"
-											className="form-control"
-											name="state"
-											value={profileData.state}
-											onChange={handleInputChange}
-										/>
-									) : (
-										<p className="form-control-plaintext">{profileData.state || 'Not provided'}</p>
-									)}
-								</div>
-								<div className="col-md-4 mb-3">
-									<label className="form-label">Zip Code</label>
-									{isEditing ? (
-										<input
-											type="text"
-											className="form-control"
-											name="zipCode"
-											value={profileData.zipCode}
-											onChange={handleInputChange}
-										/>
-									) : (
-										<p className="form-control-plaintext">{profileData.zipCode || 'Not provided'}</p>
-									)}
-								</div>
-							</div>
-						</div>
-					</div>
+  if (error) {
+    return (
+      <div className="container py-5">
+        <div className="alert alert-danger">{error}</div>
+      </div>
+    );
+  }
 
-					{/* Donation Preferences */}
-					<div className="card">
-						<div className="card-header">
-							<h5 className="mb-0">Donation Preferences</h5>
-						</div>
-						<div className="card-body">
-							<div className="row">
-								<div className="col-md-6 mb-3">
-									<label className="form-label">Preferred Donation Frequency</label>
-									{isEditing ? (
-										<select 
-											className="form-select"
-											value={profileData.donationPreferences.frequency}
-											onChange={(e) => handlePreferenceChange('frequency', e.target.value)}
-										>
-											<option value="monthly">Monthly</option>
-											<option value="quarterly">Quarterly</option>
-											<option value="annually">Annually</option>
-											<option value="one-time">One-time</option>
-										</select>
-									) : (
-										<p className="form-control-plaintext">
-											{profileData.donationPreferences.frequency || 'Not set'}
-										</p>
-									)}
-								</div>
-								<div className="col-md-6 mb-3">
-									<label className="form-label">Preferred Amount</label>
-									{isEditing ? (
-										<input
-											type="text"
-											className="form-control"
-											value={profileData.donationPreferences.amount}
-											onChange={(e) => handlePreferenceChange('amount', e.target.value)}
-											placeholder="e.g., $50"
-										/>
-									) : (
-										<p className="form-control-plaintext">
-											{profileData.donationPreferences.amount || 'Not set'}
-										</p>
-									)}
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
+  if (!profileData) {
+    return (
+      <div className="container py-5">
+        <div className="alert alert-warning">
+          No profile data available. Please sign in to view your profile.
+        </div>
+      </div>
+    );
+  }
 
-				{/* Profile Summary Sidebar */}
-				<div className="col-lg-4">
-					<div className="card">
-						<div className="card-header">
-							<h5 className="mb-0">Profile Summary</h5>
-						</div>
-						<div className="card-body text-center">
-							<div className="mb-3">
-								<div className="bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" 
-									 style={{ width: '80px', height: '80px' }}>
-									<i className="bi bi-person-fill text-white fs-1"></i>
-								</div>
-								<h5 className="mb-1">{profileData.name || store.user.name || 'User'}</h5>
-								<p className="text-muted mb-0">{store.user.role}</p>
-							</div>
-							
-							<hr />
-							
-							<div className="row g-2 text-center">
-								<div className="col-6">
-									<div className="bg-light rounded p-2">
-										<div className="fw-bold text-primary">8</div>
-										<small className="text-muted">Donations</small>
-									</div>
-								</div>
-								<div className="col-6">
-									<div className="bg-light rounded p-2">
-										<div className="fw-bold text-success">3</div>
-										<small className="text-muted">Favorites</small>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
+  return (
+    <div className="container py-5">
+      <div className="row">
+        <div className="col-lg-4 mb-4">
+          {/* User Profile Card */}
+          <div className="card shadow-sm">
+            <div className="card-body text-center">
+              <div className="mb-3">
+                {profileData.avatar_url ? (
+                  <img
+                    src={`/api/uploads/${profileData.avatar_url}`}
+                    alt="User Avatar"
+                    className="rounded-circle"
+                    style={{ width: '120px', height: '120px', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <div
+                    className="bg-primary bg-opacity-10 rounded-circle d-inline-flex justify-content-center align-items-center"
+                    style={{ width: '120px', height: '120px' }}
+                  >
+                    <i className="fas fa-user text-primary" style={{ fontSize: '3rem' }}></i>
+                  </div>
+                )}
+              </div>
+              <h5 className="card-title mb-1">{profileData.name}</h5>
+              <p className="text-muted small mb-3">
+                <span className="badge bg-secondary me-1">{profileData.role}</span>
+                {profileData.is_verified && <span className="badge bg-success">Verified</span>}
+              </p>
+              <div className="d-grid gap-2">
+                <Link to="/edit-profile" className="btn btn-outline-primary">
+                  <i className="fas fa-edit me-1"></i> Edit Profile
+                </Link>
+              </div>
+            </div>
+            <ul className="list-group list-group-flush">
+              <li className="list-group-item d-flex justify-content-between align-items-center">
+                <span><i className="fas fa-envelope me-2 text-secondary"></i> Email</span>
+                <span>{profileData.email}</span>
+              </li>
+              {profileData.phone && (
+                <li className="list-group-item d-flex justify-content-between align-items-center">
+                  <span><i className="fas fa-phone me-2 text-secondary"></i> Phone</span>
+                  <span>{profileData.phone}</span>
+                </li>
+              )}
+              <li className="list-group-item d-flex justify-content-between align-items-center">
+                <span><i className="fas fa-calendar me-2 text-secondary"></i> Joined</span>
+                <span>
+                  {profileData.created_at ? new Date(profileData.created_at).toLocaleDateString() : 'N/A'}
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
 
-					{/* Account Settings */}
-					<div className="card mt-4">
-						<div className="card-header">
-							<h5 className="mb-0">Account Settings</h5>
-						</div>
-						<div className="card-body">
-							<div className="d-grid gap-2">
-								<button className="btn btn-outline-primary btn-sm">
-									<i className="bi bi-key me-2"></i>
-									Change Password
-								</button>
-								<button className="btn btn-outline-info btn-sm">
-									<i className="bi bi-bell me-2"></i>
-									Notification Settings
-								</button>
-								<button className="btn btn-outline-secondary btn-sm">
-									<i className="bi bi-shield-check me-2"></i>
-									Privacy Settings
-								</button>
-								<hr />
-								<button className="btn btn-outline-danger btn-sm">
-									<i className="bi bi-trash me-2"></i>
-									Delete Account
-								</button>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	);
+        <div className="col-lg-8">
+          {/* Organizations Section */}
+          {(profileData.role === 'org_admin' || profileData.role === 'admin') && (
+            <div className="card shadow-sm mb-4">
+              <div className="card-header bg-light">
+                <h5 className="mb-0">My Organizations</h5>
+              </div>
+              <div className="card-body">
+                {organizations.length > 0 ? (
+                  <div className="list-group">
+                    {organizations.map(org => (
+                      <div key={org.id} className="list-group-item list-group-item-action d-flex align-items-center">
+                        <div className="me-3">
+                          {org.logo_url ? (
+                            <img
+                              src={`/api/uploads/${org.logo_url}`}
+                              alt={`${org.name} logo`}
+                              className="rounded"
+                              style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            <div
+                              className="bg-light rounded d-flex align-items-center justify-content-center"
+                              style={{ width: '50px', height: '50px' }}
+                            >
+                              <i className="fas fa-building text-secondary"></i>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-grow-1">
+                          <h6 className="mb-1">{org.name}</h6>
+                          <p className="mb-0 small text-muted">
+                            {org.status === 'approved' ? (
+                              <span className="text-success">
+                                <i className="fas fa-check-circle me-1"></i> Approved
+                              </span>
+                            ) : (
+                              <span className="text-warning">
+                                <i className="fas fa-clock me-1"></i> {org.status}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div>
+                          <Link to={`/organization-dashboard`} className="btn btn-sm btn-outline-primary">
+                            <i className="fas fa-tachometer-alt me-1"></i> Dashboard
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-muted py-3">
+                    You don't have any organizations yet.
+                    <br />
+                    <Link to="/register-organization" className="btn btn-sm btn-primary mt-2">
+                      <i className="fas fa-plus me-1"></i> Register Organization
+                    </Link>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Activity Section */}
+          <div className="card shadow-sm mb-4">
+            <div className="card-header bg-light">
+              <h5 className="mb-0">My Activity</h5>
+            </div>
+            <div className="card-body">
+              <ul className="list-group">
+                {bookmarks && bookmarks.length > 0 ? (
+                  bookmarks.map((bookmark, index) => (
+                    <li key={index} className="list-group-item d-flex justify-content-between align-items-center">
+                      <div>
+                        <i className="fas fa-bookmark text-primary me-2"></i>
+                        <span>Bookmarked: </span>
+                        <Link to={`/organizations/${bookmark.id || bookmark.organization_id}-${bookmark.name?.toLowerCase().replace(/\s+/g, '-') || bookmark.organization_name?.toLowerCase().replace(/\s+/g, '-') || 'organization'}`}>
+                          {bookmark.name || bookmark.organization_name || `Organization #${bookmark.id || bookmark.organization_id}`}
+                        </Link>
+                      </div>
+                      <span className="text-muted small">
+                        {(bookmark.bookmarked_at || bookmark.created_at) ?
+                          new Date(bookmark.bookmarked_at || bookmark.created_at).toLocaleDateString() : ''}
+                      </span>
+                    </li>
+                  ))
+                ) : (
+                  <li className="list-group-item text-center py-4">
+                    <p className="text-muted mb-0">No recent activity</p>
+                    <Link to="/categories" className="btn btn-sm btn-outline-primary mt-2">
+                      <i className="fas fa-search me-1"></i> Browse Organizations
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+
+          {/* Account Settings Quick Access */}
+          <div className="card shadow-sm">
+            <div className="card-header bg-light">
+              <h5 className="mb-0">Account Settings</h5>
+            </div>
+            <div className="card-body">
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <Link to="/edit-profile" className="btn btn-outline-secondary w-100">
+                    <i className="fas fa-user-edit me-2"></i> Update Profile
+                  </Link>
+                </div>
+                <div className="col-md-6">
+                  <Link to="/change-password" className="btn btn-outline-secondary w-100">
+                    <i className="fas fa-key me-2"></i> Change Password
+                  </Link>
+                </div>
+                <div className="col-md-6">
+                  <Link to="/notification-preferences" className="btn btn-outline-secondary w-100">
+                    <i className="fas fa-bell me-2"></i> Notification Settings
+                  </Link>
+                </div>
+                <div className="col-md-6">
+                  <Link to="/privacy-settings" className="btn btn-outline-secondary w-100">
+                    <i className="fas fa-shield-alt me-2"></i> Privacy Settings
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 export default UserProfile;

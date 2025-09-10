@@ -7,15 +7,19 @@ import Input from '../components/forms/Input';
 export const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
-  const { login, initiateGoogleOAuth, error, clearError, isAuthenticated } = useAuth();
+  const { login, initiateGoogleOAuth, error, clearError, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard');
+    if (isAuthenticated && user) {
+      if (user.role === 'org_admin') {
+        navigate('/organization-dashboard');
+      } else {
+        navigate('/dashboard');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   // Clear global errors when component unmounts
   useEffect(() => {
@@ -57,8 +61,12 @@ export const Login = () => {
     if (!validateForm()) return;
 
     try {
-      await login(formData.email, formData.password);
-      navigate("/dashboard");
+      const loggedInUser = await login(formData.email, formData.password);
+      if (loggedInUser.user.role === 'org_admin') {
+        navigate("/organization-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       // Error is already handled by useAuth hook
       console.error('Login error:', error);

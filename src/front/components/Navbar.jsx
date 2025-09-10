@@ -16,14 +16,12 @@ export const Navbar = () => {
 				{/* Brand */}
 				<Link to="/" className="navbar-brand fw-bold fs-3 d-flex align-items-center">
 					<img src="/Logo.png" alt="Unseen Logo" height="32" className="me-2" style={{ objectFit: 'contain' }} />
-					<span className="align-self-center">Unseen</span>
 				</Link>
 
 				{/* Mobile: List Your Charity - moved for better layout */}
 				<div className="d-flex align-items-center d-lg-none ms-auto">
-					<Link to="/list-your-charity" className="btn calcifer-button float-magic btn-sm" role="button">
-						<i className="fas fa-plus me-1" aria-hidden="true"></i>
-						<span>List</span>
+					<Link to="/list-your-charity" className="btn calcifer-button float-magic btn-sm me-3 " role="button">
+						<i className="fas fa-plus" aria-hidden="true"></i>
 					</Link>
 				</div>
 
@@ -89,7 +87,7 @@ export const Navbar = () => {
 									<ul className="dropdown-menu dropdown-menu-end bg-cream border-forest" aria-labelledby="navbarDropdown">
 										<li>
 											{user?.role === 'org_admin' ? (
-												<Link className="dropdown-item text-forest" to="/org-dashboard">
+												<Link className="dropdown-item text-forest" to="/organization-dashboard">
 													<i className="fas fa-building me-2 text-totoro"></i>
 													<span>Organization Dashboard</span>
 												</Link>
@@ -133,8 +131,7 @@ export const Navbar = () => {
 								</li>
 								<li className="nav-item d-none d-lg-block ms-3">
 									<Link to="/list-your-charity" className="btn calcifer-button float-magic" role="button">
-										<i className="fas fa-plus me-2" aria-hidden="true"></i>
-										<span>List Your Charity</span>
+										<i className="fas fa-plus " aria-hidden="true"></i>
 									</Link>
 								</li>
 							</>

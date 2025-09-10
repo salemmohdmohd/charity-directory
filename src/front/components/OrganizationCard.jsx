@@ -10,6 +10,11 @@ const OrganizationCard = ({ organization, onCardClick }) => {
   const [bookmarkId, setBookmarkId] = useState(organization.bookmark_id || null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Debug organization data structure (can be removed in production)
+  useEffect(() => {
+    console.log('Organization card data:', organization);
+  }, [organization]);
+
   useEffect(() => {
     setIsBookmarked(organization.is_bookmarked || false);
     setBookmarkId(organization.bookmark_id || null);
@@ -53,11 +58,20 @@ const OrganizationCard = ({ organization, onCardClick }) => {
     <div className="organization-card" onClick={() => onCardClick && onCardClick(organization)}>
       {/* Image Container */}
       <div className="card-img-container">
-        <img
-          src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2071&auto=format&fit=crop"
-          alt={organization.name}
-          className="card-img-top"
-        />
+        {(organization.cover_image || (organization.photos && organization.photos.length > 0)) ? (
+          <img
+            src={organization.cover_image
+                ? `/api/uploads/${organization.cover_image}`
+                : `/api/uploads/${organization.photos[0].url || organization.photos[0].file_path || organization.photos[0].id}`
+            }
+            alt={organization.name}
+            className="card-img-top"
+          />
+        ) : (
+          <div className="placeholder-img d-flex align-items-center justify-content-center bg-light" style={{height: '100%'}}>
+            <i className="fas fa-building fa-3x text-muted"></i>
+          </div>
+        )}
         {organization.is_verified && (
           <div className="verification-badge">
             <i className="fas fa-check-circle me-1"></i>
@@ -70,15 +84,24 @@ const OrganizationCard = ({ organization, onCardClick }) => {
       <div className="card-body">
         {/* Logo */}
         <div className="logo-container">
-          <img
-            src="/Logo.png"
-            alt={`${organization.name} logo`}
-            className="logo"
-          />
+          {organization.logo_url ? (
+            <img
+              src={`/api/uploads/${organization.logo_url}`}
+              alt={`${organization.name} logo`}
+              className="logo"
+            />
+          ) : (
+            <div className="logo d-flex align-items-center justify-content-center bg-light">
+              <i className="fas fa-landmark text-muted"></i>
+            </div>
+          )}
         </div>
 
         {/* Title and Mission */}
         <h5 className="card-title">{organization.name}</h5>
+        {organization.status && organization.status !== 'approved' && (
+          <div className="badge bg-warning text-dark mb-2">{organization.status.charAt(0).toUpperCase() + organization.status.slice(1)}</div>
+        )}
         <p className="card-mission">
           {organization.mission ? (organization.mission.length > 100 ? `${organization.mission.substring(0, 100)}...` : organization.mission) : 'Mission not available.'}
         </p>
@@ -87,11 +110,11 @@ const OrganizationCard = ({ organization, onCardClick }) => {
         <div className="info-grid">
           <div className="info-item">
             <i className="fas fa-tag"></i>
-            <span>{organization.category || 'Uncategorized'}</span>
+            <span>{organization.category_name || organization.category || 'Uncategorized'}</span>
           </div>
           <div className="info-item">
             <i className="fas fa-map-marker-alt"></i>
-            <span>{formatLocation(organization.location)}</span>
+            <span>{formatLocation(organization.location || organization.address)}</span>
           </div>
         </div>
 
