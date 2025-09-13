@@ -273,16 +273,16 @@ def generate_sitemap(app):
         <h1>Charity Directory API</h1>
 
         <div style="margin: 30px 0;">
-            <h2>🚀 Quick Access</h2>
+            <h2> Quick Access</h2>
             <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin: 20px 0;">
                 <a href="/api/docs/" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    📖 API Documentation (Swagger)
+                     API Documentation (Swagger)
                 </a>
                 <a href="/admin/" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    ⚙️ Admin Panel
+                     Admin Panel
                 </a>
                 <a href="/" style="background: #17a2b8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    🌐 Frontend App
+                    Frontend App
                 </a>
             </div>
         </div>

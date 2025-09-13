@@ -110,13 +110,13 @@ const Advertise = () => {
                             <div className="row justify-content-center mt-4">
                                 <div className="col-md-4 col-6 mb-3">
                                     <div className="bg-white bg-opacity-25 rounded-4 p-3">
-                                        <h3 className="fw-bold text-ghibli-cream mb-0">10K+</h3>
+                                        <h3 className="fw-bold  mb-0">10K+</h3>
                                         <p className="mb-0">Monthly Visitors</p>
                                     </div>
                                 </div>
                                 <div className="col-md-4 col-6 mb-3">
                                     <div className="bg-white bg-opacity-25 rounded-4 p-3">
-                                        <h3 className="fw-bold text-ghibli-cream mb-0">4.8<small>/5</small></h3>
+                                        <h3 className="fw-bold  mb-0">4.8<small>/5</small></h3>
                                         <p className="mb-0">Advertiser Rating</p>
                                     </div>
                                 </div>

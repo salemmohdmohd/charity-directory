@@ -125,7 +125,7 @@ const Search = () => {
 
   return (
     <div className="container mt-5" ref={searchContainerRef}>
-      <h2 className="mb-4 text-forest">🔍 Search & Discover Organizations</h2>
+      <h2 className="mb-4 text-forest">Search & Discover Organizations</h2>
 
       <div className="row mb-4 g-3 align-items-center p-3 bg-light rounded shadow-sm">
         {/* Query Input with Suggestions */}

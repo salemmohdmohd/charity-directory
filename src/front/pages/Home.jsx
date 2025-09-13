@@ -121,7 +121,7 @@ export const Home = () => {
 					<div className="row text-center">
 						<div className="col-md-3 mb-4">
 							<div className="totoro-card p-4 h-100">
-								<div className="h1 fw-bold text-primary mb-2">🌱</div>
+								<div className="h1 fw-bold text-primary mb-2"></div>
 								<div className="h2 fw-bold text-primary">1,247</div>
 								<p className="text-muted mb-0">Verified Charities</p>
 								<small className="text-success">Growing daily</small>
@@ -129,7 +129,7 @@ export const Home = () => {
 						</div>
 						<div className="col-md-3 mb-4">
 							<div className="totoro-card p-4 h-100">
-								<div className="h1 fw-bold text-primary mb-2">🎋</div>
+								<div className="h1 fw-bold text-primary mb-2"></div>
 								<div className="h2 fw-bold text-primary">50+</div>
 								<p className="text-muted mb-0">Impact Categories</p>
 								<small className="text-success">Diverse causes</small>
@@ -137,7 +137,7 @@ export const Home = () => {
 						</div>
 						<div className="col-md-3 mb-4">
 							<div className="totoro-card p-4 h-100">
-								<div className="h1 fw-bold text-primary mb-2">🌍</div>
+								<div className="h1 fw-bold text-primary mb-2"></div>
 								<div className="h2 fw-bold text-primary">25</div>
 								<p className="text-muted mb-0">Countries Served</p>
 								<small className="text-success">Global reach</small>
@@ -145,7 +145,7 @@ export const Home = () => {
 						</div>
 						<div className="col-md-3 mb-4">
 							<div className="totoro-card p-4 h-100">
-								<div className="h1 fw-bold text-primary mb-2">✨</div>
+								<div className="h1 fw-bold text-primary mb-2"></div>
 								<div className="h2 fw-bold text-primary">100%</div>
 								<p className="text-muted mb-0">Verified Trust</p>
 								<small className="text-success">Thoroughly vetted</small>

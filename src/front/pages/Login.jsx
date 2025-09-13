@@ -21,9 +21,10 @@ export const Login = () => {
     }
   }, [isAuthenticated, user, navigate]);
 
-  // Clear global errors when component unmounts
   useEffect(() => {
-    return () => clearError();
+    return () => {
+      clearError();
+    };
   }, [clearError]);
 
   const handleChange = (e) => {

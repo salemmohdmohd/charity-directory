@@ -277,9 +277,6 @@ const Categories = () => {
                               const orgSlug = createOrgSlug(org);
                               window.location.href = `/organizations/${orgSlug}`;
                             }}
-                            onWebsiteClick={(url) => {
-                              window.open(url, '_blank', 'noopener,noreferrer');
-                            }}
                           />
                         </div>
                       ))}

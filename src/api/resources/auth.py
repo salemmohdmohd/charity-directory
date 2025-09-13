@@ -199,7 +199,7 @@ class VerifyEmail(Resource):
                 notification_service.send_notification(
                     user_id=verification.user.id,
                     notification_type="security_alert",
-                    subject="🎉 Email verified successfully!",
+                    subject=" Email verified successfully!",
                     message="Congratulations! Your email has been verified and you now have a verified badge. You can now access all features on Charity Directory.",
                     priority="high"
                 )

@@ -15,7 +15,7 @@ export const Footer = () => (
 							height="40"
 							className="me-3"
 						/>
-						<h5 className="fw-bold mb-0 text-ghibli-cream">Unseen</h5>
+						<h5 className="fw-bold mb-0 ">Unseen</h5>
 					</div>
 					<p className="mb-3 text-ghibli-light">
 						Connecting hearts with causes that spark wonder and change lives.
@@ -124,10 +124,10 @@ export const Footer = () => (
 			{/* Magical Footer Message */}
 			<div className="text-center mt-4">
 				<p className="mb-0 text-ghibli-cream font-italic magical-message">
-					✨ "The magic you're looking for is in the work you're avoiding" ✨
+					 "The magic you're looking for is in the work you're avoiding"
 				</p>
 				<small className="text-ghibli-light">
-					Made with 💚 by <span className="text-ghibli-cream fw-semibold">The Unseen Team</span>
+					Made with  by <span className="text-ghibli-cream fw-semibold">The Unseen Team</span>
 				</small>
 			</div>
 		</div>
