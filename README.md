@@ -231,7 +231,7 @@ System: Charity Directory
        │    ├── Secure login via Flask-Admin interface
        │    ├── Google OAuth login
        │    └── Two-factor authentication
-       ├── Flask-Admin Dashboard Access (/admin) 🚀
+       ├── Flask-Admin Dashboard Access (/admin)
        │    ├── Real-time Analytics Dashboard
        │    ├── Interactive Metrics & Statistics
        │    ├── Clickable Navigation Panels

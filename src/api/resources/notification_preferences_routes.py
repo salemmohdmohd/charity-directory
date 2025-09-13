@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from ..models import db, NotificationPreference, User
 from ..core import api
 
-prefs_ns = api.namespace('notification-preferences', description='User Notification Preferences')
+prefs_ns = api.namespace('notifications/preferences', description='User Notification Preferences')
 
 
 # Notification Preferences Models

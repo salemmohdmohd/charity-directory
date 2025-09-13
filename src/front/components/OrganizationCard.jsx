@@ -13,6 +13,7 @@ const OrganizationCard = ({ organization, onCardClick }) => {
   // Debug organization data structure (can be removed in production)
   useEffect(() => {
     console.log('Organization card data:', organization);
+    console.log('Image path:', organization.cover_image ? `/api/uploads/${organization.cover_image}` : 'No cover image found');
   }, [organization]);
 
   useEffect(() => {
@@ -58,20 +59,13 @@ const OrganizationCard = ({ organization, onCardClick }) => {
     <div className="organization-card" onClick={() => onCardClick && onCardClick(organization)}>
       {/* Image Container */}
       <div className="card-img-container">
-        {(organization.cover_image || (organization.photos && organization.photos.length > 0)) ? (
-          <img
-            src={organization.cover_image
-                ? `/api/uploads/${organization.cover_image}`
-                : `/api/uploads/${organization.photos[0].url || organization.photos[0].file_path || organization.photos[0].id}`
-            }
-            alt={organization.name}
-            className="card-img-top"
-          />
-        ) : (
-          <div className="placeholder-img d-flex align-items-center justify-content-center bg-light" style={{height: '100%'}}>
-            <i className="fas fa-building fa-3x text-muted"></i>
-          </div>
-        )}
+        {console.log('Organization card data:', organization)}
+        {console.log('Image path:', organization.primary_photo_url ? `Using primary_photo_url: ${organization.primary_photo_url}` : 'No cover image found')}
+        <img
+          src={`/api/uploads/${organization.primary_photo_url}`}
+          alt={organization.name}
+          className="card-img-top"
+        />
         {organization.is_verified && (
           <div className="verification-badge">
             <i className="fas fa-check-circle me-1"></i>

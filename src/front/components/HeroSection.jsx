@@ -23,7 +23,7 @@ export const HeroSection = () => {
                 Connect with causes that spark wonder and change lives. Your compassion is the seed that grows into extraordinary impact.
             </p>
             <Link to="/about-us" className='btn calcifer-button btn-lg float-magic px-5 py-3'>
-                Discover Your Cause ✨
+                Discover Your Cause
             </Link>
         </div>
     </header>

@@ -216,7 +216,7 @@ class CustomAdminIndexView(AdminIndexView):
             <div class="col-md-12">
                 <div class="panel panel-primary">
                     <div class="panel-heading">
-                        <h3 class="panel-title">🚀 Charity Directory Dashboard - Real-time Analytics</h3>
+                        <h3 class="panel-title">Charity Directory Dashboard - Real-time Analytics</h3>
                     </div>
                     <div class="panel-body">
 
@@ -273,7 +273,7 @@ class CustomAdminIndexView(AdminIndexView):
                             </div>
                             <div class="col-md-6">
                                 <div class="panel panel-info">
-                                    <div class="panel-heading"><strong>⚙️ System Status</strong></div>
+                                    <div class="panel-heading"><strong>System Status</strong></div>
                                     <div class="panel-body">
                                         <p><strong>Active Ads:</strong> <a href="/admin/advertisement/" style="text-decoration: none;">{active_ads} running campaigns</a></p>
                                         <p><strong>Security Events:</strong> <a href="/admin/auditlog/" style="text-decoration: none;">{recent_audit_logs} logged this week</a></p>

@@ -5,19 +5,52 @@ import Button from '../components/forms/Button';
 import Input from '../components/forms/Input';
 import Checkbox from '../components/forms/Checkbox';
 
+// Define a style to prevent hover effects
+const disableHoverStyle = `
+  @keyframes none {
+    0% { transform: none; }
+    100% { transform: none; }
+  }
+
+  .no-hover-effect {
+    transition: none !important;
+    transform: none !important;
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+  }
+
+  .no-hover-effect:hover {
+    transform: none !important;
+    transition: none !important;
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important;
+  }
+`;
+
 export const Signup = () => {
+  // Add the style to the document
+  useEffect(() => {
+    const styleElement = document.createElement('style');
+    styleElement.innerHTML = disableHoverStyle;
+    document.head.appendChild(styleElement);
+
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
     agreeToTerms: false,
+    profile_picture: null,
     phone_number: '',
     address: '',
     city: '',
     state: '',
     zip_code: ''
   });
+  const [profilePreview, setProfilePreview] = useState(null);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -36,10 +69,16 @@ export const Signup = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Clear global errors when component unmounts
+  // Clear global errors and revoke object URLs when component unmounts
   useEffect(() => {
-    return () => clearError();
-  }, [clearError]);
+    return () => {
+      clearError();
+      // Clean up preview URL to prevent memory leaks
+      if (profilePreview && profilePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(profilePreview);
+      }
+    };
+  }, [clearError, profilePreview]);
 
   // Email validation helper
   const validateEmail = (email) => {
@@ -98,15 +137,33 @@ export const Signup = () => {
   };
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    const newValue = type === 'checkbox' ? checked : value;
+    const { name, value, type, checked, files } = e.target;
+
+    let newValue;
+    if (type === 'checkbox') {
+      newValue = checked;
+    } else if (type === 'file') {
+      // Handle file uploads
+      newValue = files[0] || null;
+
+      // Create image preview for profile picture
+      if (name === 'profile_picture' && files[0]) {
+        const fileReader = new FileReader();
+        fileReader.onload = (e) => {
+          setProfilePreview(e.target.result);
+        };
+        fileReader.readAsDataURL(files[0]);
+      }
+    } else {
+      newValue = value;
+    }
 
     setFormData({
       ...formData,
       [name]: newValue
     });
 
-    // Clear errors when user types
+    // Clear errors when user types or selects files
     if (errors[name]) {
       setErrors({ ...errors, [name]: '' });
     }
@@ -156,6 +213,20 @@ export const Signup = () => {
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
+    // Validate profile picture if one is provided
+    if (formData.profile_picture) {
+      const allowedImageTypes = [
+        'image/jpeg', 'image/jpg', 'image/png', 'image/gif',
+        'image/webp', 'image/bmp', 'image/tiff'
+      ];
+
+      if (!allowedImageTypes.includes(formData.profile_picture.type)) {
+        newErrors.profile_picture = 'Please upload a valid image file (JPG, PNG, GIF, etc.)';
+      } else if (formData.profile_picture.size > 5 * 1024 * 1024) { // 5MB limit
+        newErrors.profile_picture = 'Image size should be less than 5MB';
+      }
+    }
+
     if (!formData.agreeToTerms) {
       newErrors.agreeToTerms = 'You must agree to the terms and conditions';
     }
@@ -167,10 +238,47 @@ export const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Check specifically for terms agreement before proceeding
+    if (!formData.agreeToTerms) {
+      setErrors(prevErrors => ({
+        ...prevErrors,
+        agreeToTerms: "You must agree to the Terms and Conditions to register"
+      }));
+
+      // Alert the user about the terms agreement requirement
+      setTimeout(() => {
+        const termsCheckbox = document.querySelector('[name="agreeToTerms"]');
+        if (termsCheckbox) {
+          termsCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          termsCheckbox.focus();
+          alert("You must agree to the Terms and Conditions to create an account.");
+        }
+      }, 100);
+
+      return;
+    }
+
     if (!validateForm()) return;
 
     try {
-      await signup(formData.name, formData.email, formData.password);
+      // Create FormData to handle file uploads
+      const data = new FormData();
+
+      // Append all form fields to FormData
+      Object.keys(formData).forEach(key => {
+        // Skip confirmPassword as it's only for client-side validation
+        if (key === 'confirmPassword') return;
+
+        // Skip empty fields
+        if (formData[key] === null || formData[key] === '') return;
+
+        // Append the field to FormData
+        data.append(key, formData[key]);
+      });
+
+      // Call signup with the FormData
+      await signup(data);
+
       // Redirect to dashboard since user is now immediately active
       navigate("/dashboard");
     } catch (error) {
@@ -181,6 +289,27 @@ export const Signup = () => {
 
   const handleGoogleSignup = () => {
     clearError(); // Clear any existing errors
+
+    // Check specifically for terms agreement first
+    if (!formData.agreeToTerms) {
+      setErrors({
+        ...errors,
+        agreeToTerms: 'You must agree to the Terms and Conditions before proceeding'
+      });
+
+      // Alert the user about the terms agreement requirement
+      setTimeout(() => {
+        const termsCheckbox = document.querySelector('[name="agreeToTerms"]');
+        if (termsCheckbox) {
+          termsCheckbox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          termsCheckbox.focus();
+          alert("You must agree to the Terms and Conditions before proceeding.");
+        }
+      }, 100);
+
+      return;
+    }
+
     initiateGoogleOAuth();
   };
 
@@ -188,7 +317,7 @@ export const Signup = () => {
     <div className="container mt-5 mb-5">
       <div className="row justify-content-center">
         <div className="col-md-6 col-lg-5">
-          <div className="card shadow">
+          <div className="card shadow no-hover-effect" style={{ transition: 'none', transform: 'none' }}>
             <div className="card-body p-5">
               <div className="text-center mb-4">
                 <h2 className="h3 mb-3">Create Your Account</h2>
@@ -196,6 +325,42 @@ export const Signup = () => {
               </div>
 
               <form onSubmit={handleSubmit}>
+                <div className="mb-4">
+                  <h5 className="text-primary mb-3">
+                    <i className="fas fa-user me-2"></i>
+                    Account Information
+                  </h5>
+                </div>
+
+                <div className="mb-4">
+                  <label className="form-label">
+                    Profile Picture
+                  </label>
+                  <div className="d-flex align-items-center mb-2">
+                    {profilePreview && (
+                      <div className="me-3">
+                        <img
+                          src={profilePreview}
+                          alt="Profile Preview"
+                          className="rounded-circle border"
+                          style={{ width: '80px', height: '80px', objectFit: 'cover' }}
+                        />
+                      </div>
+                    )}
+                    <div className="flex-grow-1">
+                      <input
+                        type="file"
+                        className={`form-control ${errors.profile_picture ? 'is-invalid' : ''}`}
+                        name="profile_picture"
+                        onChange={handleChange}
+                        accept="image/*"
+                      />
+                      {errors.profile_picture && <div className="invalid-feedback">{errors.profile_picture}</div>}
+                      <div className="form-text">Upload a profile picture (optional)</div>
+                    </div>
+                  </div>
+                </div>
+
                 <Input
                   name="name"
                   type="text"
@@ -307,6 +472,49 @@ export const Signup = () => {
                   )}
                 </div>
 
+                <div className="mb-3">
+                  <label className="form-label">
+                    Confirm Password <span className="text-danger">*</span>
+                  </label>
+                  <div className="input-group">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`}
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="Confirm your password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
+                  {errors.confirmPassword && <div className="invalid-feedback d-block">{errors.confirmPassword}</div>}
+
+                  {formData.confirmPassword && formData.password && (
+                    <div className={`mt-1 small ${
+                      formData.password === formData.confirmPassword ? 'text-success' : 'text-danger'
+                    }`}>
+                      <i className={`fas ${
+                        formData.password === formData.confirmPassword ? 'fa-check-circle' : 'fa-exclamation-circle'
+                      } me-1`}></i>
+                      {formData.password === formData.confirmPassword ? 'Passwords match' : 'Passwords do not match'}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mb-4 mt-4">
+                  <h5 className="text-primary mb-3">
+                    <i className="fas fa-id-card me-2"></i>
+                    Contact Information
+                  </h5>
+                </div>
+
                 <Input
                   name="phone_number"
                   type="tel"
@@ -363,56 +571,22 @@ export const Signup = () => {
                 />
 
                 <div className="mb-3">
-                  <label className="form-label">
-                    Confirm Password <span className="text-danger">*</span>
-                  </label>
-                  <div className="input-group">
-                    <input
-                      type={showConfirmPassword ? "text" : "password"}
-                      className={`form-control ${errors.confirmPassword ? 'is-invalid' : ''}`}
-                      name="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      placeholder="Confirm your password"
-                      required
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
-                    </button>
-                  </div>
-                  {errors.confirmPassword && <div className="invalid-feedback d-block">{errors.confirmPassword}</div>}
-
-                  {formData.confirmPassword && formData.password && (
-                    <div className={`mt-1 small ${
-                      formData.password === formData.confirmPassword ? 'text-success' : 'text-danger'
-                    }`}>
-                      <i className={`fas ${
-                        formData.password === formData.confirmPassword ? 'fa-check-circle' : 'fa-exclamation-circle'
-                      } me-1`}></i>
-                      {formData.password === formData.confirmPassword ? 'Passwords match' : 'Passwords do not match'}
-                    </div>
-                  )}
-                </div>
-
-                <div className="mb-3">
                   <Checkbox
                     name="agreeToTerms"
                     checked={formData.agreeToTerms}
                     onChange={handleChange}
                     error={errors.agreeToTerms}
                     label={
-                      <span>
+                      <span className="fw-bold">
                         I agree to the{' '}
-                        <Link to="/terms" className="text-decoration-none">Terms of Service</Link>
+                        <Link to="/terms" className="text-primary">Terms of Service</Link>
                         {' '}and{' '}
-                        <Link to="/privacy" className="text-decoration-none">Privacy Policy</Link>
+                        <Link to="/privacy" className="text-primary">Privacy Policy</Link>
+                        <span className="text-danger ms-1">*</span>
                       </span>
                     }
                     required
+                    className="border-left border-danger ps-2"
                   />
                 </div>
 
@@ -431,10 +605,17 @@ export const Signup = () => {
                     type="button"
                     variant="outline-danger"
                     onClick={handleGoogleSignup}
+                    title="You must agree to Terms and Conditions before using Google Sign-In"
                   >
                     <i className="fab fa-google me-2"></i>
                     Sign up with Google
                   </Button>
+                  <div className="text-center mt-1">
+                    <small className="text-muted">
+                      <i className="fas fa-info-circle me-1"></i>
+                      Terms agreement required for all signup methods
+                    </small>
+                  </div>
                 </div>
 
                 <div className="text-center">
@@ -454,7 +635,7 @@ export const Signup = () => {
           </div>
 
           {/* Organization Portal Link */}
-          <div className="card mt-4 bg-success text-white m-b-5">
+          <div className="card mt-4 bg-success text-white m-b-5 no-hover-effect">
             <div className="card-body text-center p-4">
               <h6 className="card-title mb-2">
                 <i className="fas fa-plus-circle me-2"></i>

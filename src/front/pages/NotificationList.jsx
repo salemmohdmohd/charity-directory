@@ -96,21 +96,21 @@ export const NotificationList = () => {
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'welcome':
-        return '👋';
+        return 'hello';
       case 'organization_update':
-        return '🏢';
+        return 'update';
       case 'contact_message':
-        return '💬';
+        return 'you got mail';
       case 'system_announcement':
-        return '📢';
+        return 'ehm ehm';
       case 'security_alert':
-        return '🔒';
+        return 'alert';
       case 'newsletter':
-        return '📧';
+        return 'news';
       case 'reminder':
-        return '⏰';
+        return 'snooze';
       default:
-        return '🔔';
+        return 'ding dong';
     }
   };
 
@@ -152,7 +152,7 @@ export const NotificationList = () => {
               to="/notification-settings"
               className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              ⚙️ Settings
+               Settings
             </Link>
           </div>
         </div>
@@ -173,7 +173,7 @@ export const NotificationList = () => {
         <div className="space-y-4">
           {notifications.length === 0 && !isLoading ? (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">🔔</div>
+              <div className="text-6xl mb-4">alerts</div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No notifications yet</h3>
               <p className="text-gray-500">
                 You'll see notifications here when there's activity on your account.

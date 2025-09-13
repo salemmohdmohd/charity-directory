@@ -22,25 +22,25 @@ const AboutUs = () => {
           </h1>
           <p className="lead fw-bold mb-4 enchanted-text fs-3" style={{textShadow: '2px 2px 6px rgba(0, 0, 0, 0.7), 1px 1px 3px rgba(74, 124, 89, 0.3)'}}>
             Empowering small and mid-size charities to reach their full potential through
-            <span className="text-ghibli-cream fw-semibold"> free digital promotion</span> and expert partnerships
+            <span className=" fw-semibold"> free digital promotion</span> and expert partnerships
           </p>
 
           <div className="row justify-content-center mt-5">
             <div className="col-md-3 col-6 mb-4 mb-md-0">
               <div className="bg-white bg-opacity-25 rounded-4 p-3 transform-hover">
-                <h2 className="fw-bold text-ghibli-cream display-4 mb-0">500+</h2>
+                <h2 className="fw-bold  display-4 mb-0">500+</h2>
                 <p className="mb-0 fw-semibold">Charities Listed</p>
               </div>
             </div>
             <div className="col-md-3 col-6 mb-4 mb-md-0">
               <div className="bg-white bg-opacity-25 rounded-4 p-3 transform-hover">
-                <h2 className="fw-bold text-ghibli-cream display-4 mb-0">2M+</h2>
+                <h2 className="fw-bold  display-4 mb-0">2M+</h2>
                 <p className="mb-0 fw-semibold">People Reached</p>
               </div>
             </div>
             <div className="col-md-3 col-6">
               <div className="bg-white bg-opacity-25 rounded-4 p-3 transform-hover">
-                <h2 className="fw-bold text-ghibli-cream display-4 mb-0">85%</h2>
+                <h2 className="fw-bold  display-4 mb-0">85%</h2>
                 <p className="mb-0 fw-semibold">Increased Visibility</p>
               </div>
             </div>
@@ -424,7 +424,7 @@ const AboutUs = () => {
         <div className="container position-relative" style={{zIndex: 1}}>
           <div className="row">
             <div className="col-12 text-center mb-5">
-              <h2 className="display-4 fw-bold mb-3 magical-title text-ghibli-cream">The Power of Digital Presence</h2>
+              <h2 className="display-4 fw-bold mb-3 magical-title ">The Power of Digital Presence</h2>
               <div className="position-relative d-inline-block mb-4">
                 <span className="position-absolute" style={{
                   height: '4px',
@@ -448,7 +448,7 @@ const AboutUs = () => {
                     <i className="fas fa-donate text-ghibli-green" style={{fontSize: '2.5rem'}}></i>
                   </div>
                 </div>
-                <h2 className="fw-bold text-ghibli-cream display-5 mb-3">5.2x</h2>
+                <h2 className="fw-bold  display-5 mb-3">5.2x</h2>
                 <p className="mb-0 fs-5">Increase in online donations when charities have strong SEO presence</p>
               </div>
             </div>
@@ -460,7 +460,7 @@ const AboutUs = () => {
                     <i className="fas fa-users text-ghibli-green" style={{fontSize: '2.5rem'}}></i>
                   </div>
                 </div>
-                <h2 className="fw-bold text-ghibli-cream display-5 mb-3">78%</h2>
+                <h2 className="fw-bold  display-5 mb-3">78%</h2>
                 <p className="mb-0 fs-5">Of people discover new charities through social media recommendations</p>
               </div>
             </div>
@@ -472,7 +472,7 @@ const AboutUs = () => {
                     <i className="fas fa-mobile-alt text-ghibli-green" style={{fontSize: '2.5rem'}}></i>
                   </div>
                 </div>
-                <h2 className="fw-bold text-ghibli-cream display-5 mb-3">84%</h2>
+                <h2 className="fw-bold  display-5 mb-3">84%</h2>
                 <p className="mb-0 fs-5">Of charitable giving research happens on mobile devices</p>
               </div>
             </div>
@@ -484,7 +484,7 @@ const AboutUs = () => {
                     <i className="fas fa-clock text-ghibli-green" style={{fontSize: '2.5rem'}}></i>
                   </div>
                 </div>
-                <h2 className="fw-bold text-ghibli-cream display-5 mb-3">48hrs</h2>
+                <h2 className="fw-bold  display-5 mb-3">48hrs</h2>
                 <p className="mb-0 fs-5">Average time for viral social content to reach peak engagement</p>
               </div>
             </div>
@@ -563,7 +563,7 @@ const AboutUs = () => {
           <div className="row">
             <div className="col-lg-10 mx-auto">
               <div className="text-center mb-5">
-                <h2 className="display-5 fw-bold mb-4 text-ghibli-cream">
+                <h2 className="display-5 fw-bold mb-4 ">
                   <i className="fas fa-trophy me-3"></i>
                   Coming Soon: Charity Excellence Awards
                 </h2>
@@ -572,84 +572,34 @@ const AboutUs = () => {
                 </p>
               </div>
 
-              <div className="row g-4">
-                <div className="col-lg-6">
-                  <div className="card bg-transparent border-2 border-light h-100">
-                    <div className="card-body p-4 text-center">
-                      <div className="mb-4">
-                        <i className="fas fa-calendar-star text-ghibli-cream" style={{fontSize: '3.5rem'}}></i>
-                      </div>
-                      <h4 className="text-ghibli-cream mb-3">Quarterly Award Ceremonies</h4>
-                      <p className="mb-4">
-                        Every three months, we'll host prestigious events recognizing the top-performing small charities
-                        based on impact, innovation, and community engagement metrics.
-                      </p>
-                      <div className="row text-center">
-                        <div className="col-6">
-                          <h5 className="text-ghibli-cream">Top 10</h5>
-                          <small>Charities Awarded</small>
-                        </div>
-                        <div className="col-6">
-                          <h5 className="text-ghibli-cream">$50K+</h5>
-                          <small>In Promotion Value</small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="col-lg-6">
-                  <div className="card bg-transparent border-2 border-light h-100">
-                    <div className="card-body p-4 text-center">
-                      <div className="mb-4">
-                        <i className="fas fa-microphone-alt text-ghibli-cream" style={{fontSize: '3.5rem'}}></i>
-                      </div>
-                      <h4 className="text-ghibli-cream mb-3">In-Person Promotion</h4>
-                      <p className="mb-4">
-                        Award recipients receive premium in-person promotional opportunities including speaking engagements,
-                        media interviews, and networking events with major donors and corporate sponsors.
-                      </p>
-                      <div className="row text-center">
-                        <div className="col-6">
-                          <h5 className="text-ghibli-cream">500+</h5>
-                          <small>Industry Leaders</small>
-                        </div>
-                        <div className="col-6">
-                          <h5 className="text-ghibli-cream">National</h5>
-                          <small>Media Coverage</small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
               <div className="row mt-5">
                 <div className="col-12">
                   <div className="text-center">
-                    <h4 className="text-ghibli-cream mb-4">What Award Winners Receive:</h4>
+                    <h4 className=" mb-4">What Award Winners Receive:</h4>
                     <div className="row g-3">
                       <div className="col-md-3 col-6">
                         <div className="d-flex flex-column align-items-center">
-                          <i className="fas fa-video text-ghibli-cream mb-2" style={{fontSize: '2rem'}}></i>
+                          <i className="fas fa-video  mb-2" style={{fontSize: '2rem'}}></i>
                           <small>Professional Video Features</small>
                         </div>
                       </div>
                       <div className="col-md-3 col-6">
                         <div className="d-flex flex-column align-items-center">
-                          <i className="fas fa-newspaper text-ghibli-cream mb-2" style={{fontSize: '2rem'}}></i>
+                          <i className="fas fa-newspaper  mb-2" style={{fontSize: '2rem'}}></i>
                           <small>Press Release Distribution</small>
                         </div>
                       </div>
                       <div className="col-md-3 col-6">
                         <div className="d-flex flex-column align-items-center">
-                          <i className="fas fa-handshake text-ghibli-cream mb-2" style={{fontSize: '2rem'}}></i>
+                          <i className="fas fa-handshake  mb-2" style={{fontSize: '2rem'}}></i>
                           <small>Corporate Partnership Intros</small>
                         </div>
                       </div>
                       <div className="col-md-3 col-6">
                         <div className="d-flex flex-column align-items-center">
-                          <i className="fas fa-bullhorn text-ghibli-cream mb-2" style={{fontSize: '2rem'}}></i>
+                          <i className="fas fa-bullhorn  mb-2" style={{fontSize: '2rem'}}></i>
                           <small>Social Media Campaigns</small>
                         </div>
                       </div>
@@ -660,7 +610,7 @@ const AboutUs = () => {
 
               <div className="text-center mt-5">
                 <div className="bg-white bg-opacity-10 rounded-3 p-4 d-inline-block">
-                  <h5 className="text-ghibli-cream mb-2">
+                  <h5 className=" mb-2">
                     <i className="fas fa-clock me-2"></i>
                     First Event: Spring 2025
                   </h5>
