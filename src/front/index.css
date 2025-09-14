@@ -46,6 +46,46 @@
   --bs-box-shadow-lg: 0 1rem 3rem rgba(34, 64, 34, 0.2);
 }
 
+/* Top banner layout variable used to offset navbar when banner is visible */
+:root {
+  --topbanner-height: 0px;
+}
+
+.top-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: var(--ghibli-forest-deep);
+  color: var(--ghibli-light-text);
+  z-index: 1050; /* Above navbar (which is typically 1030) */
+  padding: 0.5rem 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+/* Ensure the navbar is pushed below the banner when present */
+.nav-ghibli {
+  margin-top: var(--topbanner-height);
+}
+
+/* Scoped under #app-theme to avoid theme collisions */
+#app-theme .top-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+#app-theme .nav-ghibli {
+  margin-top: var(--topbanner-height);
+}
+
+/* Small responsive tweaks for banner */
+@media (max-width: 576px) {
+  .top-banner { font-size: 0.9rem; padding: 0.5rem; }
+}
+
+
 /* Studio Ghibli Inspired Utilities and Effects */
 .transform-hover {
   transition: all 0.3s ease;

@@ -218,8 +218,8 @@ def serialize_organization(org, include_details=False):
         else:
             data['is_bookmarked'] = False
             data['bookmark_id'] = None
-    except RuntimeError:
-        # This will happen if there is no JWT in the request, which is fine for public endpoints
+    except Exception:
+        # If any error happens (e.g., no JWT), default to not bookmarked
         data['is_bookmarked'] = False
         data['bookmark_id'] = None
 
@@ -239,6 +239,29 @@ def serialize_organization(org, include_details=False):
         data['operating_hours'] = org.operating_hours
 
     return data
+
+
+def serialize_advertisement(ad):
+    if not ad:
+        return None
+    return {
+        'id': ad.id,
+        'organization_id': ad.organization_id,
+        'title': ad.title,
+        'description': ad.description,
+        'image_url': ad.image_url,
+        'target_url': ad.target_url,
+        'ad_type': ad.ad_type,
+        'placement': ad.placement,
+        'start_date': ad.start_date.isoformat() if ad.start_date else None,
+        'end_date': ad.end_date.isoformat() if ad.end_date else None,
+        'budget': float(ad.budget) if ad.budget is not None else None,
+        'clicks_count': ad.clicks_count,
+        'impressions_count': ad.impressions_count,
+        'is_active': ad.is_active,
+        'created_at': ad.created_at.isoformat() if ad.created_at else None,
+        'updated_at': ad.updated_at.isoformat() if ad.updated_at else None,
+    }
 
 def paginate(query, page, per_page):
     """Helper function for pagination."""
