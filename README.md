@@ -161,7 +161,7 @@ npm test
 2. Deploy the `dist` folder
 3. Configure environment variables
 
-## 👥 Contributing Team
+##  Contributing Team
 
 - **Team Name: Team Unseen**
 - **Members**

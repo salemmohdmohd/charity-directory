@@ -3,60 +3,24 @@ import { useNavigate } from 'react-router-dom';
 import { HeroSection } from "../components/HeroSection.jsx";
 import OrganizationCard from "../components/OrganizationCard.jsx";
 import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
-import { organizationService } from "../Services/axios.js";
+import useOrganizations from "../hooks/useOrganizations.js";
 
 export const Home = () => {
-	const { store, dispatch } = useGlobalReducer()
+	const { store } = useGlobalReducer()
 	const navigate = useNavigate();
-	const [featuredOrganizations, setFeaturedOrganizations] = useState([]);
-	const [loading, setLoading] = useState(true);
 
-	// Fetch featured organizations on component mount
-	useEffect(() => {
-		const fetchFeaturedOrganizations = async () => {
-			try {
-				setLoading(true);
-				// Get first 4 verified organizations for featured section
-				const response = await organizationService.getOrganizations({
-					page: 1,
-					per_page: 4,
-					status: 'approved',
-					verification_level: 'verified'
-				});
-
-				// Fetch photos for each organization
-				const orgsWithPhotos = await Promise.all(
-					(response.organizations || []).map(async (org) => {
-						try {
-							const photos = await organizationService.getOrganizationPhotos(org.id);
-							return {
-								...org,
-								photos: photos || []
-							};
-						} catch (error) {
-							console.error(`Failed to fetch photos for org ${org.id}:`, error);
-							return {
-								...org,
-								photos: []
-							};
-						}
-					})
-				);
-
-				setFeaturedOrganizations(orgsWithPhotos);
-			} catch (error) {
-				console.error('Error fetching featured organizations:', error);
-				dispatch({
-					type: 'SET_ERROR',
-					payload: 'Failed to load featured organizations.'
-				});
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchFeaturedOrganizations();
-	}, [dispatch]);
+	// Use the new organizations hook with initial params for featured organizations
+	const {
+		organizations: featuredOrganizations,
+		loading,
+		error,
+		selectedLocation
+	} = useOrganizations({
+		page: 1,
+		per_page: 4,
+		status: 'approved',
+		verification_level: 'verified'
+	});
 
 	// Handle organization card click
 	const handleOrganizationClick = (organization) => {
@@ -72,7 +36,15 @@ export const Home = () => {
 			<section className="py-5 sky-section">
 				<div className="container-fluid px-4">
 					<div className="text-center mb-5">
-						<h2 className="display-5 fw-bold mb-3">Featured Organizations</h2>
+						<h2 className="display-5 fw-bold mb-3">
+							Featured Organizations
+							{selectedLocation && (
+								<small className="d-block text-muted mt-2">
+									<i className="fas fa-map-marker-alt me-2"></i>
+									Showing organizations in {selectedLocation.state_province}
+								</small>
+							)}
+						</h2>
 						<p className="lead text-muted">Discover and support verified charitable organizations making a real difference</p>
 					</div>
 
@@ -84,7 +56,14 @@ export const Home = () => {
 							</div>
 							<p className="mt-3">Loading featured organizations...</p>
 						</div>
-					) : (
+					) : error ? (
+						<div className="text-center py-5">
+							<div className="alert alert-warning" role="alert">
+								<i className="fas fa-exclamation-triangle me-2"></i>
+								{error}
+							</div>
+						</div>
+					) : featuredOrganizations.length > 0 ? (
 						<div className="row g-4 pb-5 mb-5">
 							{featuredOrganizations.map((organization) => (
 								<div key={organization.id} className="col-sm-6 col-lg-3">
@@ -95,6 +74,16 @@ export const Home = () => {
 									/>
 								</div>
 							))}
+						</div>
+					) : (
+						<div className="text-center py-5">
+							<div className="alert alert-info" role="alert">
+								<i className="fas fa-info-circle me-2"></i>
+								{selectedLocation
+									? `No featured organizations found in ${selectedLocation.state_province}. Try selecting a different location.`
+									: 'No featured organizations available at the moment.'
+								}
+							</div>
 						</div>
 					)}
 

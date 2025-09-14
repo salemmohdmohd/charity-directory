@@ -255,11 +255,29 @@ export const categoryService = {
 };
 
 export const organizationService = {
-  // Get all organizations
+  // Get all organizations with optional filtering
   getOrganizations: async (params = {}) => {
-    const searchParams = new URLSearchParams(params)
+    const searchParams = new URLSearchParams()
+
+    // Handle all possible organization filter parameters
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
+        searchParams.append(key, params[key])
+      }
+    })
+
     const response = await api.get(`/organizations?${searchParams}`)
     return response.data
+  },
+
+  // Get organizations filtered by state (convenience method)
+  getOrganizationsByState: async (state, additionalParams = {}) => {
+    const params = {
+      ...additionalParams,
+      state_province: state
+    }
+
+    return organizationService.getOrganizations(params)
   },
 
   // Search organizations (for suggestions)

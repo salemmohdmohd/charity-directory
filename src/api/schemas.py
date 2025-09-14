@@ -133,6 +133,7 @@ org_parser = pagination_parser.copy()
 org_parser.add_argument('status', type=str, help='Organization status filter')
 org_parser.add_argument('category_id', type=int, help='Category ID filter')
 org_parser.add_argument('location_id', type=int, help='Location ID filter')
+org_parser.add_argument('state_province', type=str, help='State/Province filter')
 org_parser.add_argument('search', type=str, help='Search query')
 
 search_parser = pagination_parser.copy()

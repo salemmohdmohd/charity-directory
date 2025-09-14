@@ -16,6 +16,11 @@ export const initialStore = () => {
     selectedOrganization: null,
     categories: [], // Will be fetched from API
 
+    // Location State
+    locations: [],
+    selectedLocation: null,
+    availableStates: [],
+
     // Notifications
     notifications: {
       list: [],
@@ -126,6 +131,31 @@ export default function storeReducer(store, action = {}) {
       return {
         ...store,
         categories: action.payload
+      };
+
+    // Location Actions
+    case 'SET_LOCATIONS':
+      return {
+        ...store,
+        locations: action.payload
+      };
+
+    case 'SET_SELECTED_LOCATION':
+      return {
+        ...store,
+        selectedLocation: action.payload
+      };
+
+    case 'SET_AVAILABLE_STATES':
+      return {
+        ...store,
+        availableStates: action.payload
+      };
+
+    case 'CLEAR_LOCATION_FILTER':
+      return {
+        ...store,
+        selectedLocation: null
       };
 
     // User-specific data

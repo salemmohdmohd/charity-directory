@@ -2,7 +2,7 @@ from flask_restx import Resource, marshal, Namespace
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..core import api
 from ..schemas import org_parser, org_create_parser, organization_model
-from ..models import db, Organization, Category, User
+from ..models import db, Organization, Category, User, Location
 from sqlalchemy import or_, desc
 from sqlalchemy.orm import joinedload
 from ..utils import paginate, serialize_organization, log_action
@@ -29,6 +29,9 @@ class OrganizationList(Resource):
             else: query = query.filter(Organization.status == 'approved')
             if args.category_id: query = query.filter(Organization.category_id == args.category_id)
             if args.location_id: query = query.filter(Organization.location_id == args.location_id)
+            if args.state_province:
+                # Filter by state/province by joining with Location table
+                query = query.join(Organization.location).filter(Location.state_province == args.state_province)
             if args.search:
                 s = f"%{args.search}%"
                 query = query.filter(or_(Organization.name.ilike(s), Organization.description.ilike(s), Organization.mission.ilike(s)))
