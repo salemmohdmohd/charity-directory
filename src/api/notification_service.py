@@ -552,7 +552,7 @@ class NotificationService:
             <h2>Thank You for Your Advertising Inquiry!</h2>
             <p>Dear {contact_name},</p>
 
-            <p>Thank you for your interest in advertising with Unseen. We have received your inquiry and our partnerships team will review it carefully.</p>
+            <p>Thank you for your interest in advertising with Cause Book. We have received your inquiry and our partnerships team will review it carefully.</p>
 
             <h3>Your Inquiry Summary:</h3>
             <ul>
@@ -574,14 +574,14 @@ class NotificationService:
 
             <p>If you have any immediate questions, you can reach our partnerships team at:</p>
             <ul>
-                <li>Email: partnerships@unseen.com</li>
+                <li>Email: partnerships@Causebook.com</li>
                 <li>Phone: (555) 012-3456</li>
             </ul>
 
-            <p>Thank you for considering Unseen as your advertising partner. We look forward to working with you!</p>
+            <p>Thank you for considering Cause Book as your advertising partner. We look forward to working with you!</p>
 
             <p>Best regards,<br>
-            The Unseen Partnerships Team</p>
+            The Cause Book Partnerships Team</p>
             """
 
             # Load template and render

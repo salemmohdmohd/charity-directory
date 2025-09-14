@@ -12,8 +12,8 @@ const HelpCenter = () => {
         answer: "Click on the 'Sign Up' button in the top navigation, fill out the required information, and verify your email address to get started."
       },
       {
-        question: "Is Unseen free to use?",
-        answer: "Yes! Unseen is completely free for individuals looking to discover and connect with charitable organizations."
+        question: "Is Cause Book free to use?",
+        answer: "Yes! Cause Book is completely free for individuals looking to discover and connect with charitable organizations."
       },
       {
         question: "How do I search for charities?",
@@ -22,7 +22,7 @@ const HelpCenter = () => {
     ],
     'organizations': [
       {
-        question: "How can my organization join Unseen?",
+        question: "How can my organization join Cause Book?",
         answer: "Click 'List Your Charity' and complete the registration process. We'll review your application and verify your organization's status."
       },
       {
@@ -36,8 +36,8 @@ const HelpCenter = () => {
     ],
     'donations': [
       {
-        question: "Does Unseen process donations?",
-        answer: "No, Unseen connects you with organizations but doesn't process donations directly. You'll be redirected to the organization's secure donation page."
+        question: "Does Cause Book process donations?",
+        answer: "No, Cause Book connects you with organizations but doesn't process donations directly. You'll be redirected to the organization's secure donation page."
       },
       {
         question: "Are donations tax-deductible?",
@@ -72,7 +72,7 @@ const HelpCenter = () => {
     : faqs[activeTab] || [];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="py-5 bg-cream" style={{ minHeight: '100vh' }}>
       <div className="container">
         <div className="row">
           <div className="col-12">
@@ -148,7 +148,7 @@ const HelpCenter = () => {
                     <p className="card-text small text-muted">
                       Can't find what you're looking for? Our support team is here to help.
                     </p>
-                    <a href="mailto:support@unseen.com" className="btn btn-primary btn-sm">
+                    <a href="mailto:support@Causebook.com" className="btn btn-primary btn-sm">
                       Contact Support
                     </a>
                   </div>
@@ -242,7 +242,7 @@ const HelpCenter = () => {
                       <div className="card-body">
                         <i className="fas fa-plus-circle fa-2x text-success mb-3"></i>
                         <h6 className="card-title">List Your Charity</h6>
-                        <p className="card-text small">Get your organization on Unseen</p>
+                        <p className="card-text small">Get your organization on Cause Book</p>
                         <Link to="/list-your-charity" className="btn btn-outline-success btn-sm">
                           Get Started
                         </Link>

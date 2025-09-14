@@ -11,11 +11,11 @@ export const Footer = () => (
 					<div className="d-flex align-items-center mb-3">
 						<img
 							src="Logo.png"
-							alt="Unseen Logo"
+							alt="Cause Book Logo"
 							height="40"
 							className="me-3"
 						/>
-						<h5 className="fw-bold mb-0 ">Unseen</h5>
+						<h5 className="fw-bold mb-0 ">Cause Book</h5>
 					</div>
 					<p className="mb-3 text-ghibli-light">
 						Connecting hearts with causes that spark wonder and change lives.
@@ -50,9 +50,7 @@ export const Footer = () => (
 						<li className="mb-2">
 							<Link to="/about-us" className="footer-link">About Us</Link>
 						</li>
-						<li className="mb-2">
-							<Link to="/search-history" className="footer-link">Search History</Link>
-						</li>
+
 					</ul>
 				</div>
 
@@ -69,9 +67,7 @@ export const Footer = () => (
 						<li className="mb-2">
 							<Link to="/organization-signup" className="footer-link">Register Organization</Link>
 						</li>
-						<li className="mb-2">
-							<a href="#" className="footer-link">Success Stories</a>
-						</li>
+
 					</ul>
 				</div>
 
@@ -86,7 +82,7 @@ export const Footer = () => (
 							<Link to="/signup" className="footer-link">Sign Up</Link>
 						</li>
 						<li className="mb-2">
-							<a href="mailto:support@unseen.com" className="footer-link">
+							<a href="mailto:support@Causebook.com" className="footer-link">
 								<i className="fas fa-envelope me-2"></i>
 								Support
 							</a>
@@ -107,7 +103,7 @@ export const Footer = () => (
 				<div className="col-md-6">
 					<p className="mb-0 text-ghibli-light">
 						<small>
-							© 2025 <span className="text-ghibli-cream fw-semibold">Unseen</span>.
+							© 2025 <span className="text-ghibli-cream fw-semibold">Cause Book</span>.
 							Spreading kindness, one connection at a time.
 						</small>
 					</p>
@@ -127,7 +123,7 @@ export const Footer = () => (
 					 "The magic you're looking for is in the work you're avoiding"
 				</p>
 				<small className="text-ghibli-light">
-					Made with  by <span className="text-ghibli-cream fw-semibold">The Unseen Team</span>
+					Made with  by <span className="text-ghibli-cream fw-semibold">The Cause Book Team</span>
 				</small>
 			</div>
 		</div>

@@ -29,11 +29,11 @@ export const Home = () => {
 	};
 
 	return (
-		<div>
+		<div className=" bg-cream" style={{ minHeight: '100vh' }}>
 			<HeroSection />
 
 			{/* Featured Charities Section */}
-			<section className="py-5 sky-section">
+			<section className="py-5 ">
 				<div className="container-fluid px-4">
 					<div className="text-center mb-5">
 						<h2 className="display-5 fw-bold mb-3">

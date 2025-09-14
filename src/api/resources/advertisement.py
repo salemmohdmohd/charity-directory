@@ -189,7 +189,7 @@ class AdvertisingInquiry(Resource):
             notification_service = NotificationService()
 
             try:
-                partnerships_email = os.getenv('PARTNERSHIPS_EMAIL', 'partnerships@unseen.com')
+                partnerships_email = os.getenv('PARTNERSHIPS_EMAIL', 'partnerships@Causebook.com')
                 notification_service.send_advertising_inquiry_notification(
                     partnerships_email,
                     inquiry_data

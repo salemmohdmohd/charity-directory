@@ -16,7 +16,7 @@ export const Navbar = () => {
 			<div className="container">
 				{/* Brand */}
 				<Link to="/" className="navbar-brand fw-bold fs-3 d-flex align-items-center">
-					<img src="/Logo.png" alt="Unseen Logo" height="32" className="me-2" style={{ objectFit: 'contain' }} />
+					<img src="/Logo.png" alt="Cause Book Logo" height="32" className="me-2" style={{ objectFit: 'contain' }} />
 				</Link>
 
 				{/* Mobile: List Your Charity - moved for better layout */}
