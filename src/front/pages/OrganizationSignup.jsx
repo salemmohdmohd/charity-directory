@@ -252,9 +252,8 @@ export const OrganizationSignup = () => {
       newErrors.website = 'Please enter a valid URL for your website';
     }
 
-    if (!formData.donation_link) {
-      newErrors.donation_link = 'Donation link is required';
-    } else if (!/^https?:\/\/.+/.test(formData.donation_link)) {
+    // donation_link is optional; organizations may not accept donations or may not provide a link
+    if (formData.donation_link && !/^https?:\/\/.+/.test(formData.donation_link)) {
       newErrors.donation_link = 'Please enter a valid URL for the donation link';
     }
 

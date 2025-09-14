@@ -23,45 +23,32 @@ const UserProfile = () => {
 
         // Use the currently authenticated user data from the hook
         // This avoids making an unnecessary API call if we already have the data
-        setProfileData(user);
-        console.log('Using user data from auth context:', user);
+  setProfileData(user);
 
-        // Try to get user's organizations if any
-        try {
-          const orgsResponse = await api.get('/users/me/organizations');
-          console.log('Organizations data:', orgsResponse.data);
-          if (orgsResponse.data && orgsResponse.data.organizations) {
-            setOrganizations(orgsResponse.data.organizations);
-          }
-        } catch (orgError) {
-          console.error('Error fetching organizations:', orgError);
+        // Fetch organizations and bookmarks in parallel (if needed)
+        const promises = [];
+        promises.push(api.get('/users/me/organizations').catch(() => ({ data: { organizations: [] } })));
+        promises.push(api.get('/users/me/bookmarks').catch(() => ({ data: [] })));
+        const [orgsResponse, bookmarksResponse] = await Promise.all(promises);
+
+        if (orgsResponse && orgsResponse.data && Array.isArray(orgsResponse.data.organizations)) {
+          setOrganizations(orgsResponse.data.organizations);
+        } else {
           setOrganizations([]);
         }
 
-        // Try to get user's bookmarks if they're not included in the user data
-        if (!user.bookmarked_organizations) {
-          try {
-            console.log('Fetching user bookmarks...');
-            const bookmarksResponse = await api.get('/users/me/bookmarks');
-            console.log('Bookmarks data:', bookmarksResponse.data);
-            if (bookmarksResponse.data && Array.isArray(bookmarksResponse.data)) {
-              setBookmarks(bookmarksResponse.data);
-            } else if (bookmarksResponse.data && Array.isArray(bookmarksResponse.data.bookmarks)) {
-              setBookmarks(bookmarksResponse.data.bookmarks);
-            }
-          } catch (bookmarkError) {
-            console.error('Error fetching bookmarks:', bookmarkError);
-            setBookmarks([]);
-          }
+        // Normalize bookmarks response shape
+        if (bookmarksResponse && Array.isArray(bookmarksResponse.data)) {
+          setBookmarks(bookmarksResponse.data);
+        } else if (bookmarksResponse && bookmarksResponse.data && Array.isArray(bookmarksResponse.data.bookmarks)) {
+          setBookmarks(bookmarksResponse.data.bookmarks);
         } else {
-          console.log('Using bookmarks from user data:', user.bookmarked_organizations);
-          setBookmarks(user.bookmarked_organizations);
+          setBookmarks([]);
         }
 
-        setError(null);
+  setError(null);
       } catch (err) {
-        console.error('Error setting up user profile data:', err);
-        setError('Failed to load user profile data. Please try again.');
+  setError('Failed to load user profile data. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -157,7 +144,7 @@ const UserProfile = () => {
 
         <div className="col-lg-8">
           {/* Organizations Section */}
-          {(profileData.role === 'org_admin' || profileData.role === 'admin') && (
+          {(profileData.role === 'org_admin' || profileData.role === 'platform_admin') && (
             <div className="card shadow-sm mb-4">
               <div className="card-header bg-light">
                 <h5 className="mb-0">My Organizations</h5>
@@ -232,13 +219,19 @@ const UserProfile = () => {
                       <div>
                         <i className="fas fa-bookmark text-primary me-2"></i>
                         <span>Bookmarked: </span>
-                        <Link to={`/organizations/${bookmark.id || bookmark.organization_id}-${bookmark.name?.toLowerCase().replace(/\s+/g, '-') || bookmark.organization_name?.toLowerCase().replace(/\s+/g, '-') || 'organization'}`}>
-                          {bookmark.name || bookmark.organization_name || `Organization #${bookmark.id || bookmark.organization_id}`}
-                        </Link>
+                        {(() => {
+                          const id = bookmark.id || bookmark.organization_id;
+                          const name = bookmark.name || bookmark.organization_name || `organization-${id}`;
+                          const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                          return (
+                            <Link to={`/organizations/${id}-${slug}`}>
+                              {name}
+                            </Link>
+                          );
+                        })()}
                       </div>
                       <span className="text-muted small">
-                        {(bookmark.bookmarked_at || bookmark.created_at) ?
-                          new Date(bookmark.bookmarked_at || bookmark.created_at).toLocaleDateString() : ''}
+                        {(bookmark.bookmarked_at || bookmark.created_at) ? new Date(bookmark.bookmarked_at || bookmark.created_at).toLocaleDateString() : ''}
                       </span>
                     </li>
                   ))

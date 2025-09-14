@@ -1,0 +1,121 @@
+{% extends 'admin/my_master.html' %}
+
+{% block head_css %}
+{{ super() }}
+<style>
+  .stat-card { padding: 15px; margin-bottom: 15px; }
+  .activity-item { padding: 8px 0; border-bottom: 1px solid #f4f4f4; }
+</style>
+{% endblock head_css %}
+
+{% block body %}
+{{ super() }}
+
+{% if current_user.is_authenticated %}
+
+<section class="content-header">
+  <h1>Dashboard <small>Control panel</small></h1>
+  <ol class="breadcrumb">
+    <li><a href="#"><i class="fa fa-dashboard"></i> Home</a></li>
+    <li class="active">Dashboard</li>
+  </ol>
+</section>
+
+<section class="content">
+  <!-- Alerts -->
+  {% if pending_orgs > 0 %}
+    <div class="alert alert-warning"><strong>{{ pending_orgs }} organizations pending approval</strong> — <a href="/admin/organization/?flt1_0=pending">Review</a></div>
+  {% endif %}
+  {% if unread_messages > 0 %}
+    <div class="alert alert-info">You have {{ unread_messages }} unread messages — <a href="/admin/contactmessage/">Open</a></div>
+  {% endif %}
+
+  <!-- Stats Row -->
+  <div class="row">
+    <div class="col-lg-3 col-xs-6">
+      <div class="small-box bg-aqua">
+        <div class="inner">
+          <h3>{{ total_users or 0 }}</h3>
+          <p>Total Users</p>
+        </div>
+        <div class="icon"><i class="ion ion-person-add"></i></div>
+        <a href="/admin/user/" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+      </div>
+    </div>
+    <div class="col-lg-3 col-xs-6">
+      <div class="small-box bg-green">
+        <div class="inner"><h3>{{ total_orgs or 0 }}</h3><p>Organizations</p></div>
+        <div class="icon"><i class="ion ion-briefcase"></i></div>
+        <a href="/admin/organization/" class="small-box-footer">More info <i class="fa fa-arrow-circle-right"></i></a>
+      </div>
+    </div>
+    <div class="col-lg-3 col-xs-6">
+      <div class="small-box bg-yellow">
+        <div class="inner"><h3>{{ pending_orgs or 0 }}</h3><p>Pending Approval</p></div>
+        <div class="icon"><i class="ion ion-alert-circled"></i></div>
+        <a href="/admin/organization/?flt1_0=pending" class="small-box-footer">Review <i class="fa fa-arrow-circle-right"></i></a>
+      </div>
+    </div>
+    <div class="col-lg-3 col-xs-6">
+      <div class="small-box bg-red">
+        <div class="inner"><h3>{{ total_categories or 0 }}</h3><p>Categories</p></div>
+        <div class="icon"><i class="ion ion-pricetag"></i></div>
+        <a href="/admin/category/" class="small-box-footer">Manage <i class="fa fa-arrow-circle-right"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Metrics & Quick Nav -->
+  <div class="row">
+    <div class="col-md-8">
+      <div class="box">
+        <div class="box-header"><h3 class="box-title">Platform Metrics</h3></div>
+        <div class="box-body">
+          <div class="row">
+            <div class="col-sm-6 stat-card">
+              <strong>Total Pageviews</strong>
+              <h4>{{ total_pageviews or 0 }}</h4>
+            </div>
+            <div class="col-sm-6 stat-card">
+              <strong>Approval Rate</strong>
+              <h4>{{ approval_rate }}%</h4>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-header"><h3 class="box-title">Recent Activities</h3></div>
+        <div class="box-body">
+          {% for act in recent_activities %}
+            <div class="activity-item"><i class="fa fa-{{ act.icon }}"></i> {{ act.message }} <span class="text-muted pull-right">{{ act.time_ago }}</span></div>
+          {% else %}
+            <p>No recent activity.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="box">
+        <div class="box-header"><h3 class="box-title">Quick Navigation</h3></div>
+        <div class="box-body">
+          <p><a class="btn btn-block btn-default" href="/admin/organization/">Organizations</a></p>
+          <p><a class="btn btn-block btn-default" href="/admin/user/">Users</a></p>
+          <p><a class="btn btn-block btn-default" href="/admin/category/">Categories</a></p>
+          <p><a class="btn btn-block btn-default" href="/admin/contactmessage/">Messages ({{ unread_messages }})</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+{% else %}
+<center style="padding:40px">
+  <h2>Please login to access admin</h2>
+  <a class="btn btn-primary" href="{{ url_for('login') }}">Login</a>
+</center>
+{% endif %}
+
+{% endblock body %}

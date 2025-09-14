@@ -2,6 +2,7 @@
 import os
 from datetime import datetime, timedelta
 from flask import redirect, url_for, request, flash, Response
+from flask_login import current_user
 from markupsafe import Markup
 from flask_admin import Admin, AdminIndexView, expose
 from flask_admin.contrib.sqla import ModelView
@@ -16,11 +17,11 @@ class SecureModelView(ModelView):
     """Base class for secure admin views"""
 
     def is_accessible(self):
-        # For now, we'll assume admin access
-        return True
+        # Check if user is authenticated and has admin role
+        return current_user.is_authenticated and current_user.is_admin()
 
     def inaccessible_callback(self, name, **kwargs):
-        return redirect(url_for('auth.login'))
+        return redirect(url_for('login'))
 
 
 class UserAdminView(SecureModelView):
@@ -168,7 +169,14 @@ class AdvertisementAdminView(SecureModelView):
 
 
 class CustomAdminIndexView(AdminIndexView):
-    """Custom admin index view with embedded HTML dashboard"""
+    """Custom admin index view with enhanced dashboard and real-time analytics"""
+
+    def is_accessible(self):
+        # Check if user is authenticated and has admin role
+        return current_user.is_authenticated and current_user.is_admin()
+
+    def inaccessible_callback(self, name, **kwargs):
+        return redirect(url_for('login'))
 
     @expose('/')
     def index(self):
@@ -177,66 +185,120 @@ class CustomAdminIndexView(AdminIndexView):
         today = now.date()
         yesterday = today - timedelta(days=1)
         week_ago = now - timedelta(days=7)
-        month_ago = now - timedelta(days=30)
 
-        # Core statistics
-        total_users = User.query.count()
-        total_organizations = Organization.query.count()
-        pending_organizations = Organization.query.filter_by(status='pending').count()
-        approved_organizations = Organization.query.filter_by(status='approved').count()
-        rejected_organizations = Organization.query.filter_by(status='rejected').count()
-        total_bookmarks = UserBookmark.query.count()
-        total_searches = SearchHistory.query.count()
+        # Core statistics for template context
+        context = {
+            # User statistics
+            'total_users': User.query.count(),
+            'visitor_count': User.query.filter_by(role='visitor').count(),
+            'org_admin_count': User.query.filter_by(role='org_admin').count(),
+            'new_users_today': User.query.filter(User.created_at >= today).count(),
+            'new_users': User.query.filter(User.created_at >= today).count(),  # For notification
 
-        # Growth analytics
-        new_users_today = User.query.filter(User.created_at >= today).count()
-        new_users_week = User.query.filter(User.created_at >= week_ago).count()
-        new_orgs_today = Organization.query.filter(Organization.created_at >= today).count()
-        new_orgs_week = Organization.query.filter(Organization.created_at >= week_ago).count()
+            # Organization statistics
+            'total_orgs': Organization.query.count(),
+            'pending_orgs': Organization.query.filter_by(status='pending').count(),
+            'approved_orgs': Organization.query.filter_by(status='approved').count(),
+            'rejected_orgs': Organization.query.filter_by(status='rejected').count(),
 
-        # System health indicators
-        unread_messages = ContactMessage.query.filter_by(is_read=False).count()
-        active_ads = Advertisement.query.filter_by(is_active=True).count()
+            # Content statistics
+            'total_categories': Category.query.count(),
+            'total_locations': Location.query.count(),
+            'total_notifications': Notification.query.count(),
+
+            # System statistics
+            'recent_logs': AuditLog.query.filter(AuditLog.timestamp >= week_ago).count(),
+            'total_ads': Advertisement.query.count(),
+            'active_ads': Advertisement.query.filter_by(is_active=True).count(),
+
+            # Metrics for dashboard
+            'unread_messages': ContactMessage.query.filter_by(is_read=False).count(),
+            'flagged_content': 0,  # Can implement later
+            'system_health': 95,   # Can implement real health check
+            'ad_revenue': 0,       # Can implement revenue tracking
+
+            # Notification count for navbar
+            'notification_count': (
+                Organization.query.filter_by(status='pending').count() +
+                ContactMessage.query.filter_by(is_read=False).count() +
+                User.query.filter(User.created_at >= today).count()
+            ),
+
+            # Recent activities (sample implementation)
+            'recent_activities': [
+                {
+                    'icon': 'user-plus',
+                    'message': f'{User.query.filter(User.created_at >= today).count()} new users registered today',
+                    'time_ago': 'Today'
+                },
+                {
+                    'icon': 'building',
+                    'message': f'{Organization.query.filter_by(status="pending").count()} organizations pending approval',
+                    'time_ago': 'Now'
+                },
+                {
+                    'icon': 'envelope',
+                    'message': f'{ContactMessage.query.filter_by(is_read=False).count()} unread messages',
+                    'time_ago': 'Recent'
+                }
+            ]
+        }
+
+        # Build embedded dashboard HTML with enhanced metrics
         total_pageviews = db.session.query(db.func.sum(Organization.view_count)).scalar() or 0
-        recent_audit_logs = AuditLog.query.filter(AuditLog.timestamp >= week_ago).count()
+        approval_rate = (context['approved_orgs'] / context['total_orgs'] * 100) if context['total_orgs'] > 0 else 0
 
-        # Smart insights and alerts
-        approval_rate = (approved_organizations / total_organizations * 100) if total_organizations > 0 else 0
-        avg_bookmarks_per_org = (total_bookmarks / approved_organizations) if approved_organizations > 0 else 0
+        # Derived metrics
+        total_pageviews = db.session.query(db.func.sum(Organization.view_count)).scalar() or 0
+        approval_rate = (context['approved_orgs'] / context['total_orgs'] * 100) if context['total_orgs'] > 0 else 0
+        context['total_pageviews'] = total_pageviews
+        context['approval_rate'] = round(approval_rate, 1)
 
-        # Build embedded dashboard HTML with clickable panels
         dashboard_html = f"""
-         <style>
+        <style>
         .alert .close {{ display: none !important; }}
         .alert {{ margin-bottom: 0; }}
         .clickable-panel {{ cursor: pointer; transition: all 0.3s; }}
         .clickable-panel:hover {{ transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }}
+        .notification-dot {{
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #dc3545;
+            border-radius: 50%;
+            margin-left: 5px;
+            animation: pulse 2s infinite;
+        }}
+        @keyframes pulse {{ 0% {{ opacity: 1; }} 50% {{ opacity: 0.5; }} 100% {{ opacity: 1; }} }}
         </style>
         <div class="row" style="margin: 20px 0;">
             <div class="col-md-12">
                 <div class="panel panel-primary">
                     <div class="panel-heading">
-                        <h3 class="panel-title">Charity Directory Dashboard - Real-time Analytics</h3>
+                        <h3 class="panel-title">🏥 Charity Directory Smart Dashboard - Real-time Analytics</h3>
                     </div>
                     <div class="panel-body">
+                        <!-- Alerts for immediate action -->
+                        {f'<div class="alert alert-warning"><strong><span class="notification-dot"></span> {context["pending_orgs"]} organizations need review!</strong> <a href="/admin/organization/?flt1_0=pending" class="btn btn-sm btn-warning">Review Now</a></div>' if context["pending_orgs"] > 0 else ''}
+                        {f'<div class="alert alert-info"><strong>{context["unread_messages"]} unread messages</strong> <a href="/admin/contactmessage/" class="btn btn-sm btn-info">View Messages</a></div>' if context["unread_messages"] > 0 else ''}
 
                         <!-- Core Metrics Row -->
                         <div class="row">
                             <div class="col-md-3">
                                <div class="panel panel-info clickable-panel" style="height: 140px;" onclick="window.location.href='/admin/user/'">
                                     <div class="panel-body text-center">
-                                        <h2 class="text-primary">{total_users}</h2>
-                                        <p><strong>Total Users</strong></p>
-                                        {'<span class="label label-success">+' + str(new_users_today) + ' today</span>' if new_users_today > 0 else ''}
+                                        <h2 class="text-primary">{context['total_users']}</h2>
+                                        <p><strong>👥 Total Users</strong></p>
+                                        {'<span class="label label-success">+' + str(context['new_users_today']) + ' today</span>' if context['new_users_today'] > 0 else '<span class="label label-default">No new users today</span>'}
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
                                 <div class="panel panel-info clickable-panel" style="height: 140px;" onclick="window.location.href='/admin/organization/'">
                                     <div class="panel-body text-center">
-                                        <h2 class="text-info">{total_organizations}</h2>
-                                        <p><strong>Organizations</strong></p>
-                                        {'<span class="label label-success">+' + str(new_orgs_today) + ' today</span>' if new_orgs_today > 0 else ''}
+                                        <h2 class="text-info">{context['total_orgs']}</h2>
+                                        <p><strong>🏢 Organizations</strong></p>
+                                        <span class="label label-{'warning' if context['pending_orgs'] > 0 else 'success'}">{context['pending_orgs']} pending</span>
                                     </div>
                                 </div>
                             </div>
@@ -244,41 +306,54 @@ class CustomAdminIndexView(AdminIndexView):
                                 <div class="panel panel-info clickable-panel" style="height: 140px;" onclick="window.location.href='/admin/searchhistory/'">
                                     <div class="panel-body text-center">
                                         <h2 class="text-success">{total_pageviews:,}</h2>
-                                        <p><strong>Total Views</strong></p>
+                                        <p><strong>👁️ Total Views</strong></p>
+                                        <span class="label label-info">Platform engagement</span>
                                     </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
-                               <div class="panel panel-info clickable-panel" style="height: 140px;" onclick="window.location.href='/admin/organization/?flt1_0=pending'">
+                               <div class="panel panel-info clickable-panel" style="height: 140px;" onclick="window.location.href='/admin/organization/?flt1_0=approved'">
                                     <div class="panel-body text-center">
                                         <h2 class="text-warning">{approval_rate:.1f}%</h2>
-                                        <p><strong>Approval Rate</strong></p>
-                                        <span class="label label-{'success' if approval_rate >= 80 else 'warning' if approval_rate >= 60 else 'danger'}">{pending_organizations} pending</span>
+                                        <p><strong>✅ Approval Rate</strong></p>
+                                        <span class="label label-{'success' if approval_rate >= 80 else 'warning' if approval_rate >= 60 else 'danger'}">Quality metric</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <!-- Growth Trends -->
-                         <div class="row">
-                            <div class="col-md-6">
+
+                        <!-- Smart Navigation Row -->
+                        <div class="row">
+                            <div class="col-md-4">
                                 <div class="panel panel-success">
-                                    <div class="panel-heading"><strong>📈 Growth This Week</strong></div>
+                                    <div class="panel-heading"><strong>� Quick Navigation</strong></div>
                                     <div class="panel-body">
-                                        <p><strong>Users:</strong> <a href="/admin/user/" style="text-decoration: none;">+{new_users_week} new registrations</a></p>
-                                        <p><strong>Organizations:</strong> <a href="/admin/organization/" style="text-decoration: none;">+{new_orgs_week} new submissions</a></p>
-                                        <p><strong>Searches:</strong> <a href="/admin/searchhistory/" style="text-decoration: none;">{total_searches:,} total searches</a></p>
-                                        <p><strong>Bookmarks:</strong> <a href="/admin/userbookmark/" style="text-decoration: none;">{total_bookmarks} saved organizations</a></p>
+                                        <p><a href="/admin/organization/?flt1_0=pending" class="btn btn-warning btn-xs">⏳ Pending Orgs ({context['pending_orgs']})</a></p>
+                                        <p><a href="/admin/user/?flt1_1=visitor" class="btn btn-info btn-xs">👤 Visitors ({context['visitor_count']})</a></p>
+                                        <p><a href="/admin/contactmessage/" class="btn btn-primary btn-xs">📧 Messages ({context['unread_messages']})</a></p>
+                                        <p><a href="/admin/auditlog/" class="btn btn-default btn-xs">📋 Recent Logs ({context['recent_logs']})</a></p>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="panel panel-info">
-                                    <div class="panel-heading"><strong>System Status</strong></div>
+                                    <div class="panel-heading"><strong>🎯 Content Management</strong></div>
                                     <div class="panel-body">
-                                        <p><strong>Active Ads:</strong> <a href="/admin/advertisement/" style="text-decoration: none;">{active_ads} running campaigns</a></p>
-                                        <p><strong>Security Events:</strong> <a href="/admin/auditlog/" style="text-decoration: none;">{recent_audit_logs} logged this week</a></p>
-                                        <p><strong>Premium Orgs:</strong> <a href="/admin/organization/?flt1_2=premium" style="text-decoration: none;">{Organization.query.filter_by(verification_level='premium').count()} verified premium</a></p>
-                                        <p><strong>Verified Orgs:</strong> <a href="/admin/organization/?flt1_2=verified" style="text-decoration: none;">{Organization.query.filter_by(verification_level='verified').count()} verified basic</a></p>
+                                        <p><a href="/admin/category/" class="btn btn-success btn-xs">🏷️ Categories ({context['total_categories']})</a></p>
+                                        <p><a href="/admin/location/" class="btn btn-info btn-xs">📍 Locations ({context['total_locations']})</a></p>
+                                        <p><a href="/admin/organizationphoto/" class="btn btn-primary btn-xs">📸 Photos</a></p>
+                                        <p><a href="/admin/organizationsociallink/" class="btn btn-warning btn-xs">🔗 Social Links</a></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="panel panel-warning">
+                                    <div class="panel-heading"><strong>💰 Business Intelligence</strong></div>
+                                    <div class="panel-body">
+                                        <p><a href="/admin/advertisement/" class="btn btn-success btn-xs">📺 Ads ({context['active_ads']} active)</a></p>
+                                        <p><a href="/api/docs" target="_blank" class="btn btn-info btn-xs">📖 API Documentation</a></p>
+                                        <p><a href="/sitemap" target="_blank" class="btn btn-default btn-xs">🗺️ System Sitemap</a></p>
+                                        <p><a href="/" target="_blank" class="btn btn-primary btn-xs">🌐 View Frontend</a></p>
                                     </div>
                                 </div>
                             </div>
@@ -288,19 +363,20 @@ class CustomAdminIndexView(AdminIndexView):
             </div>
         </div>
         """
-        # Display the dashboard HTML using flash
-        flash(Markup(dashboard_html), 'info')
-        return super().index()
+
+        # Use the custom template instead of embedded HTML
+        return self.render('admin/custom_index.html', **context)
 
 def setup_admin(app):
     app.secret_key = os.environ.get('FLASK_APP_KEY', 'sample key')
     app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
 
-    # Initialize admin with custom index view
+    # Initialize admin with custom index view and templates
     admin = Admin(app,
                   name='Charity Directory Admin',
                   template_mode='bootstrap3',
-                  index_view=CustomAdminIndexView())
+                  index_view=CustomAdminIndexView(),
+                  base_template='admin/my_master.html')
 
     # Core models with custom views
     admin.add_view(UserAdminView(User, db.session, name='Users', category='User Management'))
@@ -322,6 +398,18 @@ def setup_admin(app):
     admin.add_view(AuditLogAdminView(AuditLog, db.session, name='Audit Logs', category='System'))
     admin.add_view(AdvertisementAdminView(Advertisement, db.session, name='Advertisements', category='Monetization'))
 
-    # TO ADD AN ORGNISIATION REWARD SYSTEM LATER and other models for support and marketing and other departments
+    # Add notification count endpoint for real-time updates
+    @app.route('/admin/notifications/count')
+    def admin_notification_count():
+        if not current_user.is_authenticated or not current_user.is_admin():
+            return {'count': 0}
+
+        pending_orgs = Organization.query.filter_by(status='pending').count()
+        unread_messages = ContactMessage.query.filter_by(is_read=False).count()
+        today = datetime.utcnow().date()
+        new_users = User.query.filter(User.created_at >= today).count()
+
+        total_notifications = pending_orgs + unread_messages + new_users
+        return {'count': total_notifications}
 
     return admin

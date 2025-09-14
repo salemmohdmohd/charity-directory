@@ -1,6 +1,7 @@
 from flask import request, redirect, session, url_for, current_app
 from flask_restx import Resource, marshal
 from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt
+from flask_login import login_user, logout_user, current_user
 from ..models import db, User, PasswordReset, EmailVerification, Category, Organization
 from ..auth_utils import AuthService, validate_password, validate_email_format
 from ..oauth_utils import oauth_service, GoogleAuthError
@@ -109,6 +110,9 @@ class Login(Resource):
 
             user.last_login = datetime.utcnow()
             db.session.commit()
+
+            # Create Flask-Login session
+            login_user(user, remember=True)
 
             access_token = create_access_token(identity=str(user.id), additional_claims={'role': user.role, 'email': user.email, 'is_verified': user.is_verified})
             refresh_token = create_refresh_token(identity=str(user.id))
@@ -241,6 +245,10 @@ class Logout(Resource):
         jwt_data = get_jwt()
         jti = jwt_data['jti']
         current_app.blacklist_token(jti)
+
+        # Also logout from Flask-Login session
+        logout_user()
+
         return {'message': 'Successfully logged out'}, 200
 
 @auth_ns.route('/refresh')

@@ -1,0 +1,828 @@
+{% import 'admin/layout.html' as layout with context -%}
+{% import 'admin/static.html' as admin_static with context %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>{% block title %}{% if admin_view.category %}{{ admin_view.category }} - {% endif %}{{ admin_view.name }} - {{ admin_view.admin.name }}{% endblock title%}</title>
+
+  {% block head_meta %}
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Charity Directory Admin Dashboard">
+  <meta name="author" content="Charity Directory">
+  {% endblock head_meta %}
+
+  {% block head_css %}
+  <!-- Bootstrap 3.3.6 -->
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+  <!-- Ionicons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/ionicons/2.0.1/css/ionicons.min.css">
+  <!-- AdminLTE Theme style -->
+  <link href="https://cdn.jsdelivr.net/npm/admin-lte@2.4.18/dist/css/AdminLTE.min.css" rel="stylesheet">
+  <!-- AdminLTE Skins -->
+  <link href="https://cdn.jsdelivr.net/npm/admin-lte@2.4.18/dist/css/skins/_all-skins.min.css" rel="stylesheet">
+  <!-- Flask-admin styles -->
+  <link href="{{ admin_static.url(filename='admin/css/bootstrap3/admin.css', v='1.1.1') }}" rel="stylesheet">
+
+  {% if admin_view.extra_css %}
+  {% for css_url in admin_view.extra_css %}
+  <link href="{{ css_url }}" rel="stylesheet">
+  {% endfor %}
+  {% endif %}
+
+  <style>
+    /* Root variables for consistent theming */
+    :root {
+      --sidebar-width: 230px;
+      --header-height: 50px;
+      --footer-height: 50px;
+      --sidebar-collapsed-width: 50px;
+      --primary-color: #367fa9;
+      --background-color: #ecf0f5;
+      --transition-speed: 0.3s;
+    }
+
+    /* Base layout improvements */
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    .wrapper {
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Enhanced header */
+    .main-header {
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: 0;
+      z-index: 1030;
+      transition: margin-left var(--transition-speed) ease-in-out;
+    }
+
+    .main-header .navbar {
+      margin-left: 0;
+      transition: margin-left var(--transition-speed) ease-in-out;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    /* Smart sidebar with better responsive behavior */
+    .main-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      z-index: 1031;
+      background-color: var(--primary-color);
+      transition: transform var(--transition-speed) ease-in-out;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.3) transparent;
+    }
+
+    /* Custom scrollbar for sidebar */
+    .main-sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .main-sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .main-sidebar::-webkit-scrollbar-thumb {
+      background-color: rgba(255,255,255,0.3);
+      border-radius: 3px;
+    }
+
+    .main-sidebar::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(255,255,255,0.5);
+    }
+
+    /* Enhanced content wrapper with smart scrolling */
+    /* Make the content area an independent, top-to-bottom scroll pane
+       anchored between the fixed header and fixed footer. Using left/right
+       positioning prevents margin-based gaps when the sidebar collapses. */
+    .content-wrapper {
+      background-color: var(--background-color);
+      position: absolute;
+      top: var(--header-height);
+      left: 0;
+      right: 0;
+      bottom: var(--footer-height);
+      padding: 15px 15px 15px 0; /* left padding will be added via body classes */
+      transition: padding-left var(--transition-speed) ease-in-out, margin-left var(--transition-speed) ease-in-out;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Sidebar collapsed state */
+    /* Header shifts based on sidebar state (desktop) */
+    body:not(.sidebar-collapse) .main-header .navbar {
+      margin-left: var(--sidebar-width);
+    }
+
+    body.sidebar-collapse .main-header .navbar {
+      margin-left: var(--sidebar-collapsed-width);
+    }
+
+    .sidebar-collapse .main-sidebar {
+      transform: translateX(calc(-1 * (var(--sidebar-width) - var(--sidebar-collapsed-width))));
+    }
+
+    body.sidebar-collapse .content-wrapper {
+      padding-left: var(--sidebar-collapsed-width);
+    }
+
+    /* Fully hide the sidebar when collapsed: move it off-screen and remove
+       content padding so the main content takes full width. This is a
+       complete hide (not icon-only). */
+    body.sidebar-collapse .main-sidebar {
+      transform: translateX(-110%) !important;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* Remove left padding so content and footer expand to full width */
+    body.sidebar-collapse .content-wrapper,
+    body.sidebar-collapse .main-footer,
+    body.sidebar-collapse .main-header .navbar {
+      padding-left: 0 !important;
+      margin-left: 0 !important;
+    }
+
+    /* Mark sidebar as hidden for assistive tech */
+    body.sidebar-collapse .main-sidebar[aria-hidden] {
+      visibility: hidden;
+    }
+
+    /* Hide remaining text elements in collapsed state for a full icon-only UI */
+    body.sidebar-collapse .sidebar-menu .pull-right,
+    body.sidebar-collapse .sidebar-menu .fa-angle-left,
+    body.sidebar-collapse .sidebar-menu .fa-angle-down,
+    body.sidebar-collapse .sidebar-menu .badge,
+    body.sidebar-collapse .sidebar-menu .label,
+    body.sidebar-collapse .sidebar-menu small,
+    body.sidebar-collapse .sidebar-menu .description,
+    body.sidebar-collapse .user-panel .info,
+    body.sidebar-collapse .sidebar-menu .treeview-menu {
+      display: none !important;
+    }
+
+    /* Keep the icon visible and centered, increase icon size slightly if needed */
+    body.sidebar-collapse .sidebar-menu > li > a > i {
+      font-size: 1.1em;
+      width: 24px;
+      text-align: center;
+      display: inline-block;
+    }
+
+    /* Mobile-first responsive design */
+    @media (max-width: 767px) {
+      :root {
+        --sidebar-width: 230px;
+        --sidebar-collapsed-width: 0px;
+      }
+
+      .main-header .navbar {
+        margin-left: 0;
+      }
+
+      .main-sidebar {
+        transform: translateX(-100%);
+      }
+
+      .content-wrapper {
+        margin-left: 0;
+      }
+
+      /* Mobile sidebar open state */
+      .sidebar-open .main-sidebar {
+        transform: translateX(0);
+      }
+
+      /* Overlay for mobile */
+      .sidebar-open::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 1030;
+      }
+
+      /* Prevent body scroll when sidebar is open on mobile */
+      .sidebar-open {
+        overflow: hidden;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .sidebar-collapse .main-sidebar {
+        transform: translateX(0);
+        width: var(--sidebar-collapsed-width);
+      }
+    }
+
+    /* Enhanced user panel */
+    .user-panel {
+      padding: 15px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .user-panel .image {
+      margin-right: 10px;
+    }
+
+    .user-panel .info p {
+      font-weight: 600;
+      color: white;
+      margin-bottom: 5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 150px;
+    }
+
+    /* Improved sidebar menu */
+    .sidebar-menu {
+      padding-bottom: 20px;
+    }
+
+    .sidebar-menu > li > a {
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      color: rgba(255,255,255,0.8) !important;
+      transition: all 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-menu > li > a:hover {
+      background-color: rgba(255,255,255,0.1);
+      color: white !important;
+      border-left-color: rgba(255,255,255,0.5);
+    }
+
+    .sidebar-menu > li.active > a {
+      background-color: rgba(255,255,255,0.1);
+      color: white !important;
+      border-left-color: #fff;
+    }
+
+    /* Treeview menu improvements */
+    .treeview-menu {
+      background: rgba(0,0,0,0.1);
+    }
+
+    .treeview-menu a {
+      color: rgba(255,255,255,0.7) !important;
+      padding: 8px 15px 8px 35px;
+    }
+
+    .treeview-menu a:hover {
+      background-color: rgba(255,255,255,0.05);
+      color: white !important;
+    }
+
+    /* Enhanced footer */
+    /* Fix the footer to the bottom and anchor it to the left using `left` so
+       collapsing the sidebar doesn't produce a gap. The content-wrapper
+       bottom is sized to this height. */
+    .main-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--footer-height);
+      transition: padding-left var(--transition-speed) ease-in-out;
+      background: white;
+      border-top: 1px solid #d2d6de;
+      padding: 15px 15px 15px 0; /* left padding will be added via body classes */
+      display: flex;
+      align-items: center;
+      z-index: 1030;
+    }
+
+    @media (max-width: 767px) {
+      .main-footer {
+        padding-left: 0;
+      }
+      .content-wrapper {
+        padding-left: 0;
+      }
+    }
+
+    /* Desktop states for footer padding */
+    body:not(.sidebar-collapse) .main-footer {
+      padding-left: var(--sidebar-width);
+    }
+
+    body.sidebar-collapse .main-footer {
+      padding-left: var(--sidebar-collapsed-width);
+    }
+
+    /* Dropdown menu improvements */
+    .navbar-nav > li > .dropdown-menu {
+      border-radius: 4px;
+      border: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    /* Loading state */
+    .content-loading {
+      opacity: 0.7;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    /* Smooth animations for better UX */
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Focus states for accessibility */
+    .sidebar-toggle:focus,
+    .sidebar-menu a:focus {
+      outline: 2px solid rgba(255,255,255,0.5);
+      outline-offset: 2px;
+    }
+
+    /* Print styles */
+    @media print {
+      .main-header,
+      .main-sidebar,
+      .main-footer {
+        display: none;
+      }
+
+      .content-wrapper {
+        margin: 0;
+        background: white;
+      }
+    }
+
+    /* High contrast mode support */
+    @media (prefers-contrast: high) {
+      .main-sidebar {
+        border-right: 2px solid;
+      }
+
+      .sidebar-menu > li > a {
+        border-left-width: 4px;
+      }
+    }
+
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+      :root {
+        --transition-speed: 0.1s;
+      }
+
+      * {
+        animation-duration: 0.1s !important;
+        transition-duration: 0.1s !important;
+      }
+    }
+  </style>
+  {% endblock head_css%}
+
+  {% block head %}
+  {% endblock head%}
+
+  {% block head_tail %}
+  {% endblock head_tail%}
+
+</head>
+<body class="hold-transition skin-blue sidebar-mini fixed">
+
+  {% block page_body %}
+
+  <div class="wrapper">
+    {% if current_user.is_authenticated %}
+    <!-- Main Header -->
+    <header class="main-header">
+      <!-- Logo -->
+      {% block brand %}
+      <a href="{{ admin_view.admin.url }}" class="logo">
+        <!-- mini logo for sidebar mini 50x50 pixels -->
+        <span class="logo-mini"><b>CD</b></span>
+        <!-- logo for regular state and mobile devices -->
+        <span class="logo-lg"><b>Charity Directory</b></span>
+      </a>
+      {% endblock brand%}
+
+      <!-- Header Navbar -->
+      <nav class="navbar navbar-static-top">
+        <!-- Sidebar toggle button-->
+        <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button" aria-label="Toggle navigation">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </a>
+
+        <div class="navbar-custom-menu">
+          <ul class="nav navbar-nav">
+            <!-- User Account Menu -->
+            <li class="dropdown user user-menu">
+              <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="fa fa-user-circle" style="font-size: 1.4em;" aria-hidden="true"></i>
+                <span class="hidden-xs">
+                  {% if current_user.first_name %}
+                    {{ current_user.first_name }}
+                  {% else %}
+                    {{ current_user.email }}
+                  {% endif %}
+                </span>
+                <i class="fa fa-caret-down" style="margin-left: 5px;"></i>
+              </a>
+              <ul class="dropdown-menu" role="menu">
+                <!-- User image -->
+                <li class="user-header">
+                  <i class="fa fa-user-circle" style="color: white; font-size: 4em;" aria-hidden="true"></i>
+                  <p>
+                    {% if current_user.first_name %}
+                      {{ current_user.first_name }}
+                    {% else %}
+                      {{ current_user.email }}
+                    {% endif %}
+                    - Administrator
+                    <small>Member since {{ current_user.created_at.strftime('%b %Y') if current_user.created_at else 'Recently' }}</small>
+                  </p>
+                </li>
+                <!-- Menu Footer-->
+                <li class="user-footer">
+                  <div class="pull-left">
+                    <a href="#" class="btn btn-default btn-flat">Profile</a>
+                  </div>
+                  <div class="pull-right">
+                    {% if current_user.is_admin() %}
+                      <a href="/api/docs" target="_blank" class="btn btn-default btn-flat" style="margin-right:8px;">API Docs</a>
+                    {% endif %}
+                    <a href="{{ url_for('logout') }}" class="btn btn-default btn-flat">Sign out</a>
+                  </div>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Left side column. contains the sidebar -->
+    <aside class="main-sidebar">
+      <!-- sidebar: style can be found in sidebar.less -->
+      <section class="sidebar">
+        <!-- Sidebar user panel -->
+        <div class="user-panel">
+          <div class="pull-left image">
+            <i class="fa fa-user-circle" style="color: white; font-size: 2.5em;" aria-hidden="true"></i>
+          </div>
+          <div class="pull-left info">
+            <p>
+              {% if current_user.first_name %}
+                {{ current_user.first_name }}
+              {% else %}
+                {{ current_user.email }}
+              {% endif %}
+            </p>
+            <a href="#"><i class="fa fa-circle text-success" aria-hidden="true"></i> Online</a>
+          </div>
+        </div>
+
+        <!-- sidebar menu: style can be found in sidebar.less -->
+        <ul class="sidebar-menu" data-widget="tree" role="navigation" aria-label="Main navigation">
+          <li class="header" role="presentation">MAIN NAVIGATION</li>
+          {% block main_menu %}
+          {{ layout.menu() }}
+          {% endblock %}
+        </ul>
+      </section>
+      <!-- /.sidebar -->
+    </aside>
+
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper">
+      {% endif %}
+
+      {% block messages %}
+      {{ layout.messages() }}
+      {% endblock messages %}
+
+      {# store the jinja2 context for form_rules rendering logic #}
+      {% set render_ctx = h.resolve_ctx() %}
+
+      {% block body %}
+      {% endblock body %}
+
+      {% if current_user.is_authenticated %}
+    </div>
+    <!-- /.content-wrapper -->
+
+    <!-- Main Footer -->
+    <footer class="main-footer">
+      <strong>Copyright &copy; 2024 <a href="#">Charity Directory</a>.</strong> All rights reserved.
+      <div class="pull-right hidden-xs">
+        <b>Version</b> 1.0.0
+      </div>
+    </footer>
+    {% endif %}
+
+  </div>
+  <!-- ./wrapper -->
+
+  {% endblock page_body%}
+
+  {% block tail_js %}
+  <!-- jQuery 2.2.3 -->
+  <script src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
+  <!-- Bootstrap 3.3.6 -->
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+  <!-- Select2 -->
+  <script src="{{ admin_static.url(filename='vendor/select2/select2.min.js', v='3.5.2') }}" type="text/javascript"></script>
+
+  {% if admin_view.extra_js %}
+    {% for js_url in admin_view.extra_js %}
+    <script src="{{ js_url }}" type="text/javascript"></script>
+    {% endfor %}
+  {% endif %}
+
+  <!-- AdminLTE App -->
+  <script src="https://cdn.jsdelivr.net/npm/admin-lte@2.4.18/dist/js/app.min.js"></script>
+
+  <script>
+    $(document).ready(function() {
+      // Initialize AdminLTE with enhanced features (guarded)
+      try {
+        if (window.$ && $.AdminLTE && $.AdminLTE.layout && typeof $.AdminLTE.layout.activate === 'function') {
+          $.AdminLTE.layout.activate();
+          if (typeof $.AdminLTE.tree === 'function') {
+            $.AdminLTE.tree('.sidebar');
+          }
+        } else {
+          // AdminLTE not available (CDN blocked or failed to load) — continue without throwing
+          console.warn('AdminLTE not available; skipping AdminLTE initialization.');
+        }
+      } catch (err) {
+        console.warn('AdminLTE initialization error:', err);
+      }
+
+  // Smart sidebar toggle registration is done in a separate ready handler
+  // so it always registers even if AdminLTE initialization fails.
+
+      // Close mobile sidebar when clicking outside
+      $(document).on('click', function(e) {
+        if (window.innerWidth < 768 && $('body').hasClass('sidebar-open')) {
+          if (!$(e.target).closest('.main-sidebar, .sidebar-toggle').length) {
+            $('body').removeClass('sidebar-open');
+          }
+        }
+      });
+
+      // Handle window resize
+      $(window).on('resize', function() {
+        if (window.innerWidth >= 768) {
+          $('body').removeClass('sidebar-open');
+        } else {
+          $('body').removeClass('sidebar-collapse');
+        }
+      });
+
+      // Enhanced navigation with loading states
+      $('.sidebar-menu a').on('click', function(e) {
+        const $this = $(this);
+        const href = $this.attr('href');
+
+        if (href && href !== '#' && !href.startsWith('javascript:')) {
+          // Add loading state
+          $this.closest('li').addClass('loading');
+          $('.content-wrapper').addClass('content-loading');
+
+          // Remove loading state after navigation (fallback)
+          setTimeout(() => {
+            $this.closest('li').removeClass('loading');
+            $('.content-wrapper').removeClass('content-loading');
+          }, 2000);
+
+          return true;
+        }
+      });
+
+      // Smooth scrolling for anchor links
+      $('a[href^="#"]').on('click', function(e) {
+        const target = $(this.getAttribute('href'));
+        if (target.length) {
+          e.preventDefault();
+          $('html, body').stop().animate({
+            scrollTop: target.offset().top - 70
+          }, 600, 'swing');
+        }
+      });
+
+      // Auto-hide alerts after 5 seconds
+      $('.alert').each(function() {
+        const $alert = $(this);
+        if (!$alert.hasClass('alert-permanent')) {
+          setTimeout(() => {
+            $alert.fadeOut(300, function() {
+              $(this).remove();
+            });
+          }, 5000);
+        }
+      });
+
+      // Enhanced dropdown behavior
+      $('.dropdown-toggle').on('click', function(e) {
+        e.stopPropagation();
+        const $dropdown = $(this).parent();
+        $('.dropdown').not($dropdown).removeClass('open');
+        $dropdown.toggleClass('open');
+      });
+
+      // Close dropdowns when clicking outside
+      $(document).on('click', function() {
+        $('.dropdown').removeClass('open');
+      });
+
+      // Keyboard navigation support
+      $('.sidebar-menu a, .sidebar-toggle').on('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          $(this).click();
+        }
+      });
+
+      // Performance optimization: debounce resize events
+      let resizeTimer;
+      $(window).on('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+          // Trigger custom resize event
+          $(window).trigger('resize.adminlte');
+        }, 250);
+      });
+
+      // Focus management for accessibility
+      $('.sidebar-toggle').on('click', function() {
+        setTimeout(() => {
+          if ($('body').hasClass('sidebar-open') && window.innerWidth < 768) {
+            $('.sidebar-menu a:first').focus();
+          }
+        }, 300);
+      });
+    });
+
+    // Ensure toggle registration runs in its own ready handler
+    $(function() {
+      let sidebarState = localStorage.getItem('sidebar-state') || 'open';
+
+      // Restore sidebar state
+      if (sidebarState === 'collapsed' && window.innerWidth >= 768) {
+        $('body').addClass('sidebar-collapse');
+        $('.sidebar-toggle').attr('aria-expanded', false);
+      }
+
+      // Register toggle
+      $('.sidebar-toggle').on('click', function(e) {
+        e.preventDefault();
+
+        if (window.innerWidth < 768) {
+          // Mobile behavior
+          $('body').toggleClass('sidebar-open');
+        } else {
+          // Desktop behavior
+          $('body').toggleClass('sidebar-collapse');
+          const isCollapsed = $('body').hasClass('sidebar-collapse');
+          $('.sidebar-toggle').attr('aria-expanded', !isCollapsed);
+          sidebarState = isCollapsed ? 'collapsed' : 'open';
+          localStorage.setItem('sidebar-state', sidebarState);
+
+          if (isCollapsed) {
+            $('.sidebar-menu a').each(function() {
+              const $a = $(this);
+              if (!$a.attr('title')) {
+                $a.attr('title', $a.text().trim());
+              }
+            });
+            // mark sidebar as hidden
+            $('.main-sidebar').attr('aria-hidden', 'true');
+          } else {
+            $('.sidebar-menu a').each(function() {
+              const $a = $(this);
+              if ($a.attr('title') === $a.text().trim()) {
+                $a.removeAttr('title');
+              }
+            });
+            // mark sidebar as visible
+            $('.main-sidebar').removeAttr('aria-hidden');
+          }
+        }
+      });
+    });
+
+    // Robust sidebar fallback for environments where AdminLTE tree() is not available
+    (function() {
+      function initTreeviewFallback() {
+        // Attach click-to-toggle behavior for treeview parents
+        $('.sidebar-menu .treeview > a').off('click.fallback').on('click.fallback', function(e) {
+          const $parent = $(this).parent();
+          const $submenu = $parent.children('.treeview-menu');
+
+          // Allow links that are real hrefs to navigate
+          const href = $(this).attr('href');
+          if (href && href !== '#' && !href.startsWith('javascript:')) {
+            return; // let normal navigation happen
+          }
+
+          e.preventDefault();
+          const isOpen = $parent.hasClass('active');
+
+          // Collapse any open sibling treeviews
+          $parent.siblings('.treeview.active').each(function() {
+            $(this).removeClass('active').children('.treeview-menu').slideUp(180);
+          });
+
+          if (isOpen) {
+            $parent.removeClass('active');
+            $submenu.slideUp(180);
+          } else {
+            $parent.addClass('active');
+            $submenu.slideDown(180);
+          }
+
+          // Persist open keys by using an index-based key
+          try {
+            const open = [];
+            $('.sidebar-menu .treeview.active').each(function(i, el) {
+              open.push($(el).index());
+            });
+            localStorage.setItem('sidebar-open-idx', JSON.stringify(open));
+          } catch (err) { /* ignore storage errors */ }
+        });
+
+        // Restore persisted open indices
+        try {
+          const raw = localStorage.getItem('sidebar-open-idx');
+          if (raw) {
+            const idxs = JSON.parse(raw);
+            $('.sidebar-menu .treeview').each(function(i) {
+              if (idxs.includes(i)) {
+                $(this).addClass('active');
+                $(this).children('.treeview-menu').show();
+              }
+            });
+          }
+        } catch (err) { /* ignore */ }
+      }
+
+      // Init after DOM ready and after AdminLTE tries to initialize
+      $(document).ready(function() {
+        try {
+          // Small delay to allow AdminLTE to apply its behaviors if present
+          setTimeout(() => {
+            // If AdminLTE's tree is not present or treeview items are missing behavior, init fallback
+            const adminTreePresent = !!(window.$ && $.AdminLTE && typeof $.AdminLTE.tree === 'function');
+            const treeviewAnchors = $('.sidebar-menu .treeview > a');
+            if (!adminTreePresent || treeviewAnchors.length && treeviewAnchors.first().data('fallback-inited') !== true) {
+              initTreeviewFallback();
+              treeviewAnchors.data('fallback-inited', true);
+            }
+          }, 80);
+        } catch (err) {
+          console.warn('Sidebar fallback init error', err);
+          initTreeviewFallback();
+        }
+      });
+    })();
+
+    // Service Worker registration for offline capabilities (optional)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        // Uncomment to enable service worker
+        // navigator.serviceWorker.register('/sw.js');
+      });
+    }
+  </script>
+  {% endblock tail_js%}
+
+  {% block tail %}
+  {% endblock tail %}
+
+</body>
+</html>

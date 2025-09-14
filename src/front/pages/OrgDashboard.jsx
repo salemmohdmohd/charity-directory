@@ -35,10 +35,59 @@ const getDaysActive = (createdAt) => {
 const OrgDashboard = () => {
   const { user } = useAuth();
   const [organization, setOrganization] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [formState, setFormState] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [formErrors, setFormErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [loadingPhotos, setLoadingPhotos] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState(null);
+
+  // Simple validation helper
+  const runValidation = (state) => {
+    const errors = {};
+    if (!state || !state.name || state.name.trim().length === 0) errors.name = 'Name is required';
+    // email required and basic format
+    const email = state?.email || '';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email) errors.email = 'Email is required';
+    else if (!emailRegex.test(email)) errors.email = 'Please enter a valid email address';
+    // category required
+    if (!state?.category_id) errors.category_id = 'Please select a category';
+    // website optional but if present, must be a valid URL
+    if (state?.website) {
+      try {
+        // eslint-disable-next-line no-new
+        new URL(state.website);
+      } catch (e) {
+        errors.website = 'Website must be a valid URL (include protocol, e.g. https://)';
+      }
+    }
+    return errors;
+  };
+
+  // Fetch categories when entering edit mode (or on mount)
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await api.get('/org-signup/categories');
+        if (res?.data?.categories) setCategories(res.data.categories);
+      } catch (e) {
+        console.error('Failed to load categories:', e);
+      }
+    };
+    if (editMode && categories.length === 0) fetchCategories();
+  }, [editMode]);
+
+  // Re-run validation when formState changes while editing
+  useEffect(() => {
+    if (editMode && formState) {
+      setFormErrors(runValidation(formState));
+    }
+  }, [formState, editMode]);
 
   useEffect(() => {
     const fetchOrganizationData = async () => {
@@ -178,12 +227,74 @@ const OrgDashboard = () => {
     <div className="container-fluid py-4 px-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h1 className="h2 mb-1">{organization.name}</h1>
-          <p className="text-muted mb-0">
-            Welcome back, {user?.name || 'Admin'}!
-          </p>
+          {!editMode ? (
+            <>
+              <h1 className="h2 mb-1">{organization.name}</h1>
+              <p className="text-muted mb-0">Welcome back, {user?.name || 'Admin'}!</p>
+            </>
+          ) : (
+            <>
+              <h1 className="h2 mb-1">Editing: {formState?.name || ''}</h1>
+              <p className="text-muted mb-0">You are editing the listing. Saving will set the listing status to <strong>Pending</strong> for admin review.</p>
+            </>
+          )}
         </div>
 
+          <div>
+            {user && user.organization_id && organization && user.organization_id === organization.id && (
+              !editMode ? (
+                <button className="btn btn-outline-primary" onClick={() => { setFormState({
+                  name: organization.name,
+                  mission: organization.mission,
+                  description: organization.description,
+                  email: organization.email,
+                  phone: organization.phone,
+                  website: organization.website,
+                  address: organization.address,
+                  category_id: organization.category_id
+                }); setEditMode(true); setSaveMessage(null); }}>
+                  <i className="fas fa-edit me-1" /> Edit Listing
+                </button>
+              ) : (
+                <>
+                  <button className="btn btn-success me-2" onClick={async () => {
+                    // Validate first
+                    const errors = runValidation(formState);
+                    if (Object.keys(errors).length > 0) {
+                      setFormErrors(errors);
+                      setSaveMessage('Please fix validation errors before saving.');
+                      return;
+                    }
+
+                    // Save changes
+                    setSaving(true);
+                    setSaveMessage(null);
+                    try {
+                      const payload = {
+                        ...formState,
+                        status: 'pending'
+                      };
+                      const res = await api.patch(`/organizations/${organization.id}`, payload);
+                      // Update local state with response (server should return updated org)
+                      setOrganization(res.data);
+                      setEditMode(false);
+                      setSaveMessage('Changes saved — listing set to pending review.');
+                    } catch (err) {
+                      console.error('Failed to save organization changes:', err);
+                      setSaveMessage(`Failed to save changes: ${err?.response?.data?.message || err.message || 'Unknown error'}`);
+                    } finally {
+                      setSaving(false);
+                    }
+                  }} disabled={saving}>
+                    {saving ? 'Saving...' : <><i className="fas fa-save me-1"/> Save</>}
+                  </button>
+                  <button className="btn btn-outline-secondary" onClick={() => { setEditMode(false); setFormState(null); setSaveMessage(null); }} disabled={saving}>
+                    Cancel
+                  </button>
+                </>
+              )
+            )}
+          </div>
       </div>
 
       {/* Main Content */}
@@ -210,20 +321,82 @@ const OrgDashboard = () => {
                 </div>
                 <div className="col-md-8">
                   <h6 className="text-muted">Mission</h6>
-                  <p>{organization.mission}</p>
+                  {!editMode ? (
+                    <p>{organization.mission}</p>
+                  ) : (
+                    <textarea className="form-control mb-2" rows={3} value={formState.mission || ''} onChange={(e) => setFormState({...formState, mission: e.target.value })} />
+                  )}
                   <hr/>
                   <div className="row">
-                    <div className="col-sm-6">
-                      <strong>Email:</strong> <a href={`mailto:${organization.email}`}>{organization.email}</a>
+                    <div className="col-sm-6 mb-2">
+                      <strong>Name:</strong>
+                      {!editMode ? (
+                        <div>{organization.name}</div>
+                      ) : (
+                        <>
+                          <input className="form-control" value={formState.name || ''} onChange={(e) => setFormState({...formState, name: e.target.value })} />
+                          {formErrors.name && <div className="text-danger small mt-1">{formErrors.name}</div>}
+                        </>
+                      )}
                     </div>
-                    <div className="col-sm-6">
-                      <strong>Phone:</strong> {organization.phone || 'N/A'}
+
+                    <div className="col-sm-6 mb-2">
+                      <strong>Email:</strong>
+                      {!editMode ? (
+                        <div><a href={`mailto:${organization.email}`}>{organization.email}</a></div>
+                      ) : (
+                        <>
+                          <input className="form-control" type="email" value={formState.email || ''} onChange={(e) => setFormState({...formState, email: e.target.value })} />
+                          {formErrors.email && <div className="text-danger small mt-1">{formErrors.email}</div>}
+                        </>
+                      )}
                     </div>
-                    <div className="col-sm-6">
-                      <strong>Website:</strong> <a href={organization.website} target="_blank" rel="noopener noreferrer">{organization.website || 'N/A'}</a>
+
+                    <div className="col-sm-6 mb-2">
+                      <strong>Phone:</strong>
+                      {!editMode ? (
+                        <div>{organization.phone || 'N/A'}</div>
+                      ) : (
+                        <input className="form-control" value={formState.phone || ''} onChange={(e) => setFormState({...formState, phone: e.target.value })} />
+                      )}
                     </div>
-                     <div className="col-sm-6">
-                      <strong>Category:</strong> {organization.category_name || 'N/A'}
+
+                    <div className="col-sm-6 mb-2">
+                      <strong>Website:</strong>
+                      {!editMode ? (
+                        <div>{organization.website ? (<a href={organization.website} target="_blank" rel="noopener noreferrer">{organization.website}</a>) : 'N/A'}</div>
+                      ) : (
+                        <>
+                          <input className="form-control" value={formState.website || ''} onChange={(e) => setFormState({...formState, website: e.target.value })} />
+                          {formErrors.website && <div className="text-danger small mt-1">{formErrors.website}</div>}
+                        </>
+                      )}
+                    </div>
+
+                    <div className="col-sm-12 mb-2">
+                      <strong>Address:</strong>
+                      {!editMode ? (
+                        <div>{organization.address || 'N/A'}</div>
+                      ) : (
+                        <input className="form-control" value={formState.address || ''} onChange={(e) => setFormState({...formState, address: e.target.value })} />
+                      )}
+                    </div>
+
+                    <div className="col-sm-6 mb-2">
+                      <strong>Category:</strong>
+                      {!editMode ? (
+                        <div>{organization.category_name || 'N/A'}</div>
+                      ) : (
+                        <>
+                          <select className="form-select" value={formState.category_id || ''} onChange={(e) => setFormState({...formState, category_id: e.target.value })}>
+                            <option value="">-- Select category --</option>
+                            {categories.map(cat => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          </select>
+                          {formErrors.category_id && <div className="text-danger small mt-1">{formErrors.category_id}</div>}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -288,16 +461,16 @@ const OrgDashboard = () => {
                                 className="progress-bar bg-success"
                                 role="progressbar"
                                 style={{
-                                  width: `${calculateProfileCompleteness(organization)}%`
+                                  width: `${calculateProfileCompleteness(editMode ? formState : organization)}%`
                                 }}
-                                aria-valuenow={calculateProfileCompleteness(organization)}
+                                aria-valuenow={calculateProfileCompleteness(editMode ? formState : organization)}
                                 aria-valuemin="0"
                                 aria-valuemax="100">
                               </div>
                             </div>
                           </div>
                           <div className="ms-3 text-primary fw-bold">
-                            {calculateProfileCompleteness(organization)}%
+                            {calculateProfileCompleteness(editMode ? formState : organization)}%
                           </div>
                         </div>
                         <p className="small text-muted mb-0">
@@ -335,6 +508,12 @@ const OrgDashboard = () => {
                       </div>
                     </div>
                   </div>
+
+                  {saveMessage && (
+                    <div className="mt-2">
+                      <div className={`alert ${saveMessage.startsWith('Failed') ? 'alert-danger' : 'alert-success'}`}>{saveMessage}</div>
+                    </div>
+                  )}
                 </div>
              </div>
            </div>
