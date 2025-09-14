@@ -2,14 +2,16 @@
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
 import os
-from flask import Flask, request, jsonify, url_for, send_from_directory
+from flask import Flask, request, jsonify, url_for, send_from_directory, render_template
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
+from flask_login import LoginManager
 from flask_mail import Mail
 from datetime import timedelta
 from api.utils import APIException, generate_sitemap
+from api.decorators import login_required_hybrid
 from api.models import db
 from api.routes import api_bp
 from api.admin import setup_admin
@@ -23,7 +25,8 @@ from dotenv import load_dotenv
 ENV = "development" if os.getenv("FLASK_DEBUG") == "1" else "production"
 static_file_dir = os.path.join(os.path.dirname(
     os.path.realpath(__file__)), '../dist/')
-app = Flask(__name__)
+template_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates')
+app = Flask(__name__, template_folder=template_dir)
 app.url_map.strict_slashes = False
 
 # Configure CORS
@@ -128,6 +131,19 @@ except ImportError:
     print("Warning: Flask-Session not installed. Using default Flask session handling.")
     # Default Flask sessions will still work for OAuth
 
+# Configure Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'  # Redirect to login page when login required
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
+
+@login_manager.user_loader
+def load_user(user_id):
+    """Load user for Flask-Login sessions"""
+    from api.models import User
+    return User.query.get(int(user_id))
+
 # Configure Flask-Mail/ still need configuration... see .env
 app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
@@ -170,6 +186,16 @@ setup_commands(app)
 # Add all endpoints form the API with a "api" prefix
 app.register_blueprint(api_bp, url_prefix='/api')
 
+# Protect API documentation
+@app.before_request
+def protect_api_docs():
+    """Protect API documentation behind authentication"""
+    from flask_login import current_user
+    if request.path.startswith('/api/docs/') or request.path == '/api/docs':
+        if not current_user.is_authenticated:
+            from flask import redirect, url_for
+            return redirect(url_for('login'))
+
 # Health check endpoint
 @app.route('/health')
 def health_check():
@@ -195,11 +221,44 @@ def handle_invalid_usage(error):
 
 # generate sitemap with all your endpoints
 
+@app.route('/login')
+def login():
+    """Login page for web authentication"""
+    from flask import render_template
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    """Logout route"""
+    from flask_login import logout_user
+    from flask import redirect, url_for, flash
+    logout_user()
+    flash('You have been logged out successfully.', 'info')
+    return redirect(url_for('login'))
+
+@app.route('/sitemap')
+@login_required_hybrid
+def sitemap():
+    """Protected sitemap endpoint - now requires authentication"""
+    return generate_sitemap(app)
 
 @app.route('/')
-def sitemap():
-    if ENV == "development":
-        return generate_sitemap(app)
+def index():
+    """Root route - redirect to admin dashboard or login"""
+    from flask_login import current_user
+    from flask import redirect, url_for
+
+    if current_user.is_authenticated:
+        # Redirect authenticated users to admin dashboard
+        return redirect(url_for('admin.index'))
+    else:
+        # Redirect unauthenticated users to login page
+        return redirect(url_for('login'))
+
+@app.route('/app')
+@app.route('/frontend')
+def frontend():
+    """Serve the React frontend application"""
     return send_from_directory(static_file_dir, 'index.html')
 
 # any other endpoint will try to serve it like a static file

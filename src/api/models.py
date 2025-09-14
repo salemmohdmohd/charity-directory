@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 from sqlalchemy import String, Boolean
 from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column
@@ -6,7 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=True)  # Temporarily nullable for migration
@@ -34,6 +35,34 @@ class User(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    # Flask-Login required methods
+    def get_id(self):
+        """Return the user ID as a string (required by Flask-Login)"""
+        return str(self.id)
+
+    @property
+    def is_authenticated(self):
+        """Return True if the user is authenticated"""
+        return True
+
+    @property
+    def is_active(self):
+        """Return True if the user is active (not banned/suspended)"""
+        return True  # You can add a is_active column later if needed
+
+    @property
+    def is_anonymous(self):
+        """Return False since this is not an anonymous user"""
+        return False
+
+    def is_admin(self):
+        """Check if user is platform admin"""
+        return self.role == 'platform_admin'
+
+    def is_org_admin(self):
+        """Check if user is organization admin"""
+        return self.role == 'org_admin'
 
 
 class Organization(db.Model):

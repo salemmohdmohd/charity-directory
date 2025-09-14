@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charity Directory - Login Required</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .logo {
+            color: #667eea;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .title {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+            font-weight: 500;
+            transition: background 0.3s ease;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn:hover {
+            background: #5a67d8;
+        }
+        .btn-secondary {
+            background: #28a745;
+        }
+        .btn-secondary:hover {
+            background: #218838;
+        }
+        .btn-full {
+            width: 100%;
+            margin: 10px 0;
+        }
+        .links {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid #eee;
+        }
+        .link {
+            color: #667eea;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 0.9rem;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+        .alert {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 1rem;
+        }
+        .alert-success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .loading {
+            display: none;
+            color: #666;
+        }
+        .login-form {
+            display: block;
+        }
+        .quick-links {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo"> Charity Directory</div>
+        <h1 class="title">Admin Login</h1>
+        <p class="subtitle">Please authenticate to access the backend administration</p>
+
+        <div id="alerts"></div>
+
+        <!-- Login Form -->
+        <form id="loginForm" class="login-form">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required placeholder="admin@charity-directory.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required placeholder="Enter your password">
+            </div>
+            <button type="submit" class="btn btn-full">
+                <span class="login-text">Login</span>
+                <span class="loading">Logging in...</span>
+            </button>
+        </form>
+
+        <!-- Quick Access Links (shown after login) -->
+        <div id="quickLinks" class="quick-links">
+            <div>
+                <a href="/admin/" class="btn btn-secondary">Admin Panel</a>
+                <a href="/api/docs/" class="btn">API Docs</a>
+            </div>
+        </div>
+
+        <div class="links">
+            <a href="http://localhost:3000" class="link">← Frontend App</a>
+            <a href="/sitemap" class="link">Site Map</a>
+        </div>
+
+        <div style="margin-top: 2rem; font-size: 0.8rem; color: #999;">
+            <p><strong>For Developers:</strong></p>
+            <p>This is the backend security login page. Use the Frontend App for the full user experience.</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const loginBtn = document.querySelector('button[type="submit"]');
+            const loginText = document.querySelector('.login-text');
+            const loading = document.querySelector('.loading');
+            const alerts = document.getElementById('alerts');
+
+            // Show loading state
+            loginText.style.display = 'none';
+            loading.style.display = 'inline';
+            loginBtn.disabled = true;
+
+            const formData = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Show success message
+                    alerts.innerHTML = '<div class="alert alert-success">Login successful! Redirecting...</div>';
+
+                    // Hide form and show quick links
+                    document.getElementById('loginForm').style.display = 'none';
+                    document.getElementById('quickLinks').style.display = 'block';
+
+                    // Redirect to admin panel after a short delay
+                    setTimeout(() => {
+                        window.location.href = '/admin/';
+                    }, 1500);
+                } else {
+                    // Show error message
+                    alerts.innerHTML = `<div class="alert">${data.message || 'Login failed'}</div>`;
+                }
+            } catch (error) {
+                alerts.innerHTML = '<div class="alert">Network error. Please try again.</div>';
+            } finally {
+                // Reset button state
+                loginText.style.display = 'inline';
+                loading.style.display = 'none';
+                loginBtn.disabled = false;
+            }
+        });
+
+        // Check if user is already logged in
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch('/api/auth/me', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.user && data.user.role === 'platform_admin') {
+                        document.getElementById('loginForm').style.display = 'none';
+                        document.getElementById('quickLinks').style.display = 'block';
+                        document.getElementById('alerts').innerHTML = '<div class="alert alert-success">Already logged in as admin</div>';
+                    }
+                }
+            } catch (error) {
+                // Ignore errors, just show login form
+            }
+        });
+    </script>
+</body>
+</html>

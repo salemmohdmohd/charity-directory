@@ -353,16 +353,12 @@ const OrganizationDetail = () => {
                     </a>
                   )}
 
+                  {/* Donation links are disabled in this deployment - we don't process donations. */}
                   {organization.donation_link && (
-                    <a
-                      href={organization.donation_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-success w-100 mb-2"
-                    >
-                      <i className="fas fa-heart me-2" aria-hidden="true"></i>
-                      Donate Now
-                    </a>
+                    <div className="alert alert-secondary mb-2" role="alert">
+                      <i className="fas fa-info-circle me-2" aria-hidden="true"></i>
+                      This platform does not process donations. Please visit the organization's website for giving options.
+                    </div>
                   )}
 
                   <button

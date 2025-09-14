@@ -15,11 +15,17 @@ flask-swagger==0.2.14
 
 # Authentication & Security
 flask-jwt-extended==4.6.0
+flask-login==0.6.3
+flask-security-too==5.4.3
+flask-principal==0.4.0
+flask-wtf==1.2.1
+passlib[bcrypt]==1.7.4
 flask-mail>=0.9.1
 email-validator>=2.0.0
 
 # Admin Interface
 flask-admin==1.6.1
+flask-babelex==0.9.4
 wtforms==3.1.2
 
 # CORS & Session Management

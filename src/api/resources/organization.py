@@ -1,3 +1,4 @@
+from flask import request
 from flask_restx import Resource, marshal, Namespace
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..core import api
@@ -117,6 +118,58 @@ class OrganizationDetail(Resource):
         except Exception as e:
             print(f"Error in organization detail: {e}")
             org_ns.abort(500, f'Failed to fetch organization: {str(e)}')
+
+    @jwt_required()
+    def patch(self, org_id):
+        """Update an organization. Org owners can update their org; updates by org owners set status back to 'pending' for review."""
+        try:
+            uid = get_jwt_identity()
+            if not uid:
+                org_ns.abort(401, 'Authentication required')
+
+            user = User.query.get(uid)
+            if not user:
+                org_ns.abort(404, 'User not found')
+
+            org = Organization.query.get(org_id) or org_ns.abort(404, 'Organization not found')
+
+            # Permission checks: platform_admins can edit any org; org_admins can edit their own org
+            if user.role == 'org_admin' and org.admin_user_id != user.id:
+                org_ns.abort(403, 'You do not have permission to edit this organization')
+            if user.role not in ('org_admin', 'platform_admin'):
+                org_ns.abort(403, 'Insufficient permissions to update organization')
+
+            data = request.get_json() or {}
+            allowed_fields = ['name', 'mission', 'description', 'email', 'phone', 'website', 'address', 'category_id', 'donation_link', 'operating_hours', 'established_year', 'logo_url']
+            changes = {}
+            for key in allowed_fields:
+                if key in data:
+                    # Validate category if provided
+                    if key == 'category_id' and data.get('category_id') and not Category.query.get(data.get('category_id')):
+                        org_ns.abort(400, 'Invalid category')
+                    old = getattr(org, key)
+                    new = data.get(key)
+                    if str(old) != str(new):
+                        setattr(org, key, new)
+                        changes[key] = {'old': old, 'new': new}
+
+            # If an org_admin performed the update, set status back to pending for review
+            if user.role == 'org_admin':
+                if org.status != 'pending':
+                    changes['status'] = {'old': org.status, 'new': 'pending'}
+                org.status = 'pending'
+
+            if changes:
+                db.session.commit()
+                log_action(user.id, 'update', 'organization', org.id, None, changes)
+            else:
+                # Nothing changed
+                return serialize_organization(org)
+
+            return serialize_organization(org)
+        except Exception as e:
+            db.session.rollback()
+            org_ns.abort(500, f'Failed to update organization: {str(e)}')
 
 @org_ns.route('/<int:org_id>/contact')
 class OrganizationContact(Resource):

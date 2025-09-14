@@ -53,12 +53,83 @@ class UserBookmarks(Resource):
     def get(self):
         return [serialize_bookmark(b) for b in Bookmark.query.filter_by(user_id=get_jwt_identity()).all()]
 
+    @jwt_required()
+    def post(self):
+        """Add a bookmark for the current user."""
+        data = request.get_json() or {}
+        org_id = data.get('organization_id')
+        if not org_id:
+            users_ns.abort(400, 'organization_id is required')
+
+        user_id = get_jwt_identity()
+        organization = Organization.query.get(org_id)
+        if not organization:
+            users_ns.abort(404, 'Organization not found')
+
+        # Prevent duplicate bookmarks
+        existing = Bookmark.query.filter_by(user_id=user_id, organization_id=org_id).first()
+        if existing:
+            return { 'bookmark': serialize_bookmark(existing) }, 200
+
+        try:
+            bookmark = Bookmark(user_id=user_id, organization_id=org_id)
+            db.session.add(bookmark)
+            # increment organization's bookmark count
+            try:
+                organization.bookmark_count = (organization.bookmark_count or 0) + 1
+            except Exception:
+                # ignore if field not present
+                pass
+            db.session.commit()
+            return { 'bookmark': serialize_bookmark(bookmark) }, 201
+        except Exception as e:
+            db.session.rollback()
+            users_ns.abort(500, f'Failed to create bookmark: {e}')
+
 @users_ns.route('/donations')
 class UserDonations(Resource):
     @jwt_required()
     @users_ns.marshal_list_with(user_donations_model)
     def get(self):
         return [serialize_donation(d) for d in Donation.query.filter_by(user_id=get_jwt_identity()).all()]
+
+
+@users_ns.route('/me/bookmarks')
+class UserMeBookmarks(Resource):
+    @jwt_required()
+    @users_ns.marshal_list_with(user_bookmarks_model)
+    def get(self):
+        """Compatibility endpoint: return current user's bookmarks (same as /bookmarks)."""
+        return [serialize_bookmark(b) for b in Bookmark.query.filter_by(user_id=get_jwt_identity()).all()]
+
+
+@users_ns.route('/bookmarks/<int:bookmark_id>')
+class UserBookmarkResource(Resource):
+    @jwt_required()
+    def delete(self, bookmark_id):
+        """Remove a user's bookmark by id."""
+        user_id = get_jwt_identity()
+        bookmark = Bookmark.query.get(bookmark_id)
+        if not bookmark:
+            users_ns.abort(404, 'Bookmark not found')
+        if bookmark.user_id != user_id:
+            users_ns.abort(403, 'Not authorized to delete this bookmark')
+
+        try:
+            # adjust organization's bookmark count if possible
+            organization = Organization.query.get(bookmark.organization_id)
+            db.session.delete(bookmark)
+            if organization:
+                try:
+                    if organization.bookmark_count and organization.bookmark_count > 0:
+                        organization.bookmark_count = organization.bookmark_count - 1
+                except Exception:
+                    pass
+            db.session.commit()
+            return { 'message': 'Bookmark removed' }, 200
+        except Exception as e:
+            db.session.rollback()
+            users_ns.abort(500, f'Failed to remove bookmark: {e}')
 
 @users_ns.route('/reviews')
 class UserReviews(Resource):
