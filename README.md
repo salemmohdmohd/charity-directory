@@ -163,7 +163,7 @@ npm test
 
 ##  Contributing Team
 
-- **Team Name: Team Unseen**
+- **Team Name: Team Cause Book**
 - **Members**
 - **Salem Mohd** - [@salemmohdmohd](https://github.com/salemmohdmohd)
 - **Elysa Reynolds** - [@Miryre](https://github.com/Miryre)

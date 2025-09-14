@@ -13,7 +13,7 @@ describe("AboutUs Component", () => {
   });
 
   it("renders the hero section heading", () => {
-    expect(screen.getByRole("heading", { name: /about unseen/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /about Causebook/i })).toBeInTheDocument();
   });
 
   it("renders mission statement", () => {

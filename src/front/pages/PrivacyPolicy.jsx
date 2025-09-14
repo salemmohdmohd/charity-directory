@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const PrivacyPolicy = () => {
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="py-5 bg-cream" style={{ minHeight: '100vh' }}>
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-lg-8">
@@ -11,13 +11,13 @@ const PrivacyPolicy = () => {
               <div className="card-body p-5">
                 <h1 className="display-5 fw-bold mb-4 text-center">Privacy Policy</h1>
                 <p className="text-muted text-center mb-5">
-                  Last updated: September 13, 2025
+                  Last updated: September 14, 2025
                 </p>
 
                 <div className="mb-4">
                   <h3 className="h4 fw-bold mb-3">1. Information We Collect</h3>
                   <p className="mb-3">
-                    At Unseen, we collect information you provide directly to us, such as when you:
+                    At Cause Book, we collect information you provide directly to us, such as when you:
                   </p>
                   <ul className="mb-3">
                     <li>Create an account or profile</li>
@@ -88,8 +88,8 @@ const PrivacyPolicy = () => {
                     If you have any questions about this Privacy Policy, please contact us at:
                   </p>
                   <ul className="list-unstyled">
-                    <li><strong>Email:</strong> privacy@unseen.com</li>
-                    <li><strong>Address:</strong> Unseen Privacy Team, [Your Address]</li>
+                    <li><strong>Email:</strong> privacy@Causebook.com</li>
+                    <li><strong>Address:</strong> Cause Book Privacy Team, [Your Address]</li>
                   </ul>
                 </div>
 

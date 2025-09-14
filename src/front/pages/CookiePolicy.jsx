@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const CookiePolicy = () => {
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="py-5 bg-cream" style={{ minHeight: '100vh' }}>
       <div className="container">
         <div className="row justify-content-center">
           <div className="col-lg-8">
@@ -11,7 +11,7 @@ const CookiePolicy = () => {
               <div className="card-body p-5">
                 <h1 className="display-5 fw-bold mb-4 text-center">Cookie Policy</h1>
                 <p className="text-muted text-center mb-5">
-                  Last updated: September 13, 2025
+                  Last updated: September 14, 2025
                 </p>
 
                 <div className="mb-4">
@@ -143,7 +143,7 @@ const CookiePolicy = () => {
                     If you have any questions about our use of cookies, please contact us at:
                   </p>
                   <ul className="list-unstyled">
-                    <li><strong>Email:</strong> privacy@unseen.com</li>
+                    <li><strong>Email:</strong> privacy@Causebook.com</li>
                     <li><strong>Subject:</strong> Cookie Policy Inquiry</li>
                   </ul>
                 </div>

@@ -192,10 +192,6 @@ class OrganizationSocialLink(db.Model):
     organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=False)
     platform = db.Column(db.String(50), nullable=False)  # facebook / instagram / twitter / linkedin / youtube
     url = db.Column(db.String(500), nullable=False)
-    is_verified = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
     # Relationships
     organization = db.relationship('Organization', back_populates='social_links')
 
@@ -291,28 +287,6 @@ class AuditLog(db.Model):
     user = db.relationship('User', back_populates='audit_logs')
 
 
-class Advertisement(db.Model):
-    __tablename__ = 'advertisements'
-    id = db.Column(db.Integer, primary_key=True)
-    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
-    title = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text, nullable=True)
-    image_url = db.Column(db.String(500), nullable=True)
-    target_url = db.Column(db.String(500), nullable=False)
-    ad_type = db.Column(db.String(50), nullable=False)  # sponsored / banner / featured
-    placement = db.Column(db.String(50), nullable=False)  # home / search / profile
-    start_date = db.Column(db.DateTime, nullable=False)
-    end_date = db.Column(db.DateTime, nullable=False)
-    budget = db.Column(db.Numeric(10, 2), nullable=True)
-    clicks_count = db.Column(db.Integer, default=0)
-    impressions_count = db.Column(db.Integer, default=0)
-    is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    organization = db.relationship('Organization', backref='advertisements')
-
 class ActivityLog(db.Model):
     __tablename__ = 'activity_log'
     id = db.Column(db.Integer, primary_key=True)
@@ -330,6 +304,61 @@ class Bookmark(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user = db.relationship('User', backref=db.backref('user_bookmarks', cascade='all, delete-orphan'))
     organization = db.relationship('Organization', backref=db.backref('organization_bookmarks', cascade='all, delete-orphan'))
+
+
+class Advertisement(db.Model):
+    __tablename__ = 'advertisements'
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organizations.id'), nullable=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    image_url = db.Column(db.String(500), nullable=True)
+    target_url = db.Column(db.String(500), nullable=True)
+    ad_type = db.Column(db.String(50), nullable=False, default='sponsored')
+    placement = db.Column(db.String(50), nullable=False, default='home')
+    start_date = db.Column(db.DateTime, nullable=True)
+    end_date = db.Column(db.DateTime, nullable=True)
+    budget = db.Column(db.Numeric(10, 2), nullable=True)
+    clicks_count = db.Column(db.Integer, default=0)
+    impressions_count = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    organization = db.relationship('Organization', backref=db.backref('advertisements', cascade='all, delete-orphan'))
+
+    # Helper methods
+    def activate(self):
+        self.is_active = True
+
+    def deactivate(self):
+        self.is_active = False
+
+    def track_click(self):
+        try:
+            self.clicks_count = (self.clicks_count or 0) + 1
+        except Exception:
+            self.clicks_count = 1
+
+    def track_impression(self):
+        try:
+            self.impressions_count = (self.impressions_count or 0) + 1
+        except Exception:
+            self.impressions_count = 1
+
+    def get_performance(self):
+        ctr = 0.0
+        try:
+            if self.impressions_count and self.impressions_count > 0:
+                ctr = (self.clicks_count / float(self.impressions_count)) * 100.0
+        except Exception:
+            ctr = 0.0
+        return {
+            'clicks': self.clicks_count,
+            'impressions': self.impressions_count,
+            'ctr_percent': round(ctr, 2)
+        }
 
 class Donation(db.Model):
     __tablename__ = 'donations'

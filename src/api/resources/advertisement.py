@@ -1,3 +1,58 @@
+from flask import request
+from flask_restx import Resource
+from flask_jwt_extended import jwt_required
+from ..core import api
+from ..models import db, Advertisement
+from ..utils import serialize_advertisement
+
+ad_ns = api.namespace('advertisements', description='Advertisement operations')
+
+
+@ad_ns.route('')
+class AdvertisementList(Resource):
+    def get(self):
+        """List advertisements, optionally filtered by placement and only active ones by default."""
+        placement = request.args.get('placement')
+        only_active = request.args.get('only_active', 'true').lower() in ['1', 'true', 'yes']
+
+        query = Advertisement.query
+        if placement:
+            query = query.filter_by(placement=placement)
+        if only_active:
+            query = query.filter_by(is_active=True)
+
+        ads = query.order_by(Advertisement.created_at.desc()).all()
+        return { 'advertisements': [serialize_advertisement(a) for a in ads] }
+
+
+@ad_ns.route('/<int:ad_id>/click')
+class AdvertisementClick(Resource):
+    def post(self, ad_id):
+        ad = Advertisement.query.get(ad_id)
+        if not ad:
+            return { 'message': 'Advertisement not found' }, 404
+        try:
+            ad.track_click()
+            db.session.commit()
+            return { 'message': 'Click tracked', 'performance': ad.get_performance() }
+        except Exception as e:
+            db.session.rollback()
+            return { 'message': f'Failed to track click: {e}' }, 500
+
+
+@ad_ns.route('/<int:ad_id>/impression')
+class AdvertisementImpression(Resource):
+    def post(self, ad_id):
+        ad = Advertisement.query.get(ad_id)
+        if not ad:
+            return { 'message': 'Advertisement not found' }, 404
+        try:
+            ad.track_impression()
+            db.session.commit()
+            return { 'message': 'Impression tracked', 'performance': ad.get_performance() }
+        except Exception as e:
+            db.session.rollback()
+            return { 'message': f'Failed to track impression: {e}' }, 500
 from flask import current_app
 from flask_restx import Resource, fields
 from ..models import db, Advertisement
@@ -134,7 +189,7 @@ class AdvertisingInquiry(Resource):
             notification_service = NotificationService()
 
             try:
-                partnerships_email = os.getenv('PARTNERSHIPS_EMAIL', 'partnerships@unseen.com')
+                partnerships_email = os.getenv('PARTNERSHIPS_EMAIL', 'partnerships@Causebook.com')
                 notification_service.send_advertising_inquiry_notification(
                     partnerships_email,
                     inquiry_data

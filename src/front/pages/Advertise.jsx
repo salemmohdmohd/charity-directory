@@ -329,8 +329,8 @@ const Advertise = () => {
                             <h5 className="text-forest mb-3">Have Questions?</h5>
                             <p className="text-muted">
                                 Email us at{' '}
-                                <a href="mailto:partnerships@unseen.com" className="text-totoro fw-bold">
-                                    partnerships@unseen.com
+                                <a href="mailto:partnerships@Causebook.com" className="text-totoro fw-bold">
+                                    partnerships@Causebook.com
                                 </a>
                                 {' '}or call{' '}
                                 <a href="tel:+1-555-0123" className="text-totoro fw-bold">
