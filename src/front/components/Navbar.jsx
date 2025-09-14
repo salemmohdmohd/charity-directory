@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import useAuth from '../hooks/useAuth';
 import NotificationIndicator from './NotificationIndicator';
 import SearchBar from './SearchBar';
+import LocationSelector from './LocationSelector';
 
 export const Navbar = () => {
 	const location = useLocation();
@@ -66,6 +67,11 @@ export const Navbar = () => {
 
 					{/* Right-aligned nav items */}
 					<ul className="navbar-nav ms-auto align-items-center">
+						{/* Location Selector - Always visible */}
+						<li className="nav-item">
+							<LocationSelector />
+						</li>
+
 						{isAuthenticated ? (
 							// User is logged in
 							<>
@@ -140,14 +146,7 @@ export const Navbar = () => {
 							<>
 								<li className="nav-item">
 									<Link to="/login" className="nav-link">
-										<i className="fas fa-sign-in-alt me-2" aria-hidden="true"></i>
-										<span>Login</span>
-									</Link>
-								</li>
-								<li className="nav-item">
-									<Link to="/signup" className="btn btn-sm btn-outline-light ms-2">
-										<i className="fas fa-user-plus me-2" aria-hidden="true"></i>
-										<span>Sign Up</span>
+										Login
 									</Link>
 								</li>
                                 <li className="nav-item d-none d-lg-block ms-3">

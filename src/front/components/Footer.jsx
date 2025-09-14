@@ -92,10 +92,10 @@ export const Footer = () => (
 							</a>
 						</li>
 						<li className="mb-2">
-							<a href="#" className="footer-link">
+							<Link to="/help-center" className="footer-link">
 								<i className="fas fa-question-circle me-2"></i>
 								Help Center
-							</a>
+							</Link>
 						</li>
 					</ul>
 				</div>
@@ -114,9 +114,9 @@ export const Footer = () => (
 				</div>
 				<div className="col-md-6 text-md-end">
 					<div className="footer-policies">
-						<a href="#" className="footer-policy-link me-3">Privacy Policy</a>
-						<a href="#" className="footer-policy-link me-3">Terms of Service</a>
-						<a href="#" className="footer-policy-link">Cookie Policy</a>
+						<Link to="/privacy-policy" className="footer-policy-link me-3">Privacy Policy</Link>
+						<Link to="/terms-of-service" className="footer-policy-link me-3">Terms of Service</Link>
+						<Link to="/cookie-policy" className="footer-policy-link">Cookie Policy</Link>
 					</div>
 				</div>
 			</div>

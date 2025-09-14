@@ -30,6 +30,10 @@ import Bookmarks from "./pages/Bookmarks";
 import OAuthCallback from "./pages/OAuthCallback";
 import OrgDashboard from "./pages/OrgDashboard";
 import Search from "./pages/Search";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import CookiePolicy from "./pages/CookiePolicy";
+import HelpCenter from "./pages/HelpCenter";
 
 // Import Higher-Order Components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -56,6 +60,12 @@ export const router = createBrowserRouter(
         <Route path="/list-your-charity" element={<ListYourCharity />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/search" element={<Search />} />
+
+        {/* Footer Pages */}
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/cookie-policy" element={<CookiePolicy />} />
+        <Route path="/help-center" element={<HelpCenter />} />
 
         {/* Authentication Routes */}
         <Route path="/login" element={<Login/>}/>
