@@ -21,3 +21,15 @@ echo "Building frontend with npm run build"
 npm run build
 
 echo "Frontend build complete"
+
+# Install Python dependencies so runtime tools like gunicorn are available
+# This is safe to run in Render's build phase; it will install packages into the
+# environment used for the later start command. If your service uses Poetry
+# or Pipenv on Render, adapt accordingly (see DEPLOY_TO_RENDER.md).
+if [ -f requirements.txt ]; then
+  echo "Installing Python dependencies from requirements.txt"
+  pip install --upgrade pip setuptools wheel
+  pip install -r requirements.txt
+else
+  echo "No requirements.txt found, skipping pip install. If you use Poetry, ensure Render installs dependencies in build settings."
+fi
