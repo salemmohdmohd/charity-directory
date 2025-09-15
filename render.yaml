@@ -51,3 +51,17 @@ jobs:
         fromDatabase:
           name: postgresql-trapezoidal-42170
           property: connectionString
+
+  - type: job
+    name: run-seeds
+    env: python
+    region: ohio
+    plan: free
+    command: bash -lc "export FLASK_APP=src/app.py && PYTHONPATH=src python scripts/seed_meaningful.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.6
+      - key: DATABASE_URL
+        fromDatabase:
+          name: postgresql-trapezoidal-42170
+          property: connectionString

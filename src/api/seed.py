@@ -69,6 +69,24 @@ def seed_organizations_and_photos():
     """
     print("Clearing existing organization data...")
     # Clear data in the correct order to respect foreign key constraints
+    # Delete dependent records first to avoid foreign key constraint errors
+    try:
+        db.session.query(Advertisement).delete()
+    except Exception:
+        pass
+    try:
+        db.session.query(Review).delete()
+    except Exception:
+        pass
+    try:
+        db.session.query(Donation).delete()
+    except Exception:
+        pass
+    try:
+        db.session.query(UserBookmark).delete()
+    except Exception:
+        pass
+    # Then photos, social links, and organizations
     db.session.query(OrganizationPhoto).delete()
     db.session.query(OrganizationSocialLink).delete()
     db.session.query(Organization).delete()
