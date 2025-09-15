@@ -423,12 +423,30 @@ def index():
     from flask_login import current_user
     from flask import redirect, url_for
 
+    # Serve the React frontend at the site root for unauthenticated users
+    # and keep the admin/login experience under /backend
     if current_user.is_authenticated:
-        # Redirect authenticated users to admin dashboard
+        # Authenticated users continue to the admin dashboard
         return redirect(url_for('admin.index'))
     else:
-        # Redirect unauthenticated users to login page
-        return redirect(url_for('login'))
+        # Serve the frontend index.html (SPA) at /
+        try:
+            return send_from_directory(static_file_dir, 'index.html')
+        except Exception:
+            # If the built frontend is missing, fallback to login page so site remains usable
+            return redirect(url_for('login'))
+
+
+@app.route('/backend')
+@app.route('/backend/')
+def backend_root():
+    """Expose backend UI under /backend — redirect to admin or login as appropriate"""
+    from flask_login import current_user
+    from flask import redirect, url_for
+
+    if current_user.is_authenticated:
+        return redirect(url_for('admin.index'))
+    return redirect(url_for('login'))
 
 @app.route('/app')
 @app.route('/frontend')
