@@ -6,7 +6,8 @@ services:
       region: ohio
       name: sample-service-name
       env: python # valid values: https://www.render.com/docs/yaml-spec#environment
-      buildCommand: "./render_build.sh"
+  # Install Python dependencies first so runtime tools like gunicorn are available
+  buildCommand: "pip install -r requirements.txt && ./render_build.sh"
       startCommand: "gunicorn wsgi --chdir ./src/"
       plan: free # optional; defaults to starter
       numInstances: 1
