@@ -7,27 +7,27 @@ services:
       name: sample-service-name
       env: python # valid values: https://render.com/docs/yaml-spec#environment
       buildCommand: "./render_build.sh"
-  # Run migrations before starting the web process so the database schema is up-to-date.
-  # This keeps deploys simple; alternatively you can run the job below from the Render dashboard
-  # once after the database is provisioned.
-  startCommand: "bash -lc \"export FLASK_APP=src/app.py && flask db upgrade && gunicorn wsgi --chdir ./src/\""
+      # Run migrations before starting the web process so the database schema is up-to-date.
+      # This keeps deploys simple; alternatively you can run the job below from the Render dashboard
+      # once after the database is provisioned.
+      startCommand: "bash -lc \"export FLASK_APP=src/app.py && flask db upgrade && gunicorn wsgi --chdir ./src/\""
       plan: free # optional; defaults to starter
       numInstances: 1
       envVars:
-          - key: VITE_BASENAME # Imported from Heroku app
-            value: /
-          - key: FLASK_APP # Imported from Heroku app
-            value: src/app.py
-          - key: FLASK_DEBUG # Imported from Heroku app
-            value: 0
-          - key: FLASK_APP_KEY # Imported from Heroku app
-            value: "any key works"
-          - key: PYTHON_VERSION
-            value: 3.10.6
-          - key: DATABASE_URL # Render PostgreSQL database
-            fromDatabase:
-                name: postgresql-trapezoidal-42170
-                property: connectionString
+        - key: VITE_BASENAME # Imported from Heroku app
+          value: /
+        - key: FLASK_APP # Imported from Heroku app
+          value: src/app.py
+        - key: FLASK_DEBUG # Imported from Heroku app
+          value: 0
+        - key: FLASK_APP_KEY # Imported from Heroku app
+          value: "any key works"
+        - key: PYTHON_VERSION
+          value: 3.10.6
+        - key: DATABASE_URL # Render PostgreSQL database
+          fromDatabase:
+            name: postgresql-trapezoidal-42170
+            property: connectionString
 
 databases: # Render PostgreSQL database
     - name: postgresql-trapezoidal-42170
