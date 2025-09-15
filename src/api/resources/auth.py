@@ -31,9 +31,9 @@ class Register(Resource):
     })
     def post(self):
         try:
-            # Ensure client sent JSON (parsers expect JSON for registration)
-            if not request.is_json:
-                auth_ns.abort(400, 'Request body must be JSON with Content-Type: application/json')
+            # Accept JSON or form-encoded payloads (parsers handle both)
+            if not (request.is_json or request.form):
+                auth_ns.abort(400, 'Request body must be JSON or form-encoded (Content-Type: application/json or application/x-www-form-urlencoded)')
 
             try:
                 args = register_parser.parse_args()
@@ -113,9 +113,9 @@ class Login(Resource):
     })
     def post(self):
         try:
-            # Ensure content-type is JSON for the API login endpoint (parsers expect JSON)
-            if not request.is_json:
-                auth_ns.abort(400, 'Request body must be JSON with Content-Type: application/json')
+            # Accept JSON or form-encoded payloads for login (parsers handle both)
+            if not (request.is_json or request.form):
+                auth_ns.abort(400, 'Request body must be JSON or form-encoded (Content-Type: application/json or application/x-www-form-urlencoded)')
 
             try:
                 args = login_parser.parse_args()

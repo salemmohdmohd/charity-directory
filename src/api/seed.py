@@ -72,20 +72,20 @@ def seed_organizations_and_photos():
     # Delete dependent records first to avoid foreign key constraint errors
     try:
         db.session.query(Advertisement).delete()
-    except Exception:
-        pass
+    except Exception as e:
+        print('Warning: failed to clear Advertisement table:', e)
     try:
         db.session.query(Review).delete()
-    except Exception:
-        pass
+    except Exception as e:
+        print('Warning: failed to clear Review table:', e)
     try:
         db.session.query(Donation).delete()
-    except Exception:
-        pass
+    except Exception as e:
+        print('Warning: failed to clear Donation table:', e)
     try:
         db.session.query(UserBookmark).delete()
-    except Exception:
-        pass
+    except Exception as e:
+        print('Warning: failed to clear UserBookmark table:', e)
     # Then photos, social links, and organizations
     db.session.query(OrganizationPhoto).delete()
     db.session.query(OrganizationSocialLink).delete()
