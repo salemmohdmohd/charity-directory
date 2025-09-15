@@ -128,24 +128,7 @@ The API documentation is available at: `http://localhost:5000/api/docs/`
 
 ## Testing
 
-### Backend Tests
-
-```bash
-# Activate virtual environment
-source .venv/bin/activate  # or pipenv shell
-
-# Run tests
-pytest
-
-# Run with coverage
-pytest --cov=src
-```
-
-### Frontend Tests
-
-```bash
-npm test
-```
+<!-- Testing removed for production deploy; run tests locally before shipping. -->
 
 ## Deployment
 

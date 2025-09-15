@@ -15,9 +15,7 @@ const SearchBar = () => {
         setLoading(true);
         try {
           const response = await organizationService.searchOrganizations(query, 5);
-          console.log("API Response:", response); // Log the full response
           const results = response.data.results || [];
-          console.log("Suggestions set to:", results); // Log what we're setting
           setSuggestions(results);
         } catch (error) {
           console.error('Error fetching search suggestions:', error);

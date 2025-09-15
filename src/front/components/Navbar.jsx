@@ -55,7 +55,7 @@ export const Navbar = () => {
 						</li>
 						<li className="nav-item">
 							<Link to="/advertise" className={`nav-link ${isActive('/advertise') ? 'active' : ''}`}>
-								<span>Advertise</span>
+								<span>Sponsers</span>
 							</Link>
 						</li>
 					</ul>

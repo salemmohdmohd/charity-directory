@@ -7,6 +7,26 @@ from ..models import db, Organization, Category, User, Location
 from sqlalchemy import or_, desc
 from sqlalchemy.orm import joinedload
 from ..utils import paginate, serialize_organization, log_action
+from flask import jsonify, url_for
+import re
+import time
+import os
+
+# Simple in-memory rate limiting state: { key: {window_start, count} }
+_ai_rate_state = {}
+
+def _check_rate_limit(key, limit_per_minute=60):
+    """Return True if allowed, False if rate limit exceeded."""
+    now = int(time.time())
+    window = now // 60
+    state = _ai_rate_state.get(key)
+    if not state or state.get('window') != window:
+        _ai_rate_state[key] = {'window': window, 'count': 1}
+        return True
+    if state['count'] < limit_per_minute:
+        state['count'] += 1
+        return True
+    return False
 
 org_ns = Namespace('organizations', description='Organization operations')
 
@@ -210,3 +230,104 @@ class OrganizationPhotos(Resource):
             return serialized_photos
         except Exception:
             org_ns.abort(500, 'Failed to fetch photos')
+
+
+@org_ns.route('/ai-search')
+class OrganizationAiSearch(Resource):
+    @org_ns.doc(params={'q': 'Search query', 'limit': 'Maximum results'}, responses={200: 'OK'})
+    def get(self):
+        """Return concise, LLM-optimized summaries for organizations matching query."""
+        try:
+            # API key validation
+            api_key = request.headers.get('X-API-KEY') or request.args.get('api_key')
+            allowed = os.getenv('AI_API_KEYS', '')
+            allowed_keys = [k.strip() for k in allowed.split(',') if k.strip()]
+            if not api_key or api_key not in allowed_keys:
+                return {'message': 'API key required or invalid'}, 401
+
+            # simple rate limit per API key
+            if not _check_rate_limit(api_key, limit_per_minute=int(os.getenv('AI_RATE_PER_MIN', '60'))):
+                return {'message': 'Rate limit exceeded'}, 429
+
+            q = request.args.get('q', '').strip()
+            limit = int(request.args.get('limit', 10))
+            if not q:
+                return {'results': []}
+
+            s = f"%{q}%"
+            query = Organization.query.filter(Organization.status == 'approved').filter(
+                or_(Organization.name.ilike(s), Organization.mission.ilike(s), Organization.description.ilike(s))
+            ).order_by(desc(Organization.view_count))
+
+            results = []
+            for org in query.limit(limit).all():
+                # concise summary suitable for LLMs: one sentence, factual
+                short = org.mission or org.description or ''
+                short = (short[:240] + '...') if len(short) > 240 else short
+                url = url_for('frontend', _external=False)
+                # construct frontend path as /organizations/<id>-slug
+                def slugify(name):
+                    if not name: return ''
+                    s = re.sub(r'[^a-zA-Z0-9]+', '-', name).strip('-').lower()
+                    return s
+
+                path = f"/organizations/{org.id}-{slugify(org.name)}"
+                results.append({
+                    'id': org.id,
+                    'name': org.name,
+                    'summary': short,
+                    'categories': [org.category.name] if org.category else [],
+                    'location': org.location.city if org.location and getattr(org.location, 'city', None) else None,
+                    'website': org.website,
+                    'url': path
+                })
+
+            return {'results': results}
+        except Exception as e:
+            print(f"AI search error: {e}")
+            org_ns.abort(500, 'AI search failed')
+
+
+@org_ns.route('/<int:org_id>/summary')
+@org_ns.param('org_id', 'The organization identifier')
+class OrganizationSummary(Resource):
+    def get(self, org_id):
+        """Return AI-optimized plain text summary and structured JSON for a single organization."""
+        try:
+            org = Organization.query.options(joinedload(Organization.category), joinedload(Organization.location)).get(org_id) or org_ns.abort(404, 'Organization not found')
+            if org.status != 'approved': org_ns.abort(404, 'Organization not found')
+
+            # Plain text summary - concise, factual, 2-3 sentences
+            sentences = []
+            if org.mission:
+                sentences.append(org.mission.strip())
+            if org.description:
+                d = org.description.strip()
+                sentences.append(d if len(d) < 240 else d[:237] + '...')
+
+            location = None
+            if org.location:
+                parts = []
+                if getattr(org.location, 'city', None): parts.append(org.location.city)
+                if getattr(org.location, 'state_province', None): parts.append(org.location.state_province)
+                if getattr(org.location, 'country', None): parts.append(org.location.country)
+                location = ', '.join(parts) if parts else None
+
+            plain = ' '.join(sentences) or f"{org.name} is a charitable organization."
+
+            structured = {
+                'id': org.id,
+                'name': org.name,
+                'mission': org.mission,
+                'description': org.description,
+                'category': org.category.name if org.category else None,
+                'location': location,
+                'website': org.website,
+                'email': org.email,
+                'telephone': org.phone
+            }
+
+            return {'plain_text_summary': plain, 'structured': structured}
+        except Exception as e:
+            print(f"Organization summary error: {e}")
+            org_ns.abort(500, 'Failed to generate organization summary')

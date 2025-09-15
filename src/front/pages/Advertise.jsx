@@ -37,7 +37,6 @@ const Advertise = () => {
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('Inquiry submitted successfully:', result);
                 setSubmitted(true);
             } else {
                 const error = await response.json();

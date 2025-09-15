@@ -91,8 +91,7 @@ export const OrganizationSignup = () => {
       if (categories.length === 0) { // Only fetch if categories are not already loaded
         setCategoryState({ loading: true, error: null });
         try {
-          const data = await orgSignupService.getCategories();
-          console.log('Categories received from API:', data);
+    const data = await orgSignupService.getCategories();
           // The service now directly returns the array
           setCategories(data || []);
           setCategoryState({ loading: false, error: null });
@@ -126,21 +125,13 @@ export const OrganizationSignup = () => {
         newValue = files[0] || null;
         // Debug logging for logo
         if (files[0]) {
-          console.log('Logo file selected:', {
-            name: files[0].name,
-            type: files[0].type,
-            size: files[0].size
-          });
+          // logo selected; debug logs removed for production
         }
       } else if (name === 'gallery') {
         newValue = Array.from(files);
         // Debug logging for gallery
-        if (files.length > 0) {
-          console.log('Gallery files selected:', Array.from(files).map(f => ({
-            name: f.name,
-            type: f.type,
-            size: f.size
-          })));
+          if (files.length > 0) {
+          // gallery files selected; debug logs removed for production
 
           // Generate preview URLs for the gallery images
           const previews = Array.from(files).map(file => ({
@@ -326,7 +317,7 @@ export const OrganizationSignup = () => {
     if (!formData.logo) {
       newErrors.logo = 'Organization logo is required';
     } else if (!isValidImageFile(formData.logo)) {
-      console.log('Logo file type:', formData.logo.type, 'File name:', formData.logo.name);
+          // Logo file type logging removed for production
       newErrors.logo = 'Invalid file type. Please upload a valid image file (JPG, PNG, GIF, WebP, BMP, TIFF).';
     }
 
@@ -335,9 +326,9 @@ export const OrganizationSignup = () => {
     } else if (formData.gallery.length > 5) {
       newErrors.gallery = 'You can upload a maximum of 5 gallery images.';
     } else {
-      for (let i = 0; i < formData.gallery.length; i++) {
+          for (let i = 0; i < formData.gallery.length; i++) {
         if (!isValidImageFile(formData.gallery[i])) {
-          console.log(`Gallery file ${i + 1} type:`, formData.gallery[i].type, 'File name:', formData.gallery[i].name);
+          // Gallery file debug removed for production
           newErrors.gallery = `Invalid file type for file ${i + 1}. Please upload only valid image files (JPG, PNG, GIF, WebP, BMP, TIFF).`;
           break;
         }
@@ -405,18 +396,7 @@ export const OrganizationSignup = () => {
 
     // If there are errors, log them to console for debugging
     if (Object.keys(newErrors).length > 0) {
-      console.log('Form validation failed. Missing fields:', Object.keys(newErrors));
-      console.log('Error details:', newErrors);
-
-      // For troubleshooting, log current form data state as well
-      const sensitiveFields = ['password', 'confirmPassword']; // Don't log sensitive info
-      const logSafeFormData = {...formData};
-      sensitiveFields.forEach(field => {
-        if (logSafeFormData[field]) {
-          logSafeFormData[field] = '******';
-        }
-      });
-      console.log('Current form data:', logSafeFormData);
+      // Validation failed; errors are set in state for the UI. Debug logs removed for production.
     }
 
     return newErrors;
@@ -461,7 +441,7 @@ export const OrganizationSignup = () => {
           try {
             errorField.focus({ preventScroll: true });
           } catch (e) {
-            console.log('Could not focus on field:', errorFieldId);
+            // focusing may fail in some browsers; suppress in production
           }
 
           // Highlight the field with a temporary highlight effect
@@ -471,7 +451,7 @@ export const OrganizationSignup = () => {
               errorField.classList.remove('highlight-error');
             }, 1500);
           } catch (e) {
-            console.log('Could not highlight field:', errorFieldId);
+            // highlight may fail silently in some environments
           }
 
           return true;

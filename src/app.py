@@ -3,6 +3,7 @@ This module takes care of starting the API Server, Loading the DB and Adding the
 """
 import os
 from flask import Flask, request, jsonify, url_for, send_from_directory, render_template
+from markupsafe import escape
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
@@ -16,7 +17,7 @@ from api.models import db
 from api.routes import api_bp
 from api.admin import setup_admin
 from api.commands import setup_commands
-from api.seed import seed_all
+# seed_all removed from direct imports; seeding should be run via CLI when needed
 from dotenv import load_dotenv
 
 
@@ -242,6 +243,186 @@ def sitemap():
     """Protected sitemap endpoint - now requires authentication"""
     return generate_sitemap(app)
 
+
+@app.route('/sitemap.xml')
+def public_sitemap_xml():
+    """Public sitemap XML including organization pages."""
+    # Attempt to generate a basic sitemap using app.url_map and organization IDs
+    try:
+        from api.models import Organization
+        from xml.etree.ElementTree import Element, SubElement, tostring
+        root = Element('urlset', xmlns='http://www.sitemaps.org/schemas/sitemap/0.9')
+        # Add homepage
+        url = SubElement(root, 'url')
+        loc = SubElement(url, 'loc')
+        loc.text = request.url_root.rstrip('/')
+
+        # add each approved organization
+        orgs = Organization.query.filter_by(status='approved').all()
+        for o in orgs:
+            u = SubElement(root, 'url')
+            loc = SubElement(u, 'loc')
+            slug = (o.name or '').lower().replace(' ', '-')
+            path = f"/organizations/{o.id}-{slug}"
+            loc.text = f"{request.url_root.rstrip('/')}{path}"
+
+            # lastmod (use updated_at or created_at)
+            last = getattr(o, 'updated_at', None) or getattr(o, 'created_at', None)
+            if last:
+                lastmod = SubElement(u, 'lastmod')
+                lastmod.text = last.strftime('%Y-%m-%d')
+
+            # changefreq heuristic: frequent for verified orgs, monthly otherwise
+            cf = SubElement(u, 'changefreq')
+            cf.text = 'weekly' if getattr(o, 'is_verified', False) else 'monthly'
+
+            # priority heuristic: higher for verified organizations
+            pr = SubElement(u, 'priority')
+            pr.text = '0.8' if getattr(o, 'is_verified', False) else '0.5'
+
+        xml_str = tostring(root, encoding='utf-8', method='xml')
+        return app.response_class(xml_str, mimetype='application/xml')
+    except Exception as e:
+        return generate_sitemap(app)
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    """Provide robots.txt optimized for AI crawlers while protecting sensitive paths."""
+    lines = [
+        'User-agent: *',
+        'Allow: /',
+        'Disallow: /admin/',
+        'Disallow: /api/docs/',
+        'Disallow: /api/notifications',
+        '',
+        'User-agent: Googlebot',
+        'Allow: /',
+        '',
+        'User-agent: *-ai',
+        'Allow: /'
+    ]
+    return app.response_class('\n'.join(lines), mimetype='text/plain')
+
+
+@app.route('/api/docs/ai')
+def api_docs_ai():
+    """Human-readable AI integration notes and example usage for LLMs."""
+    docs = {
+        'ai_search': {
+            'endpoint': '/api/organizations/ai-search?q=<query>&limit=10',
+            'description': 'Returns concise organization summaries optimized for LLM consumption (JSON array of {id,name,summary,category,location,website,url}).'
+        },
+        'org_summary': {
+            'endpoint': '/api/organizations/<id>/summary',
+            'description': 'Returns plain_text_summary and structured JSON about a single organization for knowledge ingestion.'
+        },
+        'notes': 'Prefer GET requests without authentication for public organizations. Rate limit as needed.'
+    }
+    return jsonify(docs)
+
+
+@app.route('/prerender/organizations/<int:org_id>')
+def prerender_organization(org_id):
+    """Return a small server-rendered HTML snippet with meta tags and JSON-LD for bots.
+
+    This keeps the payload minimal and is intended for crawlers and LLM scrapers that
+    do not execute client-side JavaScript. It mirrors key fields from the Organization
+    model and normalizes image URLs to the /api/uploads/ route when necessary.
+    """
+    try:
+        from api.models import Organization
+        o = Organization.query.get(org_id)
+        if not o or getattr(o, 'status', '') != 'approved':
+            return app.response_class('Not Found', status=404)
+
+        # Build basic fields with safe fallbacks
+        name = o.name or ''
+        description = (getattr(o, 'description', None) or getattr(o, 'mission', '') or '')
+        description = description.strip()[:300]  # keep it short
+        website = getattr(o, 'website', '') or ''
+
+        # Select image: prefer logo_url, otherwise first OrganizationPhoto.file_path or file_name
+        image = ''
+        if getattr(o, 'logo_url', None):
+            image = o.logo_url
+        else:
+            photos = getattr(o, 'photos', None) or []
+            if isinstance(photos, (list, tuple)) and photos:
+                first = photos[0]
+                # OrganizationPhoto has file_path and file_name
+                if hasattr(first, 'file_path') and first.file_path:
+                    image = first.file_path
+                elif hasattr(first, 'file_name') and first.file_name:
+                    image = first.file_name
+
+        # Normalize image path: if DB stored "/ads/..." or "uploads/...", map to /api/uploads/<filename>
+        def normalize_image_url(img):
+            if not img:
+                return ''
+            # If it already looks like an absolute URL, return as-is
+            if isinstance(img, str) and (img.startswith('http://') or img.startswith('https://')):
+                return img
+            # Strip leading slash if present
+            candidate = img.lstrip('/') if isinstance(img, str) else ''
+            # If candidate now looks like an absolute URL, return original img
+            if candidate.startswith('http://') or candidate.startswith('https://'):
+                return img
+            # Otherwise treat last path segment as filename and serve via api_uploaded_file
+            filename = candidate.split('/')[-1] if candidate else ''
+            if not filename:
+                return ''
+            return url_for('api_uploaded_file', filename=filename, _external=True)
+
+        image_url = normalize_image_url(image)
+
+        # JSON-LD
+        jsonld = {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": name,
+            "description": description,
+        }
+        if website:
+            jsonld["url"] = website
+        if image_url:
+            jsonld["logo"] = image_url
+
+        # Minimal HTML payload with meta tags and JSON-LD script
+        html_parts = [
+            '<!doctype html>',
+            '<html lang="en">',
+            '<head>',
+            f'  <meta charset="utf-8">',
+            f'  <title>{escape(name) if name else "Organization"}</title>',
+            f'  <meta name="description" content="{escape(description)}">',
+        ]
+
+        if image_url:
+            html_parts.append(f'  <meta property="og:image" content="{image_url}">')
+            html_parts.append(f'  <meta name="twitter:image" content="{image_url}">')
+
+        if website:
+            html_parts.append(f'  <link rel="canonical" href="{website}">')
+
+        html_parts.append(f'  <script type="application/ld+json">')
+        import json
+        html_parts.append(json.dumps(jsonld))
+        html_parts.append('  </script>')
+        html_parts.append('</head>')
+        html_parts.append('<body>')
+        html_parts.append(f'<h1>{escape(name)}</h1>')
+        if description:
+            html_parts.append(f'<p>{escape(description)}</p>')
+        html_parts.append('</body>')
+        html_parts.append('</html>')
+
+        content = '\n'.join(html_parts)
+        return app.response_class(content, mimetype='text/html')
+    except Exception:
+        # In production, avoid leaking internals; return a generic 500.
+        return app.response_class('Server Error', status=500)
+
 @app.route('/')
 def index():
     """Root route - redirect to admin dashboard or login"""
@@ -274,4 +455,6 @@ def serve_any_other_file(path):
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=PORT, debug=True)
+    # Enable debug only when explicitly requested via FLASK_DEBUG=1
+    run_debug = True if os.getenv('FLASK_DEBUG') == '1' else False
+    app.run(host='0.0.0.0', port=PORT, debug=run_debug)

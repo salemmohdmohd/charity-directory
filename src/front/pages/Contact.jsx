@@ -18,9 +18,8 @@ const Contact = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Here you would typically send the form data to a backend endpoint
-    // For now, we'll just simulate a successful submission.
-    console.log('Form submitted:', formData);
+  // Here you would typically send the form data to a backend endpoint
+  // For now, we'll just simulate a successful submission.
     setStatus('success');
     setFormData({ name: '', email: '', subject: '', message: '' });
     setTimeout(() => setStatus(''), 5000);
