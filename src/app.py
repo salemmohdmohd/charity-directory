@@ -17,6 +17,8 @@ from api.models import db
 from api.routes import api_bp
 from api.admin import setup_admin
 from api.commands import setup_commands
+import logging
+import sqlalchemy
 # seed_all removed from direct imports; seeding should be run via CLI when needed
 from dotenv import load_dotenv
 
@@ -194,7 +196,29 @@ def protect_api_docs():
 # Health check endpoint
 @app.route('/health')
 def health_check():
-    return jsonify({'status': 'healthy', 'message': 'API is running'}), 200
+    """Health check endpoint — also verifies DB connectivity.
+
+    Returns 200 when app + DB are reachable, 503 when DB is down.
+    """
+    # Basic app health
+    status = {'status': 'healthy', 'message': 'API is running'}
+    # Attempt a minimal DB operation to verify connectivity
+    try:
+        # run a lightweight SELECT 1
+        with db.engine.connect() as conn:
+            conn.execute(sqlalchemy.text('SELECT 1'))
+    except Exception as e:
+        logging.exception('Database health check failed')
+        return jsonify({'status': 'unhealthy', 'message': 'database unreachable'}), 503
+    return jsonify(status), 200
+
+
+# Capture DB connection errors and surface a friendly 503 JSON
+@app.errorhandler(sqlalchemy.exc.OperationalError)
+def handle_db_operational_error(error):
+    logging.exception('OperationalError caught by handler')
+    # Return a concise JSON response for clients and avoid exposing internals
+    return jsonify({'error': 'database_unavailable', 'message': 'Database connection failed'}), 503
 
 # Serve uploaded files
 @app.route('/uploads/<filename>')
