@@ -32,9 +32,7 @@ const Categories = () => {
       const data = await categoryService.getCategories(true); // true to include organizations
 
       setCategories(data); // The API now returns the full nested structure
-      setCategoriesWithOrgs(data);
-
-      console.log('Categories with organizations loaded:', data);
+  setCategoriesWithOrgs(data);
 
     } catch (error) {
       console.error('Error fetching categories:', error);

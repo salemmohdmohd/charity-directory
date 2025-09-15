@@ -92,27 +92,27 @@ const OrgDashboard = () => {
   useEffect(() => {
     const fetchOrganizationData = async () => {
       if (!user) {
-        console.log("User data not available yet");
+        // User data not available yet; skip until available
         return;
       }
 
       try {
         setLoading(true);
-        console.log("User data:", user);
+  // user debug log removed for production
 
         // Try to get organization ID from user object
         let orgId = user.organization_id;
 
         if (!orgId) {
-          console.log("No organization_id found in user object. Attempting to fetch directly.");
+          // debug log removed for production
           // Try to get user's organizations
           try {
             const myOrgsResponse = await api.get('/users/me/organizations');
-            console.log("User's organizations:", myOrgsResponse.data);
+            // debug log removed for production
             if (myOrgsResponse.data.organizations && myOrgsResponse.data.organizations.length > 0) {
               // Use the first organization found
               orgId = myOrgsResponse.data.organizations[0].id;
-              console.log("Found organization ID:", orgId);
+              // debug log removed for production
             }
           } catch (orgError) {
             console.error("Failed to get user's organizations:", orgError);
@@ -126,9 +126,9 @@ const OrgDashboard = () => {
         }
 
         // Fetch the organization details
-        console.log(`Fetching organization data for ID: ${orgId}`);
+  // debug log removed for production
         const response = await api.get(`/organizations/${orgId}`);
-        console.log("Organization data received:", response.data);
+  // debug log removed for production
 
         setOrganization(response.data);
         setError(null);
@@ -136,9 +136,8 @@ const OrgDashboard = () => {
         // Fetch organization photos separately
         setLoadingPhotos(true);
         try {
-          console.log(`Fetching photos for organization ID: ${orgId}`);
+          // debug log removed for production
           const photosResponse = await api.get(`/organizations/${orgId}/photos`);
-          console.log("Organization photos received:", photosResponse.data);
 
           // Process photos to ensure we have valid file identifiers
           const validPhotos = Array.isArray(photosResponse.data)
@@ -150,7 +149,7 @@ const OrgDashboard = () => {
               }).filter(photo => photo.fileIdentifier)
             : [];
 
-          console.log(`${validPhotos.length} valid photos with file identifiers after processing`);
+          // debug log removed for production
           setPhotos(validPhotos);
 
         } catch (photoError) {
@@ -158,7 +157,7 @@ const OrgDashboard = () => {
 
           // If we have a logo_url, use it as a fallback photo
           if (response.data.logo_url) {
-            console.log('Using logo as fallback photo');
+            // fallback photo log removed for production
             setPhotos([{
               id: 'logo',
               fileIdentifier: response.data.logo_url,
@@ -545,7 +544,7 @@ const OrgDashboard = () => {
                            className="img-fluid rounded shadow-sm"
                            style={{width: '100%', height: '180px', objectFit: 'cover'}}
                            onError={(e) => {
-                             console.log(`Image error for photo ${index}:`, photo);
+                             // image error debug removed for production
                              e.target.onerror = null;
                              e.target.src = '/placeholder-image.png';
                            }}

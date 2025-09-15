@@ -12,8 +12,7 @@ const OrganizationCard = ({ organization, onCardClick }) => {
 
   // Debug organization data structure (can be removed in production)
   useEffect(() => {
-    console.log('Organization card data:', organization);
-    console.log('Image path:', organization.cover_image ? `/api/uploads/${organization.cover_image}` : 'No cover image found');
+  // Debug logs removed for production
   }, [organization]);
 
   useEffect(() => {
@@ -59,8 +58,6 @@ const OrganizationCard = ({ organization, onCardClick }) => {
     <div className="organization-card" onClick={() => onCardClick && onCardClick(organization)}>
       {/* Image Container */}
       <div className="card-img-container">
-        {console.log('Organization card data:', organization)}
-        {console.log('Image path:', organization.primary_photo_url ? `Using primary_photo_url: ${organization.primary_photo_url}` : 'No cover image found')}
         <img
           src={`/api/uploads/${organization.primary_photo_url}`}
           alt={organization.name}

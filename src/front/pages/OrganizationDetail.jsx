@@ -67,10 +67,10 @@ const OrganizationDetail = () => {
         setLoading(true);
         setError(null);
 
-        console.log('OrganizationDetail: organizationId from URL:', organizationId);
+  // debug logs removed for production
 
         const orgId = getOrgIdFromSlug(organizationId);
-        console.log('OrganizationDetail: extracted orgId:', orgId);
+  // debug logs removed for production
 
         if (!orgId) {
           setError('Invalid organization ID');
@@ -78,9 +78,9 @@ const OrganizationDetail = () => {
           return;
         }
 
-        console.log('OrganizationDetail: fetching organization with ID:', orgId);
+  // debug logs removed for production
         const orgData = await organizationService.getOrganization(orgId);
-        console.log('OrganizationDetail: received organization data:', orgData);
+  // debug logs removed for production
 
         // Backend returns organization directly, not wrapped in an object
         setOrganization(orgData);
@@ -89,26 +89,20 @@ const OrganizationDetail = () => {
         setLoadingPhotos(true);
         try {
           const photosData = await organizationService.getOrganizationPhotos(orgId);
-          console.log('OrganizationDetail: received photos data:', photosData);
+          // debug logs removed for production
 
           // Detailed debugging for photo data
           if (photosData && Array.isArray(photosData)) {
-            console.log(`Found ${photosData.length} photos for organization ${orgId}`);
-            photosData.forEach((photo, index) => {
-              console.log(`Photo ${index}:`, photo);
-            });
+            // photo debug logs removed for production
 
             // Inspect the first photo to determine field structure
             if (photosData.length > 0) {
               const firstPhoto = photosData[0];
               const possibleFileFields = ['file_name', 'fileName', 'file_path', 'filePath', 'path', 'url', 'src'];
-              console.log('Checking possible file name fields in photo object:');
-              possibleFileFields.forEach(field => {
-                console.log(`- ${field}: ${firstPhoto[field]}`);
-              });
+              // photo field inspection logs removed for production
             }
           } else {
-            console.log('No valid photos array received from API');
+            // photo absence debug removed for production
           }
 
           // Use any available file identifier field
@@ -121,7 +115,7 @@ const OrganizationDetail = () => {
               }).filter(photo => photo.fileIdentifier)
             : [];
 
-          console.log(`${validPhotos.length} valid photos with file identifiers after processing`);
+          // photo processing debug removed for production
           setPhotos(validPhotos);
         } catch (photoError) {
           console.error('Error fetching organization photos:', photoError);
@@ -239,8 +233,21 @@ const OrganizationDetail = () => {
         <meta property="og:type" content="website" />
         <meta property="og:url" content={`${window.location.origin}/organizations/${organizationId}`} />
 
+        {/* OG/Twitter image */}
+        {organization && (
+          (() => {
+            const img = (photos && photos.length > 0 && photos[0].url) ? photos[0].url : (organization.logo_url ? `/api/uploads/${organization.logo_url}` : null);
+            return img ? (
+              <>
+                <meta property="og:image" content={img} />
+                <meta name="twitter:image" content={img} />
+              </>
+            ) : null;
+          })()
+        )}
+
         {/* Twitter Card tags */}
-        <meta name="twitter:card" content="summary" />
+  <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`${organization?.name || 'Organization'} - Charity Directory`} />
         <meta name="twitter:description" content={getOrgDescription()} />
 
@@ -418,7 +425,7 @@ const OrganizationDetail = () => {
                                   objectFit: 'cover'
                                 }}
                                 onError={(e) => {
-                                  console.log(`Image error for photo ${index}:`, photo);
+                                  // image error debug removed for production
                                   e.target.onerror = null;
                                   e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Found';
                                 }}

@@ -12,11 +12,7 @@ const ProtectedRoute = ({
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
 
-  console.log('ProtectedRoute Check:', {
-    pathname: location.pathname,
-    isAuthenticated,
-    userRole: user?.role
-  });
+  // ProtectedRoute debug logs removed for production
 
   // If route requires authentication and user is not authenticated
   if (requireAuth && !isAuthenticated) {

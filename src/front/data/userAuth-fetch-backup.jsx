@@ -107,49 +107,32 @@ export const signup = async (name, email, password) => {
 // Get authenticated user data
 export const getCurrentUserData = async () => {
   try {
-    console.log('=== FRONTEND JWT DEBUG START ===');
+    // Debug logs removed for production
     const token = getToken();
-    console.log('Token exists:', !!token);
-    console.log('Token length:', token ? token.length : 0);
 
     if (token) {
       // Debug token structure
       const parts = token.split('.');
-      console.log('Token parts count:', parts.length);
-
-      if (parts.length === 3) {
-        try {
-          const header = JSON.parse(atob(parts[0]));
-          const payload = JSON.parse(atob(parts[1]));
-          console.log('Token header:', header);
-          console.log('Token payload:', payload);
-          console.log('Token expiration:', new Date(payload.exp * 1000));
-          console.log('Current time:', new Date());
-          console.log('Token expired:', payload.exp < Date.now() / 1000);
-        } catch (e) {
-          console.log('Token decode error:', e);
-        }
-      }
+  // Token debug removed for production
     }
 
     const headers = {
       'Content-Type': 'application/json',
       ...authHeader()
     };
-    console.log('Request headers:', headers);
+  // request header debug removed for production
 
     const response = await fetch(`${BASE_URL}/me`, {
       method: 'GET',
       headers: headers
     });
 
-    console.log('Response status:', response.status);
-    console.log('Response ok:', response.ok);
+  // response debug removed for production
 
     if (!response.ok) {
       // Try to get detailed error info
       const errorText = await response.text();
-      console.log('Error response text:', errorText);
+  // error response debug removed for production
 
       if (response.status === 401) {
         removeToken();
@@ -171,7 +154,7 @@ export const debugToken = async () => {
   try {
     const token = getToken();
     if (!token) {
-      console.log('No token to debug');
+      // No token available for debugging
       return null;
     }
 
@@ -184,7 +167,7 @@ export const debugToken = async () => {
     });
 
     const result = await response.json();
-    console.log('Token debug result:', result);
+  // token debug result removed for production
     return result;
   } catch (error) {
     console.error('Token debug error:', error);
