@@ -31,7 +31,17 @@ class Register(Resource):
     })
     def post(self):
         try:
-            args = register_parser.parse_args()
+            # Ensure client sent JSON (parsers expect JSON for registration)
+            if not request.is_json:
+                auth_ns.abort(400, 'Request body must be JSON with Content-Type: application/json')
+
+            try:
+                args = register_parser.parse_args()
+            except Exception as e:
+                from werkzeug.exceptions import BadRequest
+                if isinstance(e, BadRequest):
+                    auth_ns.abort(400, 'Input payload validation failed: malformed JSON or missing fields')
+                raise
             email = args.email.strip().lower()
 
             if not (valid := validate_email_format(email))[0]:
@@ -103,7 +113,18 @@ class Login(Resource):
     })
     def post(self):
         try:
-            args = login_parser.parse_args()
+            # Ensure content-type is JSON for the API login endpoint (parsers expect JSON)
+            if not request.is_json:
+                auth_ns.abort(400, 'Request body must be JSON with Content-Type: application/json')
+
+            try:
+                args = login_parser.parse_args()
+            except Exception as e:
+                # Provide a concise validation error instead of a generic failure
+                from werkzeug.exceptions import BadRequest
+                if isinstance(e, BadRequest):
+                    auth_ns.abort(400, 'Input payload validation failed: malformed JSON or missing fields')
+                raise
             user = User.query.filter_by(email=args.email.strip().lower()).first()
             if not user or not user.check_password(args.password):
                 auth_ns.abort(401, 'Invalid credentials')
