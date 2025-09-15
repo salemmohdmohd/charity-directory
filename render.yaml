@@ -32,35 +32,11 @@ databases: # Render PostgreSQL database
       ipAllowList: [] # only allow internal connections
       plan: free # optional; defaults to starter
 
-jobs:
-  - name: run-migrations
-    type: run
-    region: ohio
-    plan: free
-    env: python
-    # Run migrations against the managed Postgres database. Idempotent.
-    commands:
-      - pip install -r requirements.txt
-      - export FLASK_APP=src/app.py
-      - flask db upgrade
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: postgresql-trapezoidal-42170
-          property: connectionString
-
-  - name: run-seeds
-    type: run
-    region: ohio
-    plan: free
-    env: python
-    # Seeds demo data using the idempotent seed runner in scripts/seed_meaningful.py
-    commands:
-      - pip install -r requirements.txt
-      - export FLASK_APP=src/app.py
-      - python3 scripts/seed_meaningful.py
-    envVars:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: postgresql-trapezoidal-42170
-          property: connectionString
+# Note: Render reports a schema validation error for a top-level `jobs:` block in this
+# repo's YAML. To run migrations and seeds, use Render's dashboard or CLI to run one-off
+# commands against the service once the Postgres database is provisioned, for example:
+#   pip install -r requirements.txt
+#   export FLASK_APP=src/app.py
+#   flask db upgrade
+# Then run the seed script:
+#   python3 scripts/seed_meaningful.py
