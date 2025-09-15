@@ -159,12 +159,6 @@ load_dotenv()
 
 # database condiguration
 db_url = os.getenv("DATABASE_URL")
-if db_url and db_url.startswith("sqlite:///"):
-    # Adjust path for sqlite to be in the project root
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    db_path = os.path.join(project_root, db_url.split("sqlite:///")[1])
-    db_url = f"sqlite:///{db_path}"
-
 if not db_url:
     raise ValueError("DATABASE_URL environment variable is required")
 app.config['SQLALCHEMY_DATABASE_URI'] = db_url

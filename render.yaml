@@ -7,7 +7,10 @@ services:
       name: sample-service-name
       env: python # valid values: https://render.com/docs/yaml-spec#environment
       buildCommand: "./render_build.sh"
-      startCommand: "gunicorn wsgi --chdir ./src/"
+  # Run migrations before starting the web process so the database schema is up-to-date.
+  # This keeps deploys simple; alternatively you can run the job below from the Render dashboard
+  # once after the database is provisioned.
+  startCommand: "bash -lc \"export FLASK_APP=src/app.py && flask db upgrade && gunicorn wsgi --chdir ./src/\""
       plan: free # optional; defaults to starter
       numInstances: 1
       envVars:
@@ -31,3 +34,20 @@ databases: # Render PostgreSQL database
       region: ohio
       ipAllowList: [] # only allow internal connections
       plan: free # optional; defaults to starter
+
+jobs:
+  # Optional migration job you can trigger from the Render dashboard or wire into CI.
+  - type: job
+    name: run-migrations
+    env: python
+    region: ohio
+    plan: free
+    # Ensure FLASK_APP is set and the DATABASE_URL is injected from the managed DB
+    command: bash -lc "export FLASK_APP=src/app.py && flask db upgrade"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.6
+      - key: DATABASE_URL
+        fromDatabase:
+          name: postgresql-trapezoidal-42170
+          property: connectionString
