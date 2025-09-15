@@ -22,6 +22,9 @@ fi
 # Ensure Flask env vars for migrations
 export FLASK_APP=src/app.py
 export FLASK_ENV=production
+# Ensure PYTHONPATH so import paths inside seed scripts (which import 'app') work
+export PYTHONPATH=src
+echo "Exported PYTHONPATH=src"
 
 echo "Running database migrations (flask db upgrade)..."
 python -m flask db upgrade
@@ -29,7 +32,8 @@ python -m flask db upgrade
 # Seed data if seed script exists
 if [ -f "scripts/seed_meaningful.py" ]; then
   echo "Running seed script scripts/seed_meaningful.py"
-  python scripts/seed_meaningful.py
+  # Run with PYTHONPATH set to src (ensures `from app import app` works)
+  PYTHONPATH=src python -u scripts/seed_meaningful.py
 else
   echo "No seed script found at scripts/seed_meaningful.py; skipping seeds"
 fi
