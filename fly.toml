@@ -1,0 +1,32 @@
+[app]
+  # Set during 'fly launch' if you choose a name; keep this file but update app name if needed
+  app = "charity-directory"
+  primary_region = "dfw"
+
+[build]
+  image = ""
+
+[deploy]
+  release_command = ""
+
+[[services]]
+  internal_port = 8080
+  protocol = "tcp"
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 200
+    soft_limit = 100
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls","http"]
+    port = 443
+
+[mounts]
+  # Mounts will be created with 'fly volumes create' and referenced by name
+  [[mounts]]
+    source = "data"
+    destination = "/data"

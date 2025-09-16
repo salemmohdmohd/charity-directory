@@ -1,4 +1,5 @@
 from flask_restx import Resource, reqparse
+from flask import current_app
 from ..models import db, Category, Organization
 from ..core import api
 from ..schemas import pagination_parser
@@ -22,40 +23,45 @@ class CategoryList(Resource):
         Get a list of all categories.
         Can optionally include a preview of organizations for each category.
         """
-        args = category_list_parser.parse_args()
-        include_orgs = args['include_organizations']
-        per_page = args['per_page']
+        try:
+            args = category_list_parser.parse_args()
+            include_orgs = args['include_organizations']
+            per_page = args['per_page']
 
-        query = Category.query.order_by(Category.sort_order, Category.name)
-
-        if include_orgs:
-            # Using joinedload to efficiently fetch organizations
-            from sqlalchemy.orm import joinedload
-            query = query.options(joinedload(Category.organizations))
-
-        categories = query.all()
-
-        result = []
-        for c in categories:
-            category_data = {
-                'id': c.id,
-                'name': c.name,
-                'description': c.description,
-                'icon_url': c.icon_url,
-                'color_code': c.color_code,
-                'organization_count': len([o for o in c.organizations if o.status == 'approved'])
-            }
+            query = Category.query.order_by(Category.sort_order, Category.name)
 
             if include_orgs:
-                # Filter for approved organizations and limit the number
-                approved_orgs = [o for o in c.organizations if o.status == 'approved']
-                # Sort by creation date to get the latest ones
-                sorted_orgs = sorted(approved_orgs, key=lambda o: o.created_at, reverse=True)
-                category_data['organizations'] = [serialize_organization(o) for o in sorted_orgs[:per_page]]
+                # Using joinedload to efficiently fetch organizations
+                from sqlalchemy.orm import joinedload
+                query = query.options(joinedload(Category.organizations))
 
-            result.append(category_data)
+            categories = query.all()
 
-        return result
+            result = []
+            for c in categories:
+                category_data = {
+                    'id': c.id,
+                    'name': c.name,
+                    'description': c.description,
+                    'icon_url': c.icon_url,
+                    'color_code': c.color_code,
+                    'organization_count': len([o for o in c.organizations if o.status == 'approved'])
+                }
+
+                if include_orgs:
+                    # Filter for approved organizations and limit the number
+                    approved_orgs = [o for o in c.organizations if o.status == 'approved']
+                    # Sort by creation date to get the latest ones
+                    sorted_orgs = sorted(approved_orgs, key=lambda o: o.created_at, reverse=True)
+                    category_data['organizations'] = [serialize_organization(o) for o in sorted_orgs[:per_page]]
+
+                result.append(category_data)
+
+            return result
+        except Exception as e:
+            # Log full traceback to server logs for triage (Render captures stdout/stderr)
+            current_app.logger.exception('Failed to retrieve categories')
+            api.abort(500, 'Failed to retrieve categories')
 
 @category_ns.route('/<int:category_id>/organizations')
 class CategoryOrganizations(Resource):

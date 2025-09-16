@@ -1,0 +1,17 @@
+venv
+.venv
+__pycache__
+node_modules
+dist
+.git
+.github
+.pytest_cache
+.DS_Store
+local.db
+.env
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+.idea
+.vscode
