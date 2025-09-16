@@ -36,7 +36,7 @@ fi
 
 # Run database migrations (Alembic)
 echo "Running database migrations with Alembic"
-alembic upgrade head
+alembic -c migrations/alembic.ini upgrade head
 
 # Seed the database with initial data
 echo "Seeding database with initial data"
