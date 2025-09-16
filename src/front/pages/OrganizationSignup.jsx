@@ -171,12 +171,8 @@ export const OrganizationSignup = () => {
   const validateSocialMediaUrl = (url, platform) => {
     if (!url) return true; // Optional fields
 
-    // Basic URL validation
-    if (!/^https?:\/\/.+/.test(url)) {
-      return `Please enter a valid URL for your ${platform} profile`;
-    }
-
-    // Platform-specific validation
+    // No regex validation for social media URLs
+    // Only platform-specific validation (optional)
     switch (platform.toLowerCase()) {
       case 'facebook':
         return url.includes('facebook.com') || url.includes('fb.com') ?
@@ -208,10 +204,10 @@ export const OrganizationSignup = () => {
       newErrors.organization_name = 'Organization name must be at least 3 characters';
     }
 
-    // URL validation function
+    // Relaxed URL validation function
     const validateUrl = (url, fieldName) => {
-      if (url && !url.match(/^(.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_+.~#?&//=]*)$/)) {
-        newErrors[fieldName] = 'Please enter a valid URL';
+      if (url && !/^https?:\/\/[\w\-\.]+(\.[\w\-]+)+([\w\-\._~:/?#[\]@!$&'()*+,;=]*)?$/.test(url)) {
+        newErrors[fieldName] = 'Please enter a valid URL starting with http:// or https://';
       }
     };
 
@@ -256,14 +252,15 @@ export const OrganizationSignup = () => {
       newErrors.operating_hours = 'Operating hours are required';
     }
 
-    // Social media URL validation
+    // Social media URL validation (optional fields)
     validateUrl(formData.facebook_url, 'facebook_url');
     validateUrl(formData.instagram_url, 'instagram_url');
     validateUrl(formData.twitter_url, 'twitter_url');
     validateUrl(formData.linkedin_url, 'linkedin_url');
     validateUrl(formData.youtube_url, 'youtube_url');
 
-    // Social media URL validation
+    // No longer require social media URLs to be filled
+    // Only validate if a value is provided
     const socialPlatforms = [
       { field: 'facebook_url', name: 'Facebook' },
       { field: 'instagram_url', name: 'Instagram' },
@@ -274,9 +271,7 @@ export const OrganizationSignup = () => {
 
     socialPlatforms.forEach(platform => {
       const url = formData[platform.field];
-      if (!url) {
-        newErrors[platform.field] = `${platform.name} URL is required`;
-      } else {
+      if (url) {
         const validationResult = validateSocialMediaUrl(url, platform.name);
         if (validationResult !== true) {
           newErrors[platform.field] = validationResult;
