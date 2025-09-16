@@ -40,4 +40,5 @@ alembic -c migrations/alembic.ini upgrade head
 
 # Seed the database with initial data
 echo "Seeding database with initial data"
-python scripts/seed_meaningful.py
+ export PYTHONPATH="$PYTHONPATH:$(pwd)/src"
+ python scripts/seed_meaningful.py
