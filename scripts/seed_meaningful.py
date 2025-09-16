@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 #!/usr/bin/env python3
 """One-line runner to invoke api.seed.seed_all() inside the Flask app context.
 
