@@ -33,3 +33,11 @@ if [ -f requirements.txt ]; then
 else
   echo "No requirements.txt found, skipping pip install. If you use Poetry, ensure Render installs dependencies in build settings."
 fi
+
+# Run database migrations (Alembic)
+echo "Running database migrations with Alembic"
+alembic upgrade head
+
+# Seed the database with initial data
+echo "Seeding database with initial data"
+python scripts/seed_meaningful.py
