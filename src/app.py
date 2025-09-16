@@ -137,7 +137,7 @@ except ImportError:
 # Configure Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'  # Redirect to login page when login required
+login_manager.login_view = 'backend_login'  # Redirect to backend login page when login required
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 
@@ -240,9 +240,9 @@ def handle_invalid_usage(error):
 
 # generate sitemap with all your endpoints
 
-@app.route('/login')
-def login():
-    """Login page for web authentication"""
+@app.route('/backend-login')
+def backend_login():
+    """Backend Login page for admin authentication"""
     from flask import render_template
     return render_template('login.html')
 

@@ -204,11 +204,10 @@ export const OrganizationSignup = () => {
       newErrors.organization_name = 'Organization name must be at least 3 characters';
     }
 
-    // Relaxed URL validation function
+    // Remove all regex validation for social media URLs
+    // Only check if a value is present, no format validation
     const validateUrl = (url, fieldName) => {
-      if (url && !/^https?:\/\/[\w\-\.]+(\.[\w\-]+)+([\w\-\._~:/?#[\]@!$&'()*+,;=]*)?$/.test(url)) {
-        newErrors[fieldName] = 'Please enter a valid URL starting with http:// or https://';
-      }
+      // No validation needed
     };
 
     if (!formData.category_id) {
@@ -252,12 +251,7 @@ export const OrganizationSignup = () => {
       newErrors.operating_hours = 'Operating hours are required';
     }
 
-    // Social media URL validation (optional fields)
-    validateUrl(formData.facebook_url, 'facebook_url');
-    validateUrl(formData.instagram_url, 'instagram_url');
-    validateUrl(formData.twitter_url, 'twitter_url');
-    validateUrl(formData.linkedin_url, 'linkedin_url');
-    validateUrl(formData.youtube_url, 'youtube_url');
+  // No regex validation for social media URLs
 
     // No longer require social media URLs to be filled
     // Only validate if a value is provided
@@ -552,7 +546,7 @@ export const OrganizationSignup = () => {
       }
 
       // Add default values according to UML model
-      data.append('status', 'pending'); // Organizations start as pending until approved by admin
+    data.append('status', 'approved'); // Organizations are approved by default
       data.append('verification_level', 'basic'); // Start with basic verification level
       data.append('is_verified', 'false'); // Not verified by default
       data.append('view_count', '0'); // Start with 0 views
