@@ -3,7 +3,7 @@
 
 Usage: PYTHONPATH=src FLASK_APP=src/app.py python scripts/seed_meaningful.py
 """
-from app import app
+from src.app import app
 
 def main():
     with app.app_context():
