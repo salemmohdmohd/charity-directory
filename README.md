@@ -2,6 +2,22 @@
 
 A comprehensive full-stack web application for discovering, managing, and connecting with small and mid-size non-profit organizations. This platform provides a centralized directory for charities that will also help those charities be accessible on the web and be search engine optimized and AI platform optimized.
 
+https://sample-service-name-thpp.onrender.com
+
+<img width="1437" height="788" alt="Screenshot 2025-09-17 at 6 21 14 PM" src="https://github.com/user-attachments/assets/baed8d2c-73c8-4c61-baa8-79933618052a" />
+
+<img width="1440" height="786" alt="Screenshot 2025-09-17 at 6 21 42 PM" src="https://github.com/user-attachments/assets/6a7b6e51-ded5-4510-b1d1-8097ba3f6e2b" />
+
+https://sample-service-name-thpp.onrender.com/backend-login
+
+<img width="1439" height="835" alt="Screenshot 2025-09-17 at 6 24 40 PM" src="https://github.com/user-attachments/assets/5f63df52-dcbe-4f4b-8caa-129f6a2aebb8" />
+
+<img width="1438" height="789" alt="Screenshot 2025-09-17 at 6 25 28 PM" src="https://github.com/user-attachments/assets/8e17277a-ec3c-448c-a165-b0e042283709" />
+
+https://sample-service-name-thpp.onrender.com/api/docs
+
+<img width="1440" height="825" alt="Screenshot 2025-09-17 at 6 25 46 PM" src="https://github.com/user-attachments/assets/7c65a304-16ee-4a67-bf0a-19b0d6759f81" />
+
 ## Features
 
 - **Advanced Search**: Find charities by location, category, verification level, and keywords
